@@ -355,7 +355,7 @@ struct implbase {
             if (m[i]) { a[i] = p[o[i]]; }
         }
         return I::copy_from(a);
-    };
+    }
 
     template <typename ImplIndex>
     static void scatter(ImplIndex, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index) {
