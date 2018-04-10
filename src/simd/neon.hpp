@@ -179,16 +179,15 @@ struct neon_double2: implbase<neon_double2> {
     }/**essential**/
 
     static float64x2_t max(const float64x2_t& a, const float64x2_t& b) {
-        return _mm256_max_pd(a, b);
+        return vmaxnmq_f64(a, b);
     }
 
     static float64x2_t min(const float64x2_t& a, const float64x2_t& b) {
-        return _mm256_min_pd(a, b);
+        return vminnmq_f64(a, b);
     }
 
     static float64x2_t abs(const float64x2_t& x) {
-        __m256i m = _mm256_set1_epi64x(0x7fffffffffffffffll);
-        return _mm256_and_pd(x, _mm256_castsi256_pd(m));
+        return vabsq_f64(x);
     }
 
     // Exponential is calculated as follows:
@@ -230,7 +229,7 @@ struct neon_double2: implbase<neon_double2> {
     // attributable to catastrophic rounding. C1 comprises the first
     // 32-bits of mantissa, C2 the remainder.
 
-    static  float64x2_t exp(const float64x2_t& x) {
+    /*static  float64x2_t exp(const float64x2_t& x) {
         // Masks for exceptional cases.
 
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
@@ -374,14 +373,14 @@ struct neon_double2: implbase<neon_double2> {
             ifelse(is_large, broadcast(HUGE_VAL),
             ifelse(is_small, broadcast(-HUGE_VAL),
                 r)));
-    }
+    }*/
 
 protected:
     static float64x2_t zero() {
         return vdupq_n_f64(0);
     }
 
-    static __m128i hi_epi32(__m256i x) {
+    /*static __m128i hi_epi32(__m256i x) {
         __m128i xl = _mm256_castsi256_si128(x);
         __m128i xh = _mm256_extractf128_si256(x, 1);
         return _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(xl), _mm_castsi128_ps(xh), 0xddu));
@@ -487,7 +486,7 @@ protected:
 
         auto nzans = _mm256_or_pd(_mm256_and_pd(_mm256_castsi256_pd(sumhl), smask), sbits);
         return ifelse(cmp_eq(x, zero()), zero(), nzans);
-    }
+    }*/
 	
 };
 
