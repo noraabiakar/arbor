@@ -21,7 +21,7 @@ struct simd_traits<neon_double2> {
     static constexpr unsigned width = 2;
     using scalar_type = double;
     using vector_type = float64x2_t;
-    using mask_impl = neon_double2; //uint64x2_t?
+    using mask_impl = neon_double2; //int64x2_t?
 };
 
 struct neon_double2: implbase<neon_double2> {
@@ -57,7 +57,7 @@ struct neon_double2: implbase<neon_double2> {
 	}
 
     static float64x2_t copy_from_masked(const float64x2_t& v, const double* p, const float64x2_t& mask) {
-		float64x2_t a = (* v);
+		float64x2_t a = (*v);
         float64x2_t r = vld1q_f64(p);
 		a = vbslq_f64(vreinterpretq_u64_f64(mask), r, a);
 		return a;
@@ -84,12 +84,16 @@ struct neon_double2: implbase<neon_double2> {
     }
 
     static float64x2_t logical_not(const float64x2_t& a) {
-		return vreinterpretq_f64_u32(vmvnq_u32(vreinterpretq_u32_f64(a)));
+		return vreinterpretq_f64_u64(vmvnq_u64(vreinterpretq_u64_f64(a)));
 	}
 
-    //static float64x2_t logical_and(const float64x2_t& a, const float64x2_t& b)
+    static float64x2_t logical_and(const float64x2_t& a, const float64x2_t& b) {
+		return vreinterpretq_f64_u64(vandq_u64(vreinterpretq_u64_f64(a)));
+	}
 
-    //static float64x2_t logical_or(const float64x2_t& a, const float64x2_t& b)
+    static float64x2_t logical_or(const float64x2_t& a, const float64x2_t& b) {
+		return vreinterpretq_f64_u64(vorrq_u64(vreinterpretq_u64_f64(a)));
+	}
 
     static float64x2_t cmp_eq(const float64x2_t& a, const float64x2_t& b) {
 		return vceqq_f64 (a, b);
@@ -99,35 +103,46 @@ struct neon_double2: implbase<neon_double2> {
 		return logical_not(cmp_eq(a, b));	
 	}
 
-    static float64x2_t cmp_gt(const float64x2_t& a, const float64x2_t& b) {}
+    static float64x2_t cmp_gt(const float64x2_t& a, const float64x2_t& b) {
+		return vreinterpretq_f64_u64(vcgtq_f64(a, b));
+	}
 
-    static float64x2_t cmp_geq(const float64x2_t& a, const float64x2_t& b) {}
+    static float64x2_t cmp_geq(const float64x2_t& a, const float64x2_t& b) {
+		return vreinterpretq_f64_u64(vcgeq_f64(a, b));
+	}
 
-    static float64x2_t cmp_lt(const float64x2_t& a, const float64x2_t& b) {}
+    static float64x2_t cmp_lt(const float64x2_t& a, const float64x2_t& b) {
+		return vreinterpretq_f64_u64(vcltq_f64(a, b));
+	}
 
-    static float64x2_t cmp_leq(const float64x2_t& a, const float64x2_t& b) {}
+    static float64x2_t cmp_leq(const float64x2_t& a, const float64x2_t& b) {
+		return vreinterpretq_f64_u64(vcleq_f64(a, b));
+	}
 
-    static float64x2_t ifelse(const float64x2_t& m, const float64x2_t& u, const float64x2_t& v) {}
-	//vbslq_f64
+    static float64x2_t ifelse(const float64x2_t& m, const float64x2_t& u, const float64x2_t& v) {
+		a = vbslq_f64(vreinterpretq_u64_f64(mask), u, v);
+		return a;
+	}
 
-    static float64x2_t mask_broadcast(bool b) {}
+    static float64x2_t mask_broadcast(bool b) {
+		return vreinterpretq_f64_u64(vdupq_n_u64(-(int64)b));	
+	}
 
     static bool mask_element(const float64x2_t& u, int i) {
         return static_cast<bool>(element(u, i));
     }/**essential**/
 
     static float64x2_t mask_unpack(unsigned long long k) {
-        // Only care about bottom four bits of k.
-        __m128i b = _mm_set1_epi8((char)k);
-        // (Note: there is no _mm_setr_epi64x (!))
-        __m128i bl = _mm_or_si128(b, _mm_set_epi64x(0xfdfdfdfdfdfdfdfd, 0xfefefefefefefefe));
-        __m128i bu = _mm_or_si128(b, _mm_set_epi64x(0xf7f7f7f7f7f7f7f7, 0xfbfbfbfbfbfbfbfb));
+        // Only care about bottom two bits of k.
+		uint8x8_t b = vdup_n_u8((char)k); 
+		unit8x8_t bl = vorr_u8(b, vdup_n_u8(0xfe));  
+		unit8x8_t bu = vorr_u8(b, vdup_n_u8(0xfd));  
+		uint8x16_t blu = vcombine_s8(bl, bu);
 
-        __m128i ones = {};
-        ones = _mm_cmpeq_epi32(ones, ones);
-        bl = _mm_cmpeq_epi64(bl, ones);
-        bu = _mm_cmpeq_epi64(bu, ones);
-        return _mm256_castsi256_pd(combine_m128i(bu, bl));
+		uint8x16_t ones = vdupq_n_u8(0xff); 
+		uint64x2_t r = vceqq_u64(vreinterpretq_u64_u8(ones), vreinterpretq_u64_u8(blu)); 
+		
+        return vreinterpretq_f64_u64(r);
     }
 
     static void mask_set_element(float64x2_t& u, int i, bool b) {
@@ -143,41 +158,24 @@ struct neon_double2: implbase<neon_double2> {
 
         int8x16_t mc = vnegq_s8(vreinterpretq_s8_f64(m)); 
 		int8x8_t mh = vget_high_s8(mc);
-		mh = vand_s8 (mh, 0x000000000000ff00);
+		mh = vand_s8(mh, vreinterpret_s8_s64(vdup_n_s64(0x000000000000ff00)));
 		int8x8_t ml = vget_low_s8(mc);
-		ml = vand_s8 (mh, 0x00000000000000ff);
-		mh = vadd_s8 (mh, ml); 
+		ml = vand_s8(mh, vreinterpret_s8_s64(vdup_n_s64(0x00000000000000ff)));
+		mh = vadd_s8(mh, ml); 
         std::memcpy(y, &mh, 2);
-
-        /*uint8x16_t mc = vreinterpretq_u8_f64(m); 
-		mc = vandq_u8 (mc, 0x000000000000ff00000000000000ff);
-		uint8x8_t ml = vget_low_u8(negate(mc));
-		uint8x8_t mh = vget_high_u8(negate(mc));
-		uint8x8x2_t mc2 = vzip_u8 (mh, ml);
-		vst2q_u8 (y, mc2);*/
-
     }/**essential**/
 
     static float64x2_t mask_copy_from(const bool* w) {
         // Move bytes:
         //   rl: byte 0 to byte 0, byte 1 to byte 8, zero elsewhere.
-        //   ru: byte 2 to byte 0, byte 3 to byte 8, zero elsewhere.
         //
         // Subtract from zero to translate
         // 0x0000000000000001 to 0xffffffffffffffff.
 
-        /*uint8x8_t rl, ru;
-        std::memcpy(&rl, w, 1);
-        std::memcpy(&ru, w + 8, 1);
-		rl = vand_u8 (rl, 0x00000000000000ff);
-		ru = vand_u8 (ru, 0x00000000000000ff);
-        return vreinterpretq_f64_u8(vcombine_u8 (negate(rl), negate(ru)));*/
+		int8x8x2_t t = vld2_s8(w); //intervleaved load
+		int64x2_t r = vreinterpretq_s64_s8(vcombine_s8 ((t.val[0]), (t.val[1])));
+		return vreinterpretq_f64_s64(vnegq_s64(r));
 		
-		int8_t t;
-        std::memcpy(&t, w, 2);
-		int8x8x2_t r = vld2_s8(t);
-        return vreinterpretq_f64_u8(vcombine_u8 (negate(r.val[1]), negate(r.val[0])));
-
     }/**essential**/
 
     static float64x2_t max(const float64x2_t& a, const float64x2_t& b) {
