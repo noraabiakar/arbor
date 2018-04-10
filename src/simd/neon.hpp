@@ -57,9 +57,9 @@ struct neon_double2: implbase<neon_double2> {
 	}
 
     static float64x2_t copy_from_masked(const float64x2_t& v, const double* p, const float64x2_t& mask) {
-		float64x2_t a = (*v);
+		float64x2_t a;
         float64x2_t r = vld1q_f64(p);
-		a = vbslq_f64(vreinterpretq_u64_f64(mask), r, a);
+		a = vbslq_f64(vreinterpretq_u64_f64(mask), r, v);
 		return a;
 	}
 
@@ -84,19 +84,19 @@ struct neon_double2: implbase<neon_double2> {
     }
 
     static float64x2_t logical_not(const float64x2_t& a) {
-		return vreinterpretq_f64_u64(vmvnq_u64(vreinterpretq_u64_f64(a)));
+		return vreinterpretq_f64_u32(vmvnq_u32(vreinterpretq_u32_f64(a)));
 	}
 
     static float64x2_t logical_and(const float64x2_t& a, const float64x2_t& b) {
-		return vreinterpretq_f64_u64(vandq_u64(vreinterpretq_u64_f64(a)));
+		return vreinterpretq_f64_u64(vandq_u64(vreinterpretq_u64_f64(a), vreinterpretq_u64_f64(b)));
 	}
 
     static float64x2_t logical_or(const float64x2_t& a, const float64x2_t& b) {
-		return vreinterpretq_f64_u64(vorrq_u64(vreinterpretq_u64_f64(a)));
+		return vreinterpretq_f64_u64(vorrq_u64(vreinterpretq_u64_f64(a), vreinterpretq_u64_f64(b)));
 	}
 
     static float64x2_t cmp_eq(const float64x2_t& a, const float64x2_t& b) {
-		return vceqq_f64 (a, b);
+		return vreinterpretq_f64_u64(vceqq_f64(a, b));
 	} 
 
     static float64x2_t cmp_neq(const float64x2_t& a, const float64x2_t& b) {
@@ -120,8 +120,7 @@ struct neon_double2: implbase<neon_double2> {
 	}
 
     static float64x2_t ifelse(const float64x2_t& m, const float64x2_t& u, const float64x2_t& v) {
-		a = vbslq_f64(vreinterpretq_u64_f64(mask), u, v);
-		return a;
+		return vbslq_f64(vreinterpretq_u64_f64(m), u, v);
 	}
 
     static float64x2_t mask_broadcast(bool b) {
@@ -135,9 +134,9 @@ struct neon_double2: implbase<neon_double2> {
     static float64x2_t mask_unpack(unsigned long long k) {
         // Only care about bottom two bits of k.
 		uint8x8_t b = vdup_n_u8((char)k); 
-		unit8x8_t bl = vorr_u8(b, vdup_n_u8(0xfe));  
-		unit8x8_t bu = vorr_u8(b, vdup_n_u8(0xfd));  
-		uint8x16_t blu = vcombine_s8(bl, bu);
+		uint8x8_t bl = vorr_u8(b, vdup_n_u8(0xfe));  
+		uint8x8_t bu = vorr_u8(b, vdup_n_u8(0xfd));  
+		uint8x16_t blu = vcombine_u8(bl, bu);
 
 		uint8x16_t ones = vdupq_n_u8(0xff); 
 		uint64x2_t r = vceqq_u64(vreinterpretq_u64_u8(ones), vreinterpretq_u64_u8(blu)); 
@@ -172,7 +171,9 @@ struct neon_double2: implbase<neon_double2> {
         // Subtract from zero to translate
         // 0x0000000000000001 to 0xffffffffffffffff.
 
-		int8x8x2_t t = vld2_s8(w); //intervleaved load
+        int8_t a[16]; //TODO: check 
+        std::memcpy(&a, w, 1);  
+		int8x8x2_t t = vld2_s8(a); //intervleaved load
 		int64x2_t r = vreinterpretq_s64_s8(vcombine_s8 ((t.val[0]), (t.val[1])));
 		return vreinterpretq_f64_s64(vnegq_s64(r));
 		
@@ -497,7 +498,6 @@ namespace simd_abi {
 
     template <> struct neon<double, 2> { using type = simd_detail::neon_double2; };
 
-#endif
 } // namespace simd_abi
 
 } // namespace simd
