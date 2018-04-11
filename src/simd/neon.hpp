@@ -232,16 +232,26 @@ struct neon_double2: implbase<neon_double2> {
     // attributable to catastrophic rounding. C1 comprises the first
     // 32-bits of mantissa, C2 the remainder.
 
-    /*static  float64x2_t exp(const float64x2_t& x) {
+    static  float64x2_t exp(const float64x2_t& x) {
         // Masks for exceptional cases.
 
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
         auto is_small = cmp_lt(x, broadcast(exp_minarg));
-        auto is_nan = _mm256_cmp_pd(x, x, cmp_unord_q);
+
+		double d[2]; 
+        vst1q_u64(d, x);
+		bool a0 = isnan(d[0]) == 0 ? 0 : 1;  
+		bool a1 = isnan(d[1]) == 0 ? 0 : 1;  
+		const bool a[2] = {a0, a1};
+		
+		auto is_nan = mask_copy_from()
+		
+        //auto is_nan = _mm256_cmp_pd(x, x, cmp_unord_q); //TODO: nan
 
         // Compute n and g.
 
-        auto n = _mm256_floor_pd(add(mul(broadcast(ln2inv), x), broadcast(0.5)));
+		//floor: round toward negative infinity
+        auto n = vcvtmq_s64_f64(add(mul(broadcast(ln2inv), x), broadcast(0.5))); 
 
         auto g = sub(x, mul(n, broadcast(ln2C1)));
         g = sub(g, mul(n, broadcast(ln2C2)));
@@ -262,7 +272,7 @@ struct neon_double2: implbase<neon_double2> {
         // Note: can only achieve full range using the ldexp implementation,
         // rather than multiplying by 2^n directly.
 
-        auto result = ldexp_positive(expg, _mm256_cvtpd_epi32(n));
+        auto result = ldexp_positive(expg, vmovn_s64(n));
 
         return
             ifelse(is_large, broadcast(HUGE_VAL),
@@ -278,7 +288,7 @@ struct neon_double2: implbase<neon_double2> {
     // and scale the answer by:
     //     expm1(x) = 2^n * expm1(g) + (2^n - 1).
 
-    static  float64x2_t expm1(const float64x2_t& x) {
+    /*static  float64x2_t expm1(const float64x2_t& x) {
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
         auto is_small = cmp_lt(x, broadcast(expm1_minarg));
         auto is_nan = _mm256_cmp_pd(x, x, cmp_unord_q);
@@ -397,7 +407,7 @@ protected:
 
     static __m256i combine_m128i(__m128i hi, __m128i lo) {
         return _mm256_insertf128_si256(_mm256_castsi128_si256(lo), hi, 1);
-    }
+    }*/
 
     // horner(x, a0, ..., an) computes the degree n polynomial A(x) with coefficients
     // a0, ..., an by a0+x·(a1+x·(a2+...+x·an)...).
@@ -424,7 +434,7 @@ protected:
     }
 
     // Compute 2.0^n.
-    static float64x2_t exp2int(__m128i n) {
+    /*static float64x2_t exp2int(__m128i n) {
         n = _mm_slli_epi32(n, 20);
         n = _mm_add_epi32(n, _mm_set1_epi32(1023<<20));
 
@@ -451,27 +461,19 @@ protected:
         float64x2_t emask = _mm256_castsi256_pd(_mm256_set1_epi64x(-0x7ff0000000000001));
         float64x2_t bias = _mm256_castsi256_pd(_mm256_set1_epi64x(0x3ff0000000000000));
         return _mm256_or_pd(bias, _mm256_and_pd(emask, x));
-    }
+    }*/
 
     // Compute 2^n·x when both x and 2^n·x are normal, finite and strictly positive doubles.
-    static float64x2_t ldexp_positive(float64x2_t x, __m128i n) {
-        n = _mm_slli_epi32(n, 20);
-        auto zero = _mm_set1_epi32(0);
-        auto nl = _mm_unpacklo_epi32(zero, n);
-        auto nh = _mm_unpackhi_epi32(zero, n);
+    static float64x2_t ldexp_positive(float64x2_t x, int32x2_t n) {
+        int64x2 nlong =  vmovl_s32(n);
+		nlong = vshlq_s64(nlong, vdupq_n_s64(52)); 
+		int64x2 r = vaddq_s64(nlong, vreinterpretq_s64_f64(x)); 
 
-        __m128d xl = _mm256_castpd256_pd128(x);
-        __m128d xh = _mm256_extractf128_pd(x, 1);
-
-        __m128i suml = _mm_add_epi64(nl, _mm_castpd_si128(xl));
-        __m128i sumh = _mm_add_epi64(nh, _mm_castpd_si128(xh));
-        __m256i sumhl = combine_m128i(sumh, suml);
-
-        return _mm256_castsi256_pd(sumhl);
+        return vreinterpretq_f64_s64(r);
     }
 
     // Compute 2^n·x when both x and 2^n·x are normal and finite.
-    static float64x2_t ldexp_normal(float64x2_t x, __m128i n) {
+    /*static float64x2_t ldexp_normal(float64x2_t x, __m128i n) {
         float64x2_t smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
         float64x2_t sbits = _mm256_andnot_pd(smask, x);
 

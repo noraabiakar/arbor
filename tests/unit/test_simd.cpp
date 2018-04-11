@@ -807,6 +807,9 @@ typedef ::testing::Types<
 #ifdef __AVX512F__
     simd<double, 8, simd_abi::avx512>,
 #endif
+#if defined(__ARM_NEON__) || defined(__aarch64__)
+    simd<double, 2, simd_abi::neon>,
+#endif
 
     simd<float, 2, simd_abi::generic>,
     simd<double, 4, simd_abi::generic>,
