@@ -9,6 +9,7 @@
 
 #include <simd/approx.hpp>
 #include <simd/implbase.hpp>
+#include <iostream>
 
 namespace arb {
 namespace simd {
@@ -159,7 +160,7 @@ struct neon_double2: implbase<neon_double2> {
 		int8x8_t mh = vget_high_s8(mc);
 		mh = vand_s8(mh, vreinterpret_s8_s64(vdup_n_s64(0x000000000000ff00)));
 		int8x8_t ml = vget_low_s8(mc);
-		ml = vand_s8(mh, vreinterpret_s8_s64(vdup_n_s64(0x00000000000000ff)));
+		ml = vand_s8(ml, vreinterpret_s8_s64(vdup_n_s64(0x00000000000000ff)));
 		mh = vadd_s8(mh, ml); 
         std::memcpy(y, &mh, 2);
     }/**essential**/
@@ -171,11 +172,12 @@ struct neon_double2: implbase<neon_double2> {
         // Subtract from zero to translate
         // 0x0000000000000001 to 0xffffffffffffffff.
 
-        int8_t a[16]; //TODO: check 
-        std::memcpy(&a, w, 1);  
+        int8_t a[16] = {0}; 
+        std::memcpy(&a, w, 2);  
 		int8x8x2_t t = vld2_s8(a); //intervleaved load
 		int64x2_t r = vreinterpretq_s64_s8(vcombine_s8 ((t.val[0]), (t.val[1])));
-		return vreinterpretq_f64_s64(vnegq_s64(r));
+		int64x2_t r2 = (vnegq_s64(r));
+        return vreinterpretq_f64_s64(r2); 
 		
     }/**essential**/
 
