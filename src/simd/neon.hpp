@@ -239,22 +239,20 @@ struct neon_double2: implbase<neon_double2> {
         auto is_small = cmp_lt(x, broadcast(exp_minarg));
 
 		double d[2]; 
-        vst1q_u64(d, x);
+        vst1q_f64(d, x);
 		bool a0 = isnan(d[0]) == 0 ? 0 : 1;  
 		bool a1 = isnan(d[1]) == 0 ? 0 : 1;  
 		const bool a[2] = {a0, a1};
 		
-		auto is_nan = mask_copy_from()
+		auto is_nan = mask_copy_from(a);
 		
-        //auto is_nan = _mm256_cmp_pd(x, x, cmp_unord_q); //TODO: nan
-
         // Compute n and g.
 
 		//floor: round toward negative infinity
         auto n = vcvtmq_s64_f64(add(mul(broadcast(ln2inv), x), broadcast(0.5))); 
 
-        auto g = sub(x, mul(n, broadcast(ln2C1)));
-        g = sub(g, mul(n, broadcast(ln2C2)));
+        auto g = sub(x, mul(vreinterpretq_f64_s64(n), broadcast(ln2C1)));
+        g = sub(g, mul(vreinterpretq_f64_s64(n), broadcast(ln2C2)));
 
         auto gg = mul(g, g);
 
@@ -465,9 +463,9 @@ protected:
 
     // Compute 2^n·x when both x and 2^n·x are normal, finite and strictly positive doubles.
     static float64x2_t ldexp_positive(float64x2_t x, int32x2_t n) {
-        int64x2 nlong =  vmovl_s32(n);
+        int64x2_t nlong =  vmovl_s32(n);
 		nlong = vshlq_s64(nlong, vdupq_n_s64(52)); 
-		int64x2 r = vaddq_s64(nlong, vreinterpretq_s64_f64(x)); 
+		int64x2_t r = vaddq_s64(nlong, vreinterpretq_s64_f64(x)); 
 
         return vreinterpretq_f64_s64(r);
     }
