@@ -36,36 +36,36 @@ struct neon_double2: implbase<neon_double2> {
     }
 
     static void copy_to(const float64x2_t& v, double* p) {
-		vst1q_f64(p, v);
+        vst1q_f64(p, v);
     }/**essental**/
 
     static void copy_to_masked(const float64x2_t& v, double* p, const float64x2_t& mask) {
-		
+        
         float64x2_t r = vld1q_f64(p);
-		r = vbslq_f64(vreinterpretq_u64_f64(mask), v, r);
-		vst1q_f64(p, r);
-	}
+        r = vbslq_f64(vreinterpretq_u64_f64(mask), v, r);
+        vst1q_f64(p, r);
+    }
 
     static float64x2_t copy_from(const double* p) {
         return vld1q_f64(p);
     }/**essential**/
 
     static float64x2_t copy_from_masked(const double* p, const float64x2_t& mask) {
-		float64x2_t a;
+        float64x2_t a = {};
         float64x2_t r = vld1q_f64(p);
-		a = vbslq_f64(vreinterpretq_u64_f64(mask), r, a);
-		return a;
-	}
+        a = vbslq_f64(vreinterpretq_u64_f64(mask), r, a);
+        return a;
+    }
 
     static float64x2_t copy_from_masked(const float64x2_t& v, const double* p, const float64x2_t& mask) {
-		float64x2_t a;
+        float64x2_t a;
         float64x2_t r = vld1q_f64(p);
-		a = vbslq_f64(vreinterpretq_u64_f64(mask), r, v);
-		return a;
-	}
+        a = vbslq_f64(vreinterpretq_u64_f64(mask), r, v);
+        return a;
+    }
 
     static float64x2_t negate(const float64x2_t& a) {
-		return vnegq_f64(a);
+        return vnegq_f64(a);
     }
 
     static float64x2_t add(const float64x2_t& a, const float64x2_t& b) {
@@ -85,48 +85,48 @@ struct neon_double2: implbase<neon_double2> {
     }
 
     static float64x2_t logical_not(const float64x2_t& a) {
-		return vreinterpretq_f64_u32(vmvnq_u32(vreinterpretq_u32_f64(a)));
-	}
+        return vreinterpretq_f64_u32(vmvnq_u32(vreinterpretq_u32_f64(a)));
+    }
 
     static float64x2_t logical_and(const float64x2_t& a, const float64x2_t& b) {
-		return vreinterpretq_f64_u64(vandq_u64(vreinterpretq_u64_f64(a), vreinterpretq_u64_f64(b)));
-	}
+        return vreinterpretq_f64_u64(vandq_u64(vreinterpretq_u64_f64(a), vreinterpretq_u64_f64(b)));
+    }
 
     static float64x2_t logical_or(const float64x2_t& a, const float64x2_t& b) {
-		return vreinterpretq_f64_u64(vorrq_u64(vreinterpretq_u64_f64(a), vreinterpretq_u64_f64(b)));
-	}
+        return vreinterpretq_f64_u64(vorrq_u64(vreinterpretq_u64_f64(a), vreinterpretq_u64_f64(b)));
+    }
 
     static float64x2_t cmp_eq(const float64x2_t& a, const float64x2_t& b) {
-		return vreinterpretq_f64_u64(vceqq_f64(a, b));
-	} 
+        return vreinterpretq_f64_u64(vceqq_f64(a, b));
+    } 
 
     static float64x2_t cmp_neq(const float64x2_t& a, const float64x2_t& b) {
-		return logical_not(cmp_eq(a, b));	
-	}
+        return logical_not(cmp_eq(a, b));   
+    }
 
     static float64x2_t cmp_gt(const float64x2_t& a, const float64x2_t& b) {
-		return vreinterpretq_f64_u64(vcgtq_f64(a, b));
-	}
+        return vreinterpretq_f64_u64(vcgtq_f64(a, b));
+    }
 
     static float64x2_t cmp_geq(const float64x2_t& a, const float64x2_t& b) {
-		return vreinterpretq_f64_u64(vcgeq_f64(a, b));
-	}
+        return vreinterpretq_f64_u64(vcgeq_f64(a, b));
+    }
 
     static float64x2_t cmp_lt(const float64x2_t& a, const float64x2_t& b) {
-		return vreinterpretq_f64_u64(vcltq_f64(a, b));
-	}
+        return vreinterpretq_f64_u64(vcltq_f64(a, b));
+    }
 
     static float64x2_t cmp_leq(const float64x2_t& a, const float64x2_t& b) {
-		return vreinterpretq_f64_u64(vcleq_f64(a, b));
-	}
+        return vreinterpretq_f64_u64(vcleq_f64(a, b));
+    }
 
     static float64x2_t ifelse(const float64x2_t& m, const float64x2_t& u, const float64x2_t& v) {
-		return vbslq_f64(vreinterpretq_u64_f64(m), u, v);
-	}
+        return vbslq_f64(vreinterpretq_u64_f64(m), u, v);
+    }
 
     static float64x2_t mask_broadcast(bool b) {
-		return vreinterpretq_f64_u64(vdupq_n_u64(-(int64)b));	
-	}
+        return vreinterpretq_f64_u64(vdupq_n_u64(-(int64)b));   
+    }
 
     static bool mask_element(const float64x2_t& u, int i) {
         return static_cast<bool>(element(u, i));
@@ -134,22 +134,22 @@ struct neon_double2: implbase<neon_double2> {
 
     static float64x2_t mask_unpack(unsigned long long k) {
         // Only care about bottom two bits of k.
-		uint8x8_t b = vdup_n_u8((char)k); 
-		uint8x8_t bl = vorr_u8(b, vdup_n_u8(0xfe));  
-		uint8x8_t bu = vorr_u8(b, vdup_n_u8(0xfd));  
-		uint8x16_t blu = vcombine_u8(bl, bu);
+        uint8x8_t b = vdup_n_u8((char)k); 
+        uint8x8_t bl = vorr_u8(b, vdup_n_u8(0xfe));  
+        uint8x8_t bu = vorr_u8(b, vdup_n_u8(0xfd));  
+        uint8x16_t blu = vcombine_u8(bl, bu);
 
-		uint8x16_t ones = vdupq_n_u8(0xff); 
-		uint64x2_t r = vceqq_u64(vreinterpretq_u64_u8(ones), vreinterpretq_u64_u8(blu)); 
-		
+        uint8x16_t ones = vdupq_n_u8(0xff); 
+        uint64x2_t r = vceqq_u64(vreinterpretq_u64_u8(ones), vreinterpretq_u64_u8(blu)); 
+        
         return vreinterpretq_f64_u64(r);
     }
 
     static void mask_set_element(float64x2_t& u, int i, bool b) {
         char data[256];
-		vst1q_f64((double*)data, u);
+        vst1q_f64((double*)data, u);
         ((int64*)data)[i] = -(int64)b;
-		u = vld1q_f64((double*)data);
+        u = vld1q_f64((double*)data);
     }/**essential**/
 
     static void mask_copy_to(const float64x2_t& m, bool* y) {
@@ -157,11 +157,11 @@ struct neon_double2: implbase<neon_double2> {
         // bottom 2 bytes.
 
         int8x16_t mc = vnegq_s8(vreinterpretq_s8_f64(m)); 
-		int8x8_t mh = vget_high_s8(mc);
-		mh = vand_s8(mh, vreinterpret_s8_s64(vdup_n_s64(0x000000000000ff00)));
-		int8x8_t ml = vget_low_s8(mc);
-		ml = vand_s8(ml, vreinterpret_s8_s64(vdup_n_s64(0x00000000000000ff)));
-		mh = vadd_s8(mh, ml); 
+        int8x8_t mh = vget_high_s8(mc);
+        mh = vand_s8(mh, vreinterpret_s8_s64(vdup_n_s64(0x000000000000ff00)));
+        int8x8_t ml = vget_low_s8(mc);
+        ml = vand_s8(ml, vreinterpret_s8_s64(vdup_n_s64(0x00000000000000ff)));
+        mh = vadd_s8(mh, ml); 
         std::memcpy(y, &mh, 2);
     }/**essential**/
 
@@ -174,11 +174,11 @@ struct neon_double2: implbase<neon_double2> {
 
         int8_t a[16] = {0}; 
         std::memcpy(&a, w, 2);  
-		int8x8x2_t t = vld2_s8(a); //intervleaved load
-		int64x2_t r = vreinterpretq_s64_s8(vcombine_s8 ((t.val[0]), (t.val[1])));
-		int64x2_t r2 = (vnegq_s64(r));
+        int8x8x2_t t = vld2_s8(a); //intervleaved load
+        int64x2_t r = vreinterpretq_s64_s8(vcombine_s8 ((t.val[0]), (t.val[1])));
+        int64x2_t r2 = (vnegq_s64(r));
         return vreinterpretq_f64_s64(r2); 
-		
+        
     }/**essential**/
 
     static float64x2_t max(const float64x2_t& a, const float64x2_t& b) {
@@ -238,21 +238,19 @@ struct neon_double2: implbase<neon_double2> {
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
         auto is_small = cmp_lt(x, broadcast(exp_minarg));
 
-		double d[2]; 
-        vst1q_f64(d, x);
-		bool a0 = isnan(d[0]) == 0 ? 0 : 1;  
-		bool a1 = isnan(d[1]) == 0 ? 0 : 1;  
-		const bool a[2] = {a0, a1};
-		
-		auto is_nan = mask_copy_from(a);
-		
+        bool a[2];
+        a[0] = isnan(vgetq_lane_f64(x,0)) == 0 ? 0 : 1;  
+        a[1] = isnan(vgetq_lane_f64(x,1)) == 0 ? 0 : 1;  
+        
+        auto is_nan = mask_copy_from(a);
+        
         // Compute n and g.
 
-		//floor: round toward negative infinity
+        //floor: round toward negative infinity
         auto n = vcvtmq_s64_f64(add(mul(broadcast(ln2inv), x), broadcast(0.5))); 
 
-        auto g = sub(x, mul(vreinterpretq_f64_s64(n), broadcast(ln2C1)));
-        g = sub(g, mul(vreinterpretq_f64_s64(n), broadcast(ln2C2)));
+        auto g = sub(x, mul(vcvtq_f64_s64(n), broadcast(ln2C1)));
+        g = sub(g, mul(vcvtq_f64_s64(n), broadcast(ln2C2)));
 
         auto gg = mul(g, g);
 
@@ -286,21 +284,27 @@ struct neon_double2: implbase<neon_double2> {
     // and scale the answer by:
     //     expm1(x) = 2^n * expm1(g) + (2^n - 1).
 
-    /*static  float64x2_t expm1(const float64x2_t& x) {
+    static  float64x2_t expm1(const float64x2_t& x) {
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
         auto is_small = cmp_lt(x, broadcast(expm1_minarg));
-        auto is_nan = _mm256_cmp_pd(x, x, cmp_unord_q);
+
+        bool a[2];
+        a[0] = isnan(vgetq_lane_f64(x,0)) == 0 ? 0 : 1;  
+        a[1] = isnan(vgetq_lane_f64(x,1)) == 0 ? 0 : 1;  
+
+        auto is_nan = mask_copy_from(a);
 
         auto half = broadcast(0.5);
         auto one = broadcast(1.);
         auto two = add(one, one);
 
         auto nzero = cmp_leq(abs(x), half);
-        auto n = _mm256_floor_pd(add(mul(broadcast(ln2inv), x), half));
-        n = ifelse(nzero, zero(), n);
+        auto n = vcvtmq_s64_f64(add(mul(broadcast(ln2inv), x), half));
+        
+        auto p = ifelse(nzero, zero(), vcvtq_f64_s64(n));
 
-        auto g = sub(x, mul(n, broadcast(ln2C1)));
-        g = sub(g, mul(n, broadcast(ln2C2)));
+        auto g = sub(x, mul(p, broadcast(ln2C1)));
+        g = sub(g, mul(p, broadcast(ln2C2)));
 
         auto gg = mul(g, g);
 
@@ -317,7 +321,8 @@ struct neon_double2: implbase<neon_double2> {
         //     result = 2 * ( 2^(n-1)*expgm1 + (2^(n-1)+0.5) )
         // to avoid overflow when n=1024.
 
-        auto nm1 = _mm256_cvtpd_epi32(sub(n, one));
+        auto nm1 = vmovn_s64(vcvtmq_s64_f64(sub(vcvtq_f64_s64(n), one)));
+
         auto scaled = mul(add(sub(exp2int(nm1), half), ldexp_normal(expgm1, nm1)), two);
 
         return
@@ -352,10 +357,17 @@ struct neon_double2: implbase<neon_double2> {
 
         auto is_large = cmp_geq(x, broadcast(HUGE_VAL));
         auto is_small = cmp_lt(x, broadcast(log_minarg));
-        auto is_domainerr = _mm256_cmp_pd(x, broadcast(0), cmp_nge_uq);
+        auto is_domainerr = cmp_lt(x, broadcast(0));
 
-        float64x2_t g = _mm256_cvtepi32_pd(logb_normal(x));
-        float64x2_t u = fraction_normal(x);
+        bool a[2];
+        a[0] = isnan(vgetq_lane_f64(x,0)) == 0 ? 0 : 1;  
+        a[1] = isnan(vgetq_lane_f64(x,0)) == 0 ? 0 : 1;  
+        
+        auto is_nan = mask_copy_from(a);
+        is_domainerr = logical_or(is_nan, is_domainerr); 
+
+        float64x2_t g =  vcvt_f64_f32(vcvt_f32_s32(logb_normal(x))); 
+        float64x2_t u = fraction_normal(x); 
 
         float64x2_t one = broadcast(1.);
         float64x2_t half = broadcast(0.5);
@@ -384,28 +396,21 @@ struct neon_double2: implbase<neon_double2> {
             ifelse(is_large, broadcast(HUGE_VAL),
             ifelse(is_small, broadcast(-HUGE_VAL),
                 r)));
-    }*/
+    }
 
 protected:
     static float64x2_t zero() {
         return vdupq_n_f64(0);
     }
 
-    /*static __m128i hi_epi32(__m256i x) {
-        __m128i xl = _mm256_castsi256_si128(x);
-        __m128i xh = _mm256_extractf128_si256(x, 1);
-        return _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(xl), _mm_castsi128_ps(xh), 0xddu));
+    static uint32x2_t hi_32b(float64x2_t x) {
+        uint32x2_t xwh = vget_high_u32(vreinterpretq_u32_f64(x));
+        uint32x2_t xwl = vget_low_u32(vreinterpretq_u32_f64(x));
+        
+        uint64x1_t xh = vand_u64(vreinterpret_u64_u32(xwh), vcreate_u64(0xffffffff00000000));
+        uint64x1_t xl = vshr_n_u64(vreinterpret_u64_u32(xwl), 32);
+        return vreinterpret_u32_u64(vorr_u64(xh,xl));
     }
-
-    static __m128i lo_epi32(__m256i x) {
-        __m128i xl = _mm256_castsi256_si128(x);
-        __m128i xh = _mm256_extractf128_si256(x, 1);
-        return _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(xl), _mm_castsi128_ps(xh), 0x88u));
-    }
-
-    static __m256i combine_m128i(__m128i hi, __m128i lo) {
-        return _mm256_insertf128_si256(_mm256_castsi128_si256(lo), hi, 1);
-    }*/
 
     // horner(x, a0, ..., an) computes the degree n polynomial A(x) with coefficients
     // a0, ..., an by a0+x·(a1+x·(a2+...+x·an)...).
@@ -432,65 +437,52 @@ protected:
     }
 
     // Compute 2.0^n.
-    /*static float64x2_t exp2int(__m128i n) {
-        n = _mm_slli_epi32(n, 20);
-        n = _mm_add_epi32(n, _mm_set1_epi32(1023<<20));
-
-        auto nl = _mm_shuffle_epi32(n, 0x50);
-        auto nh = _mm_shuffle_epi32(n, 0xfa);
-        __m256i nhnl = combine_m128i(nh, nl);
-
-        return _mm256_castps_pd(
-            _mm256_blend_ps(_mm256_set1_ps(0),
-            _mm256_castsi256_ps(nhnl),0xaa));
+    static float64x2_t exp2int(int32x2_t n) {
+        int64x2_t nlong = vshlq_s64(vmovl_s32(n), vdupq_n_s64(52));
+        nlong = vaddq_s64(nlong, vshlq_s64(vdupq_n_s64(1023) ,vdupq_n_s64(52)));
+        return vreinterpretq_f64_s64(nlong); 
     }
 
     // Compute n and f such that x = 2^n·f, with |f| ∈ [1,2), given x is finite and normal.
-    static __m128i logb_normal(const float64x2_t& x) {
-        __m128i xw = hi_epi32(_mm256_castpd_si256(x));
-        __m128i emask = _mm_set1_epi32(0x7ff00000);
-        __m128i ebiased = _mm_srli_epi32(_mm_and_si128(xw, emask), 20);
+    static int32x2_t logb_normal(const float64x2_t& x) {
 
-        return _mm_sub_epi32(ebiased, _mm_set1_epi32(1023));
+        uint32x2_t xw = hi_32b(x);
+        uint32x2_t emask = vdup_n_u32(0x7ff00000);
+        uint32x2_t ebiased = vshr_n_u32(vand_u32(xw, emask), 20);
+
+        return vsub_s32(vreinterpret_s32_u32(ebiased), vdup_n_s32(1023));
     }
 
     static float64x2_t fraction_normal(const float64x2_t& x) {
         // 0x800fffffffffffff (intrinsic takes signed parameter)
-        float64x2_t emask = _mm256_castsi256_pd(_mm256_set1_epi64x(-0x7ff0000000000001));
-        float64x2_t bias = _mm256_castsi256_pd(_mm256_set1_epi64x(0x3ff0000000000000));
-        return _mm256_or_pd(bias, _mm256_and_pd(emask, x));
-    }*/
+        uint64x2_t emask = vdupq_n_u64(-0x7ff0000000000001);
+        uint64x2_t bias = vdupq_n_u64(0x3ff0000000000000);
+        return vreinterpretq_f64_u64(vorrq_u64(bias, vandq_u64(emask, vreinterpretq_u64_f64(x))));
+    }
 
     // Compute 2^n·x when both x and 2^n·x are normal, finite and strictly positive doubles.
     static float64x2_t ldexp_positive(float64x2_t x, int32x2_t n) {
         int64x2_t nlong =  vmovl_s32(n);
-		nlong = vshlq_s64(nlong, vdupq_n_s64(52)); 
-		int64x2_t r = vaddq_s64(nlong, vreinterpretq_s64_f64(x)); 
+        nlong = vshlq_s64(nlong, vdupq_n_s64(52)); 
+        int64x2_t r = vaddq_s64(nlong, vreinterpretq_s64_f64(x)); 
 
         return vreinterpretq_f64_s64(r);
     }
 
     // Compute 2^n·x when both x and 2^n·x are normal and finite.
-    /*static float64x2_t ldexp_normal(float64x2_t x, __m128i n) {
-        float64x2_t smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
-        float64x2_t sbits = _mm256_andnot_pd(smask, x);
+    static float64x2_t ldexp_normal(float64x2_t x, int32x2_t n) {
+        int64x2_t smask = vdupq_n_s64(0x7fffffffffffffffll);
+        int64x2_t not_smask = vreinterpretq_s64_s32(vmvnq_s32(vreinterpretq_s32_s64(smask)));
+        int64x2_t sbits = vandq_s64(not_smask, vreinterpretq_s64_f64(x));
 
-        n = _mm_slli_epi32(n, 20);
-        auto zi = _mm_set1_epi32(0);
-        auto nl = _mm_unpacklo_epi32(zi, n);
-        auto nh = _mm_unpackhi_epi32(zi, n);
+        int64x2_t nlong =  vmovl_s32(n);
+        nlong = vshlq_s64(nlong, vdupq_n_s64(52)); 
+        int64x2_t sum = vaddq_s64(nlong, vreinterpretq_s64_f64(x)); 
 
-        __m128d xl = _mm256_castpd256_pd128(x);
-        __m128d xh = _mm256_extractf128_pd(x, 1);
-
-        __m128i suml = _mm_add_epi64(nl, _mm_castpd_si128(xl));
-        __m128i sumh = _mm_add_epi64(nh, _mm_castpd_si128(xh));
-        __m256i sumhl = combine_m128i(sumh, suml);
-
-        auto nzans = _mm256_or_pd(_mm256_and_pd(_mm256_castsi256_pd(sumhl), smask), sbits);
+        auto nzans = vreinterpretq_f64_s64(vorrq_s64(vandq_s64(sum, smask), sbits));
         return ifelse(cmp_eq(x, zero()), zero(), nzans);
-    }*/
-	
+    }
+    
 };
 
 } // namespace simd_detail
