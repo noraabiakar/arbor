@@ -16,6 +16,7 @@ namespace simd {
 namespace simd_detail {
 
 struct neon_double2;
+struct neon_int2;
 
 template <>
 struct simd_traits<neon_double2> {
@@ -25,9 +26,180 @@ struct simd_traits<neon_double2> {
     using mask_impl = neon_double2; //int64x2_t?
 };
 
+template <>
+struct simd_traits<neon_int2> {
+    static constexpr unsigned width = 2;
+    using scalar_type = int32_t;
+    using vector_type = int32x2_t;
+    using mask_impl = neon_int2; //int64x2_t?
+};
+
+struct neon_int2: implbase<neon_int2> {
+    // Use default implementations for:
+    //     element, set_element, div.
+
+    using int32 = std::int32_t;
+
+    static int32x2_t broadcast(int32 v) {
+        return vdup_n_s32(v);
+    }
+
+    static void copy_to(const int32x2_t& v, int32* p) {
+        vst1_s32(p, v);
+    }/**essental**/
+
+    static void copy_to_masked(const int32x2_t& v, int32* p, const int32x2_t& mask) {
+        
+        int32x2_t r = vld1_s32(p);
+        r = vbsl_s32(vreinterpret_u32_s32(mask), v, r);
+        vst1_s32(p, r);
+    }
+
+    static int32x2_t copy_from(const int32* p) {
+        return vld1_s32(p);
+    }/**essential**/
+
+    static int32x2_t copy_from_masked(const int32* p, const int32x2_t& mask) {
+        int32x2_t a = {};
+        int32x2_t r = vld1_s32(p);
+        a = vbsl_s32(vreinterpret_u32_s32(mask), r, a);
+        return a;
+    }
+
+    static int32x2_t copy_from_masked(const int32x2_t& v, const int32* p, const int32x2_t& mask) {
+        int32x2_t a;
+        int32x2_t r = vld1_s32(p);
+        a = vbsl_s32(vreinterpret_u32_s32(mask), r, v);
+        return a;
+    }
+
+    static int32x2_t negate(const int32x2_t& a) {
+        return vneg_s32(a);
+    }
+
+    static int32x2_t add(const int32x2_t& a, const int32x2_t& b) {
+        return vadd_s32(a, b);
+    }
+
+    static int32x2_t sub(const int32x2_t& a, const int32x2_t& b) {
+        return vsub_s32(a, b);
+    }
+
+    static int32x2_t mul(const int32x2_t& a, const int32x2_t& b) {
+        return vmul_s32(a, b);
+    }
+
+    static int32x2_t logical_not(const int32x2_t& a) {
+        return vmvn_s32(a);
+    }
+
+    static int32x2_t logical_and(const int32x2_t& a, const int32x2_t& b) {
+        return vand_s32(a, b);
+    }
+
+    static int32x2_t logical_or(const int32x2_t& a, const int32x2_t& b) {
+        return vorr_s32(a, b);
+    }
+
+    static int32x2_t cmp_eq(const int32x2_t& a, const int32x2_t& b) {
+        return vreinterpret_s32_u32(vceq_s32(a, b));
+    } 
+
+    static int32x2_t cmp_neq(const int32x2_t& a, const int32x2_t& b) {
+        return logical_not(cmp_eq(a, b));   
+    }
+
+    static int32x2_t cmp_gt(const int32x2_t& a, const int32x2_t& b) {
+        return vreinterpret_s32_u32(vcgt_s32(a, b));
+    }
+
+    static int32x2_t cmp_geq(const int32x2_t& a, const int32x2_t& b) {
+        return vreinterpret_s32_u32(vcge_s32(a, b));
+    }
+
+    static int32x2_t cmp_lt(const int32x2_t& a, const int32x2_t& b) {
+        return vreinterpret_s32_u32(vclt_s32(a, b));
+    }
+
+    static int32x2_t cmp_leq(const int32x2_t& a, const int32x2_t& b) {
+        return vreinterpret_s32_u32(vcle_s32(a, b));
+    }
+
+    static int32x2_t ifelse(const int32x2_t& m, const int32x2_t& u, const int32x2_t& v) {
+        return vbsl_s32(vreinterpret_u32_s32(m), u, v);
+    }
+
+    static int32x2_t mask_broadcast(bool b) {
+        return vreinterpret_s32_u32(vdup_n_u32(-(int32)b));   
+    }
+
+    static bool mask_element(const int32x2_t& u, int i) {
+        return static_cast<bool>(element(u, i));
+    }/**essential**/
+
+    static int32x2_t mask_unpack(unsigned long long k) {
+        // Only care about bottom two bits of k.
+        uint8x8_t b = vdup_n_u8((char)k); 
+        uint8x8_t bl = vorr_u8(b, vdup_n_u8(0xfe));  
+        uint8x8_t bu = vorr_u8(b, vdup_n_u8(0xfd));  
+        uint8x16_t blu = vcombine_u8(bl, bu);
+
+        uint8x16_t ones = vdupq_n_u8(0xff); 
+        uint64x2_t r = vceqq_u64(vreinterpretq_u64_u8(ones), vreinterpretq_u64_u8(blu)); 
+        
+        return vreinterpret_s32_u32(vmovn_u64(r));
+    }
+
+    static void mask_set_element(int32x2_t& u, int i, bool b) {
+        char data[64];
+        vst1_s32((int32*)data, u);
+        ((int32*)data)[i] = -(int32)b;
+        u = vld1_s32((int32*)data);
+    }/**essential**/
+
+    static void mask_copy_to(const int32x2_t& m, bool* y) {
+        // Negate (convert 0xffffffff to 0x00000001) and move low bytes to
+        // bottom 2 bytes.
+        
+        int64x1_t ml = vreinterpret_s64_s32(vneg_s32(m)); 
+        int64x1_t mh = vshr_n_s64(ml, 24); 
+        ml = vorr_s64(ml, mh);
+        std::memcpy(y, &ml, 2);
+    }/**essential**/
+
+    static int32x2_t mask_copy_from(const bool* w) {
+        // Move bytes:
+        //   rl: byte 0 to byte 0, byte 1 to byte 8, zero elsewhere.
+        //
+        // Subtract from zero to translate
+        // 0x0000000000000001 to 0xffffffffffffffff.
+
+        int8_t a[16] = {0}; 
+        std::memcpy(&a, w, 2);  
+        int8x8x2_t t = vld2_s8(a); //intervleaved load
+        int64x1_t rl = vreinterpret_s64_s8(t.val[0]);
+        int64x1_t rh =  vshl_n_s64(vreinterpret_s64_s8(t.val[1]), 32);
+        int64x1_t rc = vadd_s64(rl, rh);
+        return vneg_s32(vreinterpret_s32_s64(rc));
+    }/**essential**/
+
+    static int32x2_t max(const int32x2_t& a, const int32x2_t& b) {
+        return vmax_s32(a, b);
+    }
+
+    static int32x2_t min(const int32x2_t& a, const int32x2_t& b) {
+        return vmin_s32(a, b);
+    }
+
+    static int32x2_t abs(const int32x2_t& x) {
+        return vabs_s32(x);
+    }
+};
+
+
 struct neon_double2: implbase<neon_double2> {
     // Use default implementations for:
-    //     element, set_element, fma.
+    //     element, set_element.
 
     using int64 = std::int64_t;
 
@@ -491,6 +663,7 @@ namespace simd_abi {
     template <typename T, unsigned N> struct neon;
 
     template <> struct neon<double, 2> { using type = simd_detail::neon_double2; };
+    template <> struct neon<int, 2> { using type = simd_detail::neon_int2; };
 
 } // namespace simd_abi
 

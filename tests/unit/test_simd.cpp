@@ -528,6 +528,7 @@ typedef ::testing::Types<
     simd<double, 8, simd_abi::avx512>,
 #endif
 #if defined(__ARM_NEON__) || defined(__aarch64__)
+    simd<int, 2, simd_abi::neon>,
     simd<double, 2, simd_abi::neon>,
 #endif
 
@@ -990,6 +991,10 @@ typedef ::testing::Types<
 #ifdef __AVX512F__
     simd_and_index<simd<double, 8, simd_abi::avx512>,
                    simd<int, 8, simd_abi::avx512>>,
+#endif
+#if defined(__ARM_NEON__) || defined(__aarch64__)
+    simd_and_index<simd<double, 2, simd_abi::neon>,
+                   simd<int, 2, simd_abi::neon>>,
 #endif
 
     simd_and_index<simd<float, 4, simd_abi::generic>,
