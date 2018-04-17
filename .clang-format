@@ -16,7 +16,7 @@ AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakTemplateDeclarations: 'true'
 AlwaysBreakAfterReturnType: None
 IndentCaseLabels: 'false'
-IndentWidth: '4'
+IndentWidth: '6'
 UseTab: Never
 
 ...
