@@ -1,0 +1,22 @@
+---
+BasedOnStyle: Google
+AccessModifierOffset: '0'
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: 'false'
+AlignConsecutiveDeclarations: 'false'
+AlignEscapedNewlinesLeft: 'false'
+AlignOperands: 'false'
+AlignTrailingComments: 'true'
+AllowAllParametersOfDeclarationOnNextLine: 'false'
+AllowShortBlocksOnASingleLine: 'true'
+AllowShortCaseLabelsOnASingleLine: 'true'
+AllowShortIfStatementsOnASingleLine: 'true'
+AllowShortLoopsOnASingleLine: 'true'
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakTemplateDeclarations: 'true'
+AlwaysBreakAfterReturnType: None
+IndentCaseLabels: 'false'
+IndentWidth: '4'
+UseTab: Never
+
+...
