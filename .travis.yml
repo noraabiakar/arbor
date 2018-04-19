@@ -147,7 +147,11 @@ install:
 before_script:
   - eval "${MATRIX_EVAL}"
 
-script: source ./scripts/travis/build.sh
+before_script: 
+    - source ./scripts/travis/check-git-clang-format-output.sh
+
+script:
+    - source ./scripts/travis/build.sh
 
 notifications:
   email:
