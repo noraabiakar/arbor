@@ -38,6 +38,7 @@ public:
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
     using size_type = fvm_size_type;
+    using shared_state = typename backend::shared_state;
 
     void reset() override;
 
@@ -60,10 +61,13 @@ public:
         return mechanisms_;
     }
 
+    std::unique_ptr<shared_state>& state() {
+        return state_;
+    }
+
 private:
     // Host or GPU-side back-end dependent storage.
     using array = typename backend::array;
-    using shared_state = typename backend::shared_state;
     using sample_event_stream = typename backend::sample_event_stream;
     using threshold_watcher = typename backend::threshold_watcher;
 
