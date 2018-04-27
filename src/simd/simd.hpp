@@ -158,13 +158,62 @@ namespace simd_detail {
 
         template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
         void copy_from(indirect_expression<IndexImpl, scalar_type> pi) {
-            value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+            switch (pi.constraint) {
+            case index_constraint::none:
+                {
+                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                }
+                break;
+            case index_constraint::independent:
+                {
+                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                }
+                break;
+            case index_constraint::contiguous:
+                {
+                    scalar_type* p = IndexImpl::element0(pi.index) + pi.p;
+                    value_ = Impl::copy_from(p);
+                }
+                break;
+            case index_constraint::constant:
+                {
+                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                }
+                break;
+            }
         }
 
         template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
         void copy_from(indirect_expression<IndexImpl, const scalar_type> pi) {
-            value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+            switch (pi.constraint) {
+            case index_constraint::none:
+                {
+                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                }
+                break;
+            case index_constraint::independent:
+                {
+                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                }
+                break;
+            case index_constraint::contiguous:
+                {
+                    const scalar_type* p = IndexImpl::element0(pi.index) + pi.p;
+                    value_ = Impl::copy_from(p);
+                }
+                break;
+            case index_constraint::constant:
+                {
+                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                }
+                break;
+            }
         }
+
+        /*template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
+        void copy_from(indirect_expression<IndexImpl, const scalar_type> pi) {
+            value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+        }*/
 
         // Arithmetic operations: +, -, *, /, fma.
 

@@ -771,13 +771,13 @@ struct avx2_double4: avx_double4 {
         return _mm256_castsi256_pd(_mm256_sub_epi64(zero, _mm256_cvtepi8_epi64(r)));
     }
 
-    static __m256d gather(tag<avx2_int4>, const double* p, const __m128i& index) {
+    /*static __m256d gather(tag<avx2_int4>, const double* p, const __m128i& index) {
         return _mm256_i32gather_pd(p, index, 8);
     }
 
     static __m256d gather(tag<avx2_int4>, __m256d a, const double* p, const __m128i& index, const __m256d& mask) {
         return  _mm256_mask_i32gather_pd(a, p, index, mask, 8);
-    };
+    };*/
 
     // avx4_double4 versions of log, exp, and expm1 use the same algorithms as for avx_double4,
     // but use AVX2-specialized bit manipulation and FMA.
