@@ -8,6 +8,7 @@ set(bench_sources
     event_setup.cpp
     event_binning.cpp
     mech_vec.cpp
+    gather_scatter.cpp
 )
 
 set(bench_sources_cuda

@@ -435,7 +435,7 @@ struct implbase {
         }
     }
 
-    template <typename ImplIndex>
+    /*template <typename ImplIndex>
     static void compound_indexed_add(tag<ImplIndex> tag, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index, index_constraint constraint) {
         switch (constraint) {
         case index_constraint::none:
@@ -471,7 +471,7 @@ struct implbase {
             }
             break;
         }
-    }
+    }*/
 
     static scalar_type reduce_add(const vector_type& s) {
         store a;

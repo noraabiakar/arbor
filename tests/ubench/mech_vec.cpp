@@ -170,14 +170,10 @@ void pas_1_branch_current(benchmark::State& state) {
     }
 
     auto& m = mechs[idx];
-    std::ofstream myfile;
-    myfile.open ("example.txt");
     while (state.KeepRunning()) {
         // call nrn_current
         m->nrn_current();
     }
-    myfile <<"v and i:\n" << (*shared_state) << "\n";
-    myfile.close();
 }
 
 void pas_3_branches_current(benchmark::State& state) {
