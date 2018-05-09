@@ -19,10 +19,8 @@ static constexpr unsigned simd_width_ = S::simd_abi::native_width<fvm_value_type
    };
 
 
-   template <typename T>
-   void gen_constraint(const T& node_index, constraint_partition& partitioned_index) {
-       using std::begin;
-       using std::end;
+   template <typename T, typename C>
+   void gen_constraint(const T& node_index, C& partitioned_index) {
 
        for (unsigned i = 0; i < node_index.size(); i+= simd_width_) {
            index_constraint con = node_index[i] == node_index[i + 1] ?
@@ -47,28 +45,7 @@ static constexpr unsigned simd_width_ = S::simd_abi::native_width<fvm_value_type
                    default: {}
                 }
            }
-           switch(con) {
-               case index_constraint::none: {
-                   for (unsigned j = 0; j < simd_width_; j++)
-                       partitioned_index.serial_part.push_back(node_index[i + j]);
-               }
-               break;
-               case index_constraint::independent: {
-                   for (unsigned j = 0; j < simd_width_; j++)
-                       partitioned_index.independent_part.push_back(node_index[i + j]);
-               }
-               break;
-               case index_constraint::constant: {
-                   for (unsigned j = 0; j < simd_width_; j++)
-                       partitioned_index.constant_part.push_back(node_index[i + j]);
-               }
-               break;
-               case index_constraint::contiguous: {
-                   for (unsigned j = 0; j < simd_width_; j++)
-                       partitioned_index.contiguous_part.push_back(node_index[i + j]);
-               }
-               break;
-           }
+           partitioned_index.push_back(con);
        }
    }
 
