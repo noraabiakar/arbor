@@ -1,6 +1,7 @@
 #pragma once
 
 #include<simd/simd.hpp>
+#include<backends/multicore/multicore_common.hpp>
 
 namespace arb {
 namespace multicore {
@@ -10,7 +11,7 @@ static constexpr unsigned simd_width_ = S::simd_abi::native_width<fvm_value_type
 
    struct constraint_partition {
 
-       using iarray = std::vector<int>;
+       using iarray = arb::multicore::iarray;
 
        iarray serial_part;
        iarray independent_part;
