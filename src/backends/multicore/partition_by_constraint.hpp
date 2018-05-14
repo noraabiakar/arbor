@@ -1,5 +1,6 @@
 #pragma once
 
+#include<vector>
 #include<simd/simd.hpp>
 
 namespace arb {
@@ -12,17 +13,20 @@ static constexpr unsigned simd_width_ = S::simd_abi::native_width<fvm_value_type
 
        using iarray = arb::multicore::iarray;
 
-       iarray serial_part;
-       iarray independent_part;
-       iarray contiguous_part;
-       iarray constant_part;
+       static constexpr int num_compartments = 4;
+       iarray full_index_compartments;
+       std::vector<int> compartment_sizes;
    };
 
 
    template <typename T>
    void gen_constraint(const T& node_index, constraint_partition& partitioned_index) {
-       using std::begin;
-       using std::end;
+       using iarray = arb::multicore::iarray;
+
+       iarray serial_part;
+       iarray independent_part;
+       iarray contiguous_part;
+       iarray constant_part;
 
        for (unsigned i = 0; i < node_index.size(); i+= simd_width_) {
            index_constraint con = index_constraint::contiguous;
@@ -54,26 +58,48 @@ static constexpr unsigned simd_width_ = S::simd_abi::native_width<fvm_value_type
            switch(con) {
                case index_constraint::none: {
                    for (unsigned j = 0; j < simd_width_; j++)
-                       partitioned_index.serial_part.push_back(node_index[i + j]);
+                       serial_part.push_back(node_index[i + j]);
                }
                break;
                case index_constraint::independent: {
                    for (unsigned j = 0; j < simd_width_; j++)
-                       partitioned_index.independent_part.push_back(node_index[i + j]);
+                       independent_part.push_back(node_index[i + j]);
                }
                break;
                case index_constraint::constant: {
                    for (unsigned j = 0; j < simd_width_; j++)
-                       partitioned_index.constant_part.push_back(node_index[i + j]);
+                       constant_part.push_back(node_index[i + j]);
                }
                break;
                case index_constraint::contiguous: {
                    for (unsigned j = 0; j < simd_width_; j++)
-                       partitioned_index.contiguous_part.push_back(node_index[i + j]);
+                       contiguous_part.push_back(node_index[i + j]);
                }
                break;
            }
        }
+
+       partitioned_index.full_index_compartments.reserve(
+               serial_part.size() + independent_part.size() +
+               contiguous_part.size() + constant_part.size() );// preallocate memory
+
+       partitioned_index.full_index_compartments.insert(
+               partitioned_index.full_index_compartments.end(),
+               contiguous_part.begin(), contiguous_part.end() );
+       partitioned_index.full_index_compartments.insert(
+               partitioned_index.full_index_compartments.end(),
+               constant_part.begin(), constant_part.end() );
+       partitioned_index.full_index_compartments.insert(
+               partitioned_index.full_index_compartments.end(),
+               independent_part.begin(), independent_part.end() );
+       partitioned_index.full_index_compartments.insert(
+               partitioned_index.full_index_compartments.end(),
+               serial_part.begin(), serial_part.end() );
+
+       partitioned_index.compartment_sizes.push_back(contiguous_part.size());
+       partitioned_index.compartment_sizes.push_back(constant_part.size());
+       partitioned_index.compartment_sizes.push_back(independent_part.size());
+       partitioned_index.compartment_sizes.push_back(serial_part.size());
    }
 
 } // namespace util
