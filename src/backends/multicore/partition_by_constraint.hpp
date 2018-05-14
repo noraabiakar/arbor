@@ -88,18 +88,18 @@ static constexpr unsigned simd_width_ = S::simd_abi::native_width<fvm_value_type
                contiguous_part.begin(), contiguous_part.end() );
        partitioned_index.full_index_compartments.insert(
                partitioned_index.full_index_compartments.end(),
-               constant_part.begin(), constant_part.end() );
-       partitioned_index.full_index_compartments.insert(
-               partitioned_index.full_index_compartments.end(),
                independent_part.begin(), independent_part.end() );
        partitioned_index.full_index_compartments.insert(
                partitioned_index.full_index_compartments.end(),
                serial_part.begin(), serial_part.end() );
+       partitioned_index.full_index_compartments.insert(
+               partitioned_index.full_index_compartments.end(),
+               constant_part.begin(), constant_part.end() );
 
        partitioned_index.compartment_sizes.push_back(contiguous_part.size());
-       partitioned_index.compartment_sizes.push_back(constant_part.size());
        partitioned_index.compartment_sizes.push_back(independent_part.size());
        partitioned_index.compartment_sizes.push_back(serial_part.size());
+       partitioned_index.compartment_sizes.push_back(constant_part.size());
    }
 
 } // namespace util

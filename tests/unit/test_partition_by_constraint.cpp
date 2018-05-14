@@ -18,9 +18,9 @@ const int input_size_ = 1024;
 
 enum index_constraint {
     contiguous= 0,
-    constant,
     independent,
-    none
+    none,
+    constant
 };
 
 TEST(partition_by_constraint, partition_contiguous) {
@@ -154,13 +154,13 @@ TEST(partition_by_constraint, partition_random) {
     for (unsigned i = 0; i < input_size_; i++) {
         if (simd_width_ != 1) {
             if (i < input_size_ / 4)
-                EXPECT_EQ(output_constraint.full_index_compartments[i + input_size_ * 3 / 4],
+                EXPECT_EQ(output_constraint.full_index_compartments[i + input_size_ / 2],
                           input_index[i]);
             else if (i < input_size_ / 2)
-                EXPECT_EQ(output_constraint.full_index_compartments[i + input_size_ / 4],
+                EXPECT_EQ(output_constraint.full_index_compartments[i],
                           input_index[i]);
             else if (i < input_size_ * 3 / 4)
-                EXPECT_EQ(output_constraint.full_index_compartments[i - input_size_ / 4],
+                EXPECT_EQ(output_constraint.full_index_compartments[i + input_size_ / 4],
                           input_index[i]);
             else
                 EXPECT_EQ(output_constraint.full_index_compartments[i - input_size_ * 3 / 4],
