@@ -320,7 +320,7 @@ struct indexed_variable_info {
 
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     std::string data_var, ion_pfx;
-    std::string index_var = "node_index_";
+    std::string index_var = "constraint_index_";
 
     if (sym->is_ion()) {
         ion_pfx = "ion_"+to_string(sym->ion_channel())+"_";
@@ -460,7 +460,7 @@ std::string index_i_name(const std::string& index_var) {
 }
 
 std::string index_constraint_name(const std::string& index_var) {
-    return index_var+"constraint_";
+    return index_var+"category_";
 }
 
 
@@ -589,19 +589,35 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
         "S::index_constraint::none":
         "S::index_constraint::none";
 
+    out << "int n_ = width_;\n\n";
+
     for (auto& index: indices) {
         out << "simd_index " << index_i_name(index) << ";\n";
-        out << "constexpr S::index_constraint " << index_constraint_name(index)
-            << " = " << common_constraint << ";\n";
+        out << "index_constraint " << index_constraint_name(index) << ";\n\n";
+
+        out << "int n_" << index_constraint_name(index) << "0 = " << index << ".compartment_sizes[0];\n";
+        out << "int n_" << index_constraint_name(index) << "1 = " << index << ".compartment_sizes[1] + n_"
+            << index_constraint_name(index) << "0 > n_ ? n_ : " << index << ".compartment_sizes[1] + n_"
+            << index_constraint_name(index) << "0;\n";
+        out << "int n_" << index_constraint_name(index) << "2 = " << index << ".compartment_sizes[2] + n_"
+            << index_constraint_name(index) << "1 > n_ ? n_ : " << index << ".compartment_sizes[2] + n_"
+            << index_constraint_name(index) << "1;\n";
+        out << "int n_" << index_constraint_name(index) << "3 = " << index << ".compartment_sizes[3] + n_"
+            << index_constraint_name(index) << "2 > n_ ? n_ : " << index << ".compartment_sizes[3] + n_"
+            << index_constraint_name(index) << "2;\n\n";
+
     }
 
     if (!body->statements().empty()) {
         out <<
-            "int n_ = width_;\n"
             "for (int i_ = 0; i_ < n_; i_ += simd_width_) {\n" << indent;
 
         for (auto& index: indices) {
-            out << index_i_name(index) << ".copy_from(" << index << ".data()+i_);\n";
+            out << index_constraint_name(index) << " = i_ < n_" << index_constraint_name(index) << "0 ? index_constraint::contiguous : \n"
+                << "\t(i_ < n_" << index_constraint_name(index) << "1 ? index_constraint::independent : \n"
+                << "\t(i_ < n_" << index_constraint_name(index) << "2 ? index_constraint::none : \n"
+                << "\tindex_constraint::constant));\n";
+            out << index_i_name(index) << ".copy_from(" << index << ".full_index_compartments.data()+i_);\n";
         }
 
         for (auto& sym: indexed_vars) {
