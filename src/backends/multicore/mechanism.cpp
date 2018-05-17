@@ -142,9 +142,10 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
         auto indices = util::index_into(node_index_, oion->node_index_);
 
         // Take reference to derived (generated) mechanism ion index member.
-        auto& ion_index = *i.second;
-        ion_index = iarray(width_padded_, pad);
+        auto& ion_constraint_index = *i.second;
+        auto ion_index = iarray(width_padded_, pad);
         copy_extend(indices, ion_index, util::back(indices));
+        gen_constraint(ion_index, ion_constraint_index);
     }
 
 }

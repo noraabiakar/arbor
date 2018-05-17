@@ -107,6 +107,7 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
     if (with_simd) {
         out <<
             "namespace S = ::arb::simd;\n"
+            "namespace M = ::arb::multicore;\n"
             "static constexpr unsigned simd_width_ = ";
 
         if (!simd.width) {
@@ -229,7 +230,7 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
     }
     for (const auto& dep: ion_deps) {
         out << "ion_state_view " << ion_state_field(dep.name) << ";\n";
-        out << "iarray " << ion_state_index(dep.name) << ";\n";
+        out << "M::constraint_partition " << ion_state_index(dep.name) << ";\n";
     }
 
     for (auto proc: normal_procedures(module_)) {
@@ -584,12 +585,8 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
     // the indices. Work-arounds exist, but not yet implemented.
 
 
-    std::string common_constraint = module_kind==moduleKind::density?
-        //"S::index_constraint::independent":
-        "S::index_constraint::none":
-        "S::index_constraint::none";
-
-    out << "int n_ = width_;\n\n";
+    if (!body->statements().empty())
+        out << "int n_ = width_;\n\n";
 
     for (auto& index: indices) {
         out << "simd_index " << index_i_name(index) << ";\n";
@@ -602,10 +599,6 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
         out << "int n_" << index_constraint_name(index) << "2 = " << index << ".compartment_sizes[2] + n_"
             << index_constraint_name(index) << "1 > n_ ? n_ : " << index << ".compartment_sizes[2] + n_"
             << index_constraint_name(index) << "1;\n";
-        out << "int n_" << index_constraint_name(index) << "3 = " << index << ".compartment_sizes[3] + n_"
-            << index_constraint_name(index) << "2 > n_ ? n_ : " << index << ".compartment_sizes[3] + n_"
-            << index_constraint_name(index) << "2;\n\n";
-
     }
 
     if (!body->statements().empty()) {
@@ -616,7 +609,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
             out << index_constraint_name(index) << " = i_ < n_" << index_constraint_name(index) << "0 ? index_constraint::contiguous : \n"
                 << "\t(i_ < n_" << index_constraint_name(index) << "1 ? index_constraint::independent : \n"
                 << "\t(i_ < n_" << index_constraint_name(index) << "2 ? index_constraint::none : \n"
-                << "\tindex_constraint::constant));\n";
+                << "\tindex_constraint::constant));\n\n";
             out << index_i_name(index) << ".copy_from(" << index << ".full_index_compartments.data()+i_);\n";
         }
 
