@@ -82,7 +82,7 @@ protected:
     // Per-mechanism index and weight data, excepting ion indices.
 
     iarray node_index_;
-    constraint_partition constraint_index_;
+    constraint_partitions constraint_indices_;
     const value_type* weight_;    // Points within data_ after instantiation.
 
     // Bulk storage for state and parameter variables.
@@ -106,7 +106,7 @@ protected:
     using ion_state_entry = std::pair<ionKind, ion_state_view*>;
     using mechanism_ion_state_table = std::vector<ion_state_entry>;
 
-    using ion_index_entry = std::pair<ionKind, constraint_partition*>;
+    using ion_index_entry = std::pair<ionKind, iarray*>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
 
     // Generated mechanisms must implement the following methods, together with

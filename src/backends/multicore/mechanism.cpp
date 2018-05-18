@@ -129,7 +129,7 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
     copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
 
     //TODO: call function that returns std::vector<index_constraint> and copy into index_constraint_
-    gen_constraint(node_index_, constraint_index_);
+    gen_constraint(node_index_, constraint_indices_, width_);
 
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
 
@@ -142,10 +142,13 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
         auto indices = util::index_into(node_index_, oion->node_index_);
 
         // Take reference to derived (generated) mechanism ion index member.
-        auto& ion_constraint_index = *i.second;
-        auto ion_index = iarray(width_padded_, pad);
+        auto& ion_index = *i.second;
+        ion_index = iarray(width_padded_, pad);
         copy_extend(indices, ion_index, util::back(indices));
-        gen_constraint(ion_index, ion_constraint_index);
+
+        if(!compatible_constraint_indices(node_index_, ion_index))
+            throw std::runtime_error("ion_index and node_index not compatible");
+
     }
 
 }
