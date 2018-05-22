@@ -179,7 +179,9 @@ namespace simd_detail {
                 break;
             case index_constraint::constant:
                 {
-                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                    scalar_type* p = IndexImpl::element0(pi.index) + pi.p;
+                    scalar_type l = (*p);
+                    value_ = Impl::broadcast(l);
                 }
                 break;
             }
@@ -206,7 +208,9 @@ namespace simd_detail {
                 break;
             case index_constraint::constant:
                 {
-                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                    const scalar_type *p = IndexImpl::element0(pi.index) + pi.p;
+                    scalar_type l = (*p);
+                    value_ = Impl::broadcast(l);
                 }
                 break;
             }
