@@ -83,12 +83,18 @@ static constexpr unsigned simd_width_ = S::simd_abi::native_width<fvm_value_type
                break;
            }
        }
-       unsigned size_of_constant_section = ((width + (simd_width_ - 1))/ simd_width_) -
-               (partitioned_indices.serialized_indices.size() +
-                partitioned_indices.independent_indices.size() +
-                partitioned_indices.contiguous_indices.size() );
 
-       partitioned_indices.constant_indices.resize(size_of_constant_section);
+       if(simd_width_ != 1) {
+           unsigned size_of_constant_section = ((width + (simd_width_ - 1))/ simd_width_) -
+                                               (partitioned_indices.serialized_indices.size() +
+                                                partitioned_indices.independent_indices.size() +
+                                                partitioned_indices.contiguous_indices.size() );
+
+           partitioned_indices.constant_indices.resize(size_of_constant_section);
+       }
+       else {
+           partitioned_indices.contiguous_indices.resize(width);
+       }
 
        partitioned_indices.size = node_index.size();
 

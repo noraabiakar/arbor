@@ -23,7 +23,7 @@ TEST(partition_by_constraint, partition_contiguous) {
 
     for (unsigned i = 0; i < input_size_; i++) {
         input_index[i] = i;
-        if(i % 4 == 0)
+        if(i % simd_width_ == 0)
             expected_indices.push_back(i);
     }
 
@@ -48,7 +48,7 @@ TEST(partition_by_constraint, partition_constant) {
 
     for (unsigned i = 0; i < input_size_; i++) {
         input_index[i] = c;
-        if(i % 4 == 0)
+        if(i % simd_width_ == 0)
             expected_indices.push_back(i);
     }
 
@@ -79,7 +79,7 @@ TEST(partition_by_constraint, partition_independent) {
 
     for (unsigned i = 0; i < input_size_; i++) {
         input_index[i] = i * 2;
-        if(i % 4 == 0)
+        if(i % simd_width_ == 0)
             expected_indices.push_back(i);
     }
 
@@ -113,7 +113,7 @@ TEST(partition_by_constraint, partition_serial) {
 
     for (unsigned i = 0; i < input_size_; i++) {
         input_index[i] = i / ((simd_width_ + 1)/ 2);
-        if(i % 4 == 0)
+        if(i % simd_width_ == 0)
             expected_indices.push_back(i);
     }
 
@@ -131,7 +131,10 @@ TEST(partition_by_constraint, partition_serial) {
     EXPECT_EQ(0, output_constraint.constant_indices.size());
 
     for (unsigned i = 0; i < input_size_ / simd_width_; i++) {
-        EXPECT_EQ(expected_indices[i], output_constraint.serialized_indices[i]);
+        if(simd_width_ != 1)
+            EXPECT_EQ(expected_indices[i], output_constraint.serialized_indices[i]);
+        else
+            EXPECT_EQ(expected_indices[i], output_constraint.contiguous_indices[i]);
     }
 }
 
@@ -147,13 +150,13 @@ TEST(partition_by_constraint, partition_random) {
         input_index[i] = (i < input_size_ / 4 ? i / ((simd_width_ + 1)/ 2) :
                           (i < input_size_ / 2 ? i * 2 :
                            (i < input_size_* 3 / 4 ? c : i)));
-        if (i < input_size_ / 4 && i % 4 == 0)
+        if (i < input_size_ / 4 && i % simd_width_ == 0)
             expected_indices_serial.push_back(i);
-        else if (i < input_size_ / 2 && i % 4 == 0)
+        else if (i < input_size_ / 2 && i % simd_width_ == 0)
             expected_indices_independent.push_back(i);
-        else if (i < input_size_* 3/ 4 && i % 4 == 0)
+        else if (i < input_size_* 3/ 4 && i % simd_width_ == 0)
             expected_indices_constant.push_back(i);
-        else if (i % 4 == 0)
+        else if (i % simd_width_ == 0)
             expected_indices_contiguous.push_back(i);
     }
 
@@ -182,7 +185,7 @@ TEST(partition_by_constraint, partition_random) {
     }
     else {
         for (unsigned i = 0; i < input_size_ / simd_width_; i++) {
-            EXPECT_EQ(expected_indices_contiguous[i], output_constraint.contiguous_indices[i]);
+            EXPECT_EQ(i, output_constraint.contiguous_indices[i]);
         }
     }
 }
@@ -191,47 +194,51 @@ TEST(partition_by_constraint, partition_subvector_constraint_categorization) {
     iarray input_index(input_size_);
     multicore::constraint_partitions output_constraint;
 
-    {
-        iarray input_index_constant0;
-        for (unsigned i = 0; i < simd_width_; i++) {
-            input_index_constant0.push_back(0);
+    if(simd_width_ == 4) {
+        {
+            iarray input_index_constant0;
+            for (unsigned i = 0; i < simd_width_; i++) {
+                input_index_constant0.push_back(0);
+            }
+            EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_constant0, 0), index_constraint::constant);
         }
-        EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_constant0, 0), index_constraint::constant);
-    }
 
-    {
-        iarray input_index_contiguous0;
-        for (unsigned i = 0; i < simd_width_; i++) {
-            input_index_contiguous0.push_back(i);
+        {
+            iarray input_index_contiguous0;
+            for (unsigned i = 0; i < simd_width_; i++) {
+                input_index_contiguous0.push_back(i);
+            }
+            EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_contiguous0, 0),
+                      index_constraint::contiguous);
         }
-        EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_contiguous0, 0), index_constraint::contiguous);
-    }
 
-    {
-        iarray input_index_independent0;
-        for (unsigned i = 0; i < simd_width_; i++) {
-            input_index_independent0.push_back(i * 2);
+        {
+            iarray input_index_independent0;
+            for (unsigned i = 0; i < simd_width_; i++) {
+                input_index_independent0.push_back(i * 2);
+            }
+            EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_independent0, 0),
+                      index_constraint::independent);
         }
-        EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_independent0, 0),
-                  index_constraint::independent);
-    }
 
-    {
-        iarray input_index_serial0;
-        for (unsigned i = 0; i < simd_width_; i++) {
-            input_index_serial0.push_back(i/2);
+        {
+            iarray input_index_serial0;
+            for (unsigned i = 0; i < simd_width_; i++) {
+                input_index_serial0.push_back(i / 2);
+            }
+            EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_serial0, 0), index_constraint::none);
         }
-        EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_serial0, 0), index_constraint::none);
-    }
 
-    {
-        iarray input_index_serial1 = iarray{1,2,2,4};
-        EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_serial1, 0), index_constraint::none);
-    }
+        {
+            iarray input_index_serial1 = iarray{1, 2, 2, 4};
+            EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_serial1, 0), index_constraint::none);
+        }
 
 
-    {
-        iarray input_index_independent1 = iarray{0,2,656,900};
-        EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_independent1, 0), index_constraint::independent);
+        {
+            iarray input_index_independent1 = iarray{0, 2, 656, 900};
+            EXPECT_EQ(multicore::get_subvector_index_constraint(input_index_independent1, 0),
+                      index_constraint::independent);
+        }
     }
 }
