@@ -7,6 +7,7 @@
 
 #include <simd/simd.hpp>
 #include <simd/avx.hpp>
+#include <simd/neon.hpp>
 
 #include <common_types.hpp>
 #include "common.hpp"
@@ -580,6 +581,10 @@ typedef ::testing::Types<
     simd<int, 8, simd_abi::avx512>,
     simd<double, 8, simd_abi::avx512>,
 #endif
+#if defined(__ARM_NEON__) || defined(__aarch64__)
+    simd<int, 2, simd_abi::neon>,
+    simd<double, 2, simd_abi::neon>,
+#endif
 
     simd<int, 4, simd_abi::generic>,
     simd<double, 4, simd_abi::generic>,
@@ -856,6 +861,9 @@ typedef ::testing::Types<
 #endif
 #ifdef __AVX512F__
     simd<double, 8, simd_abi::avx512>,
+#endif
+#if defined(__ARM_NEON__) || defined(__aarch64__)
+    simd<double, 2, simd_abi::neon>,
 #endif
 
     simd<float, 2, simd_abi::generic>,
@@ -1250,6 +1258,10 @@ typedef ::testing::Types<
 #ifdef __AVX512F__
     simd_pair<simd<double, 8, simd_abi::avx512>,
               simd<int, 8, simd_abi::avx512>>,
+#endif
+#if defined(__ARM_NEON__) || defined(__aarch64__)
+    simd_and_index<simd<double, 2, simd_abi::neon>,
+                   simd<int, 2, simd_abi::neon>>,
 #endif
 
     simd_pair<simd<double, 4, simd_abi::default_abi>,
