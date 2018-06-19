@@ -11,8 +11,11 @@
 using namespace arb::threading::impl;
 using namespace arb;
 
+int count_pop = 0;
+int count_push = 0;
+
 // RAII owner for a task in flight
-struct task_pool::run_task {
+/*struct task_pool::run_task {
     task_pool& pool;
     lock& lck;
     task tsk;
@@ -44,11 +47,25 @@ task_pool::run_task::~run_task() {
 
     lck.unlock();
     pool.tasks_available_.notify_all();
-}
+}*/
 
 bool notification_queue::pop(task& tsk) {
     lock q_lock{q_mutex_};
     while (q_tasks_.empty() && !quit_) {
+        q_tasks_available_.wait(q_lock);
+    }
+    if(q_tasks_.empty()) {
+        return false;
+    }
+    std::swap(tsk, q_tasks_.front());
+    q_tasks_.pop_front();
+    return true;
+}
+
+template<typename B>
+bool notification_queue::pop(task& tsk, B finished) {
+    lock q_lock{q_mutex_};
+    while (q_tasks_.empty() && !quit_ && ! finished()) {
         q_tasks_available_.wait(q_lock);
     }
     if(q_tasks_.empty()) {
@@ -99,9 +116,10 @@ void task_system::run_tasks_loop(B finished ){
     //checking finished without a lock
     //should be okay if we don't add tasks to
     //a task_group while executing tasks in the task_group
-    while (!finished()) {
+    while (true) {
         task tsk;
-        if(!q_.pop(tsk)) break;
+        if(!q_.pop(tsk, finished))
+            break;
         tsk.first();
         q_.remove_from_task_group(tsk);
     }
@@ -139,6 +157,10 @@ void task_system::async_(task&& tsk) {
     q_.push(tsk);
 }
 
+void task_system::wait(task_group* g) {
+    run_tasks_while(g);
+}
+
 int task_system::get_num_threads() {
     return threads_.size() + 1;
 }
@@ -147,7 +169,12 @@ std::size_t task_system::get_current_thread() {
     return thread_ids_[std::this_thread::get_id()];
 }
 
-template<typename B>
+task_system& task_system::get_global_task_system() {
+    auto num_threads = threading::num_threads();
+    static task_system global_task_system(num_threads);
+    return global_task_system;
+}
+/*template<typename B>
 void task_pool::run_tasks_loop(B finished) {
     lock lck{tasks_mutex_, std::defer_lock};
     while (true) {
@@ -241,3 +268,4 @@ task_pool& task_pool::get_global_task_pool() {
     static task_pool global_task_pool(num_threads);
     return global_task_pool;
 }
+*/

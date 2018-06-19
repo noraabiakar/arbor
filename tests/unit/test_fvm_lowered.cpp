@@ -252,6 +252,7 @@ TEST(fvm_lowered, derived_mechs) {
     //
     // 3. Cell with both test_kin1 and custom_kin1.
 
+
     std::vector<cell> cells(3);
     for (int i = 0; i<3; ++i) {
         cell& c = cells[i];
@@ -312,6 +313,7 @@ TEST(fvm_lowered, derived_mechs) {
         util::sort(tau_values);
         EXPECT_EQ(fvec({10., 20.}), tau_values);
     }
+
 
     {
         // Test dynamics:

@@ -14,6 +14,7 @@
 #include <utility>
 #include <unordered_map>
 #include <deque>
+#include <iostream>
 
 #include <cstdlib>
 
@@ -56,6 +57,8 @@ public:
     // pops a task from the task queue
     // returns false when queue is empty or quit is set
     bool pop(task& tsk);
+    template<typename B>
+    bool pop(task& tsk, B condition);
 
     // after the function of a task has been executed
     // decrease the task counter of corresponding task_group
@@ -100,10 +103,16 @@ public:
     // Create nthreads-1 new c std threads
     task_system(int nthreads);
 
+    // task_system is a singleton FOR NOW
+    task_system(const task_system&) = delete;
+    task_system& operator=(const task_system&) = delete;
+
     ~task_system();
 
-    //pushes tasks into notification queue
+    // pushes tasks into notification queue
     void async_(task&& tsk);
+    // waits for all tasks in the group to be done
+    void wait(task_group*);
 
     // includes master thread
     int get_num_threads();
@@ -111,9 +120,13 @@ public:
     // get a stable integer for the current thread that
     // is 0..nthreads
     std::size_t get_current_thread();
+
+    // singleton constructor - needed to order construction
+    // with other singletons (profiler)
+    static task_system& get_global_task_system();
 };
 
-class task_pool {
+/*class task_pool {
 private:
     // lock and signal on task availability change
     // this is the crucial bit
@@ -182,7 +195,7 @@ public:
     // singleton constructor - needed to order construction
     // with other singletons (profiler)
     static task_pool& get_global_task_pool();
-};
+};*/
 } //impl
 
 ///////////////////////////////////////////////////////////////////////
@@ -190,7 +203,7 @@ public:
 ///////////////////////////////////////////////////////////////////////
 template <typename T>
 class enumerable_thread_specific {
-    impl::task_pool& global_task_pool;
+    impl::task_system& global_task_system;
 
     using storage_class = std::vector<T>;
     storage_class data;
@@ -200,20 +213,20 @@ public :
     using const_iterator = typename storage_class::const_iterator;
 
     enumerable_thread_specific():
-        global_task_pool{impl::task_pool::get_global_task_pool()},
-        data{std::vector<T>(global_task_pool.get_num_threads())}
+            global_task_system{impl::task_system::get_global_task_system()},
+            data{std::vector<T>(global_task_system.get_num_threads())}
     {}
 
     enumerable_thread_specific(const T& init):
-        global_task_pool{impl::task_pool::get_global_task_pool()},
-        data{std::vector<T>(global_task_pool.get_num_threads(), init)}
+            global_task_system{impl::task_system::get_global_task_system()},
+            data{std::vector<T>(global_task_system.get_num_threads(), init)}
     {}
 
     T& local() {
-      return data[global_task_pool.get_current_thread()];
+        return data[global_task_system.get_current_thread()];
     }
     const T& local() const {
-      return data[global_task_pool.get_current_thread()];
+        return data[global_task_system.get_current_thread()];
     }
 
     auto size() -> decltype(data.size()) const { return data.size(); }
@@ -227,6 +240,7 @@ public :
     const_iterator cbegin() const { return data.cbegin(); }
     const_iterator cend()   const { return data.cend(); }
 };
+
 
 template <typename T>
 class parallel_vector {
@@ -276,15 +290,13 @@ constexpr bool multithreaded() { return true; }
 class task_group {
 private:
     std::size_t in_flight = 0;
-    impl::task_pool& global_task_pool;
-    // task pool manipulates in_flight
-    friend impl::task_pool;
+    impl::task_system& global_task_system;
     // notification queue manipulates in_flight
     friend impl::notification_queue;
 
 public:
     task_group():
-        global_task_pool{impl::task_pool::get_global_task_pool()}
+        global_task_system{impl::task_system::get_global_task_system()}
     {}
 
     task_group(const task_group&) = delete;
@@ -297,30 +309,30 @@ public:
     // send function void f() to threads
     template<typename F>
     void run(const F& f) {
-        global_task_pool.run(impl::task{f, this});
+        global_task_system.async_(impl::task{f, this});
     }
 
     template<typename F>
     void run(F&& f) {
-        global_task_pool.run(impl::task{std::move(f), this});
+        global_task_system.async_(impl::task{std::move(f), this});
     }
 
     // run function void f() and then wait on all threads in group
     template<typename F>
     void run_and_wait(const F& f) {
         f();
-        global_task_pool.wait(this);
+        global_task_system.wait(this);
     }
 
     template<typename F>
     void run_and_wait(F&& f) {
         f();
-        global_task_pool.wait(this);
+        global_task_system.wait(this);
     }
 
     // wait till all tasks in this group are done
     void wait() {
-        global_task_pool.wait(this);
+        global_task_system.wait(this);
     }
 
     // Make sure that all tasks are done before clean up
@@ -344,7 +356,7 @@ struct parallel_for {
 };
 
 inline std::size_t thread_id() {
-    return impl::task_pool::get_global_task_pool().get_current_thread();
+    return impl::task_system::get_global_task_system().get_current_thread();
 }
 
 } // namespace threading
