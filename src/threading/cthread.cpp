@@ -46,6 +46,107 @@ task_pool::run_task::~run_task() {
     pool.tasks_available_.notify_all();
 }
 
+bool notification_queue::pop(task& tsk) {
+    lock q_lock{q_mutex_};
+    while (q_tasks_.empty() && !quit_) {
+        q_tasks_available_.wait(q_lock);
+    }
+    if(q_tasks_.empty()) {
+        return false;
+    }
+    std::swap(tsk, q_tasks_.front());
+    q_tasks_.pop_front();
+    return true;
+}
+
+void notification_queue::remove_from_task_group(task &tsk) {
+    {
+        lock q_lock{q_mutex_};
+        tsk.second->in_flight--;
+    }
+    q_tasks_available_.notify_all();
+}
+
+template<typename F>
+void notification_queue::push(task&& tsk) {
+    {
+        lock q_lock{q_mutex_};
+        q_tasks_.push_back(std::move(tsk));
+        tsk.second->in_flight++;
+    }
+    q_tasks_available_.notify_all();
+}
+
+void notification_queue::push(const task& tsk) {
+    {
+        lock q_lock{q_mutex_};
+        q_tasks_.push_back(tsk);
+        tsk.second->in_flight++;
+    }
+    q_tasks_available_.notify_all();
+}
+
+void notification_queue::quit() {
+    {
+        lock q_lock{q_mutex_};
+        quit_ = true;
+    }
+    q_tasks_available_.notify_all();
+}
+
+template<typename B>
+void task_system::run_tasks_loop(B finished ){
+    //checking finished without a lock
+    //should be okay if we don't add tasks to
+    //a task_group while executing tasks in the task_group
+    while (!finished()) {
+        task tsk;
+        if(!q_.pop(tsk)) break;
+        tsk.first();
+        q_.remove_from_task_group(tsk);
+    }
+}
+
+void task_system::run_tasks_while(task_group* g) {
+    run_tasks_loop([=] {return ! g->get_in_flight();});
+}
+
+void task_system::run_tasks_forever() {
+    run_tasks_loop([] {return false;});
+}
+
+task_system::task_system(int nthreads) : count_(nthreads) {
+    assert( nthreads > 0);
+
+    // now for the main thread
+    auto tid = std::this_thread::get_id();
+    thread_ids_[tid] = 0;
+
+    // and go from there
+    for (std::size_t i = 1; i < nthreads; i++) {
+        threads_.emplace_back([&]{run_tasks_forever();});
+        tid = threads_.back().get_id();
+        thread_ids_[tid] = i;
+    }
+}
+
+task_system::~task_system() {
+    q_.quit();
+    for (auto& e : threads_) e.join();
+}
+
+void task_system::async_(task&& tsk) {
+    q_.push(tsk);
+}
+
+int task_system::get_num_threads() {
+    return threads_.size() + 1;
+}
+
+std::size_t task_system::get_current_thread() {
+    return thread_ids_[std::this_thread::get_id()];
+}
+
 template<typename B>
 void task_pool::run_tasks_loop(B finished) {
     lock lck{tasks_mutex_, std::defer_lock};

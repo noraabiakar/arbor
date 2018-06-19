@@ -39,6 +39,80 @@ using task_queue = std::deque<task>;
 using thread_list = std::vector<std::thread>;
 using thread_map = std::unordered_map<std::thread::id, std::size_t>;
 
+class notification_queue {
+private:
+    // fifo of pending tasks
+    task_queue q_tasks_;
+
+    // lock and signal on task availability change
+    // this is the crucial bit
+    mutex q_mutex_;
+    condition_variable q_tasks_available_;
+
+    // flag to handle exit from all threads
+    bool quit_ = false;
+
+public:
+    // pops a task from the task queue
+    // returns false when queue is empty or quit is set
+    bool pop(task& tsk);
+
+    // after the function of a task has been executed
+    // decrease the task counter of corresponding task_group
+    void remove_from_task_group(task &tsk);
+
+    // pushes a task into the task queue
+    // and increases task group counter
+    template<typename F>
+    void push(task&& tsk);
+    void push(const task& tsk);
+
+    //stop queue from popping new tasks
+    void quit();
+};
+
+//manipulates in_flight
+class task_system {
+private:
+    std::size_t count_;
+    //thread_resource
+    thread_list threads_;
+    // threads -> index
+    thread_map thread_ids_;
+    // queue of tasks
+    notification_queue q_;
+
+    // finished is a function/lambda
+    // that returns true when the infinite loop
+    // needs to be broken
+    template<typename B>
+    void run_tasks_loop(B finished );
+
+    // run tasks until a task_group tasks are done
+    // for wait
+    void run_tasks_while(task_group* g);
+
+    // loop forever for secondary threads
+    // until quit is set
+    void run_tasks_forever();
+
+public:
+    // Create nthreads-1 new c std threads
+    task_system(int nthreads);
+
+    ~task_system();
+
+    //pushes tasks into notification queue
+    void async_(task&& tsk);
+
+    // includes master thread
+    int get_num_threads();
+
+    // get a stable integer for the current thread that
+    // is 0..nthreads
+    std::size_t get_current_thread();
+};
+
 class task_pool {
 private:
     // lock and signal on task availability change
@@ -205,6 +279,8 @@ private:
     impl::task_pool& global_task_pool;
     // task pool manipulates in_flight
     friend impl::task_pool;
+    // notification queue manipulates in_flight
+    friend impl::notification_queue;
 
 public:
     task_group():
@@ -213,6 +289,10 @@ public:
 
     task_group(const task_group&) = delete;
     task_group& operator=(const task_group&) = delete;
+
+    std::size_t get_in_flight() {
+        return in_flight;
+    }
 
     // send function void f() to threads
     template<typename F>
