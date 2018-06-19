@@ -116,12 +116,13 @@ void task_system::run_tasks_loop(B finished ){
     //checking finished without a lock
     //should be okay if we don't add tasks to
     //a task_group while executing tasks in the task_group
+    size_t i = get_current_thread();
     while (true) {
         task tsk;
-        if(!q_.pop_if_not(tsk, finished))
+        if (!q_[i].pop_if_not(tsk, finished))
             break;
         tsk.first();
-        q_.remove_from_task_group(tsk);
+        q_[i].remove_from_task_group(tsk);
     }
 }
 
@@ -133,7 +134,7 @@ void task_system::run_tasks_forever() {
     run_tasks_loop([] {return false;});
 }
 
-task_system::task_system(int nthreads) : count_(nthreads) {
+task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
     assert( nthreads > 0);
 
     // now for the main thread
@@ -149,12 +150,13 @@ task_system::task_system(int nthreads) : count_(nthreads) {
 }
 
 task_system::~task_system() {
-    q_.quit();
+    for (auto& e : q_) e.quit();
     for (auto& e : threads_) e.join();
 }
 
 void task_system::async_(task&& tsk) {
-    q_.push(tsk);
+    auto i = index_++;
+    q_[i % count_].push(tsk);
 }
 
 void task_system::wait(task_group* g) {

@@ -14,7 +14,7 @@
 #include <utility>
 #include <unordered_map>
 #include <deque>
-#include <iostream>
+#include <atomic>
 
 #include <cstdlib>
 
@@ -85,7 +85,9 @@ private:
     // threads -> index
     thread_map thread_ids_;
     // queue of tasks
-    notification_queue q_;
+    std::vector<notification_queue> q_;
+    // total number of tasks pushed in all queues
+    std::atomic<unsigned> index_{0};
 
     // finished is a function/lambda
     // that returns true when the infinite loop
