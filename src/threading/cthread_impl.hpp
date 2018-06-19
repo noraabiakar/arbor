@@ -57,8 +57,10 @@ public:
     // pops a task from the task queue
     // returns false when queue is empty or quit is set
     bool pop(task& tsk);
+    // pops a task from the task queue
+    //
     template<typename B>
-    bool pop(task& tsk, B condition);
+    bool pop_if_not(task& tsk, B condition);
 
     // after the function of a task has been executed
     // decrease the task counter of corresponding task_group

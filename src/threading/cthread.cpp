@@ -63,7 +63,7 @@ bool notification_queue::pop(task& tsk) {
 }
 
 template<typename B>
-bool notification_queue::pop(task& tsk, B finished) {
+bool notification_queue::pop_if_not(task& tsk, B finished) {
     lock q_lock{q_mutex_};
     while (q_tasks_.empty() && !quit_ && ! finished()) {
         q_tasks_available_.wait(q_lock);
@@ -118,7 +118,7 @@ void task_system::run_tasks_loop(B finished ){
     //a task_group while executing tasks in the task_group
     while (true) {
         task tsk;
-        if(!q_.pop(tsk, finished))
+        if(!q_.pop_if_not(tsk, finished))
             break;
         tsk.first();
         q_.remove_from_task_group(tsk);
