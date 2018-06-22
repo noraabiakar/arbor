@@ -4,6 +4,7 @@
 #include <exception>
 #include <iostream>
 #include <regex>
+#include <chrono>
 
 #include "cthread.hpp"
 #include "threading.hpp"
@@ -48,6 +49,14 @@ task_pool::run_task::~run_task() {
     lck.unlock();
     pool.tasks_available_.notify_all();
 }*/
+bool notification_queue::try_pop(task& tsk) {
+    lock q_lock{q_mutex_, std::try_to_lock};
+    if (!q_lock || q_tasks_.empty()) return false;
+    std::swap(tsk, q_tasks_.front());
+    q_tasks_.pop_front();
+    //std::cout<<"\t"<<tsk.second->get_in_flight()<<"\n";
+    return true;
+}
 
 bool notification_queue::pop(task& tsk) {
     lock q_lock{q_mutex_};
@@ -79,18 +88,31 @@ bool notification_queue::pop_if_not(task& tsk, B finished) {
 void notification_queue::remove_from_task_group(task &tsk) {
     {
         lock q_lock{q_mutex_};
-        tsk.second->in_flight--;
+        //tsk.second->in_flight--;
     }
     q_tasks_available_.notify_all();
 }
 
-template<typename F>
+bool notification_queue::try_push(const task& tsk) {
+    {
+        lock q_lock{q_mutex_, std::try_to_lock};
+        if(!q_lock) return false;
+        q_tasks_.push_back(std::move(tsk));
+        tsk.second->inc_in_flight();
+        //std::cout<<tsk.second->get_in_flight()<<"\n";
+    }
+    //std::cout<<"is_empty try"<<q_tasks_.size() <<std::endl;
+    q_tasks_available_.notify_all();
+    return true;
+}
+
 void notification_queue::push(task&& tsk) {
     {
         lock q_lock{q_mutex_};
         q_tasks_.push_back(std::move(tsk));
-        tsk.second->in_flight++;
+        tsk.second->inc_in_flight();
     }
+    //std::cout<<"is_empty"<<q_tasks_.empty()<<std::endl;
     q_tasks_available_.notify_all();
 }
 
@@ -98,8 +120,9 @@ void notification_queue::push(const task& tsk) {
     {
         lock q_lock{q_mutex_};
         q_tasks_.push_back(tsk);
-        tsk.second->in_flight++;
+        tsk.second->inc_in_flight();
     }
+    //std::cout<<"is_empty"<<q_tasks_.empty()<<std::endl;
     q_tasks_available_.notify_all();
 }
 
@@ -119,10 +142,12 @@ void task_system::run_tasks_loop(B finished ){
     size_t i = get_current_thread();
     while (true) {
         task tsk;
-        if (!q_[i].pop_if_not(tsk, finished))
-            break;
+        for(unsigned n = 0; n != count_; n++) {
+            if(q_[(i + n) % count_].try_pop(tsk)) break;
+        }
+        if(!tsk.first && !q_[i].pop(tsk)) break;
         tsk.first();
-        q_[i].remove_from_task_group(tsk);
+        tsk.second->dec_in_flight();
     }
 }
 
@@ -138,13 +163,13 @@ task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
     assert( nthreads > 0);
 
     // now for the main thread
-    auto tid = std::this_thread::get_id();
-    thread_ids_[tid] = 0;
+    //auto tid = std::this_thread::get_id();
+    //thread_ids_[tid] = 0;
 
     // and go from there
-    for (std::size_t i = 1; i < nthreads; i++) {
+    for (std::size_t i = 0; i < count_; i++) {
         threads_.emplace_back([&]{run_tasks_forever();});
-        tid = threads_.back().get_id();
+        auto tid = threads_.back().get_id();
         thread_ids_[tid] = i;
     }
 }
@@ -156,6 +181,10 @@ task_system::~task_system() {
 
 void task_system::async_(task&& tsk) {
     auto i = index_++;
+
+    for(unsigned n = 0; n != count_; n++) {
+        if(q_[(i + n) % count_].try_push(tsk)) return;
+    }
     q_[i % count_].push(tsk);
 }
 
@@ -175,6 +204,29 @@ task_system& task_system::get_global_task_system() {
     auto num_threads = threading::num_threads();
     static task_system global_task_system(num_threads);
     return global_task_system;
+}
+
+void task_group::wait() {
+    //std::cout<<"\tstart waiting\n";
+    //global_task_system.wait(this);
+
+    lock g_lock{g_mutex_};
+    while(get_in_flight()) {
+        // we get a task if there is any
+        /*auto tid = global_task_system.get_current_thread();
+        task sub_task;
+        while (global_task_system.q_[tid].try_pop(sub_task)) {
+            sub_task.first();
+            if (sub_task.second != this) {
+                sub_task.second->dec_in_flight();
+            } else {
+                sub_task.second->in_flight--;
+                sub_task.second->g_tasks_available.notify_all();
+            }
+        }*/
+        g_tasks_available.wait(g_lock);
+    }
+    //std::cout<<"\tdone waiting\n";
 }
 /*template<typename B>
 void task_pool::run_tasks_loop(B finished) {

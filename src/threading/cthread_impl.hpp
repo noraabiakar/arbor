@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <deque>
 #include <atomic>
+#include <iostream>
 
 #include <cstdlib>
 
@@ -56,6 +57,7 @@ private:
 public:
     // pops a task from the task queue
     // returns false when queue is empty or quit is set
+    bool try_pop(task& tsk);
     bool pop(task& tsk);
     // pops a task from the task queue
     //
@@ -68,9 +70,10 @@ public:
 
     // pushes a task into the task queue
     // and increases task group counter
-    template<typename F>
+
     void push(task&& tsk);
     void push(const task& tsk);
+    bool try_push(const task& tsk);
 
     //stop queue from popping new tasks
     void quit();
@@ -78,14 +81,15 @@ public:
 
 //manipulates in_flight
 class task_system {
+public:
+    // queue of tasks
+    std::vector<notification_queue> q_;
 private:
     std::size_t count_;
     //thread_resource
     thread_list threads_;
     // threads -> index
     thread_map thread_ids_;
-    // queue of tasks
-    std::vector<notification_queue> q_;
     // total number of tasks pushed in all queues
     std::atomic<unsigned> index_{0};
 
@@ -129,77 +133,6 @@ public:
     // with other singletons (profiler)
     static task_system& get_global_task_system();
 };
-
-/*class task_pool {
-private:
-    // lock and signal on task availability change
-    // this is the crucial bit
-    mutex tasks_mutex_;
-    condition_variable tasks_available_;
-
-    // fifo of pending tasks
-    task_queue tasks_;
-
-    // thread resource
-    thread_list threads_;
-    // threads -> index
-    thread_map thread_ids_;
-    // flag to handle exit from all threads
-    bool quit_ = false;
-
-    // internals for taking tasks as a resource
-    // and running them (updating above)
-    // They get run by a thread in order to consume
-    // tasks
-    struct run_task;
-    // run tasks until a task_group tasks are done
-    // for wait
-    void run_tasks_while(task_group*);
-    // loop forever for secondary threads
-    // until quit is set
-    void run_tasks_forever();
-
-    // common code for the previous
-    // finished is a function/lambda
-    //   that returns true when the infinite loop
-    //   needs to be broken
-    template<typename B>
-    void run_tasks_loop(B finished );
-
-    // Create nthreads-1 new c std threads
-    // must be > 0
-    // singled only created in static get_global_task_pool()
-    task_pool(std::size_t nthreads);
-
-    // task_pool is a singleton 
-    task_pool(const task_pool&) = delete;
-    task_pool& operator=(const task_pool&) = delete;
-
-    // set quit and wait for secondary threads to end
-    ~task_pool();
-
-public:
-    // Like tbb calls: run queues a task,
-    // wait waits for all tasks in the group to be done
-    void run(const task&);
-    void run(task&&);
-    void wait(task_group*);
-
-    // includes master thread
-    int get_num_threads() {
-        return threads_.size() + 1;
-    }
-
-    // get a stable integer for the current thread that
-    // is 0..nthreads
-    std::size_t get_current_thread() {
-        return thread_ids_[std::this_thread::get_id()];
-    }
-
-    // singleton constructor - needed to order construction
-    // with other singletons (profiler)
-    static task_pool& get_global_task_pool();
-};*/
 } //impl
 
 ///////////////////////////////////////////////////////////////////////
@@ -291,10 +224,17 @@ inline std::string description() {
 
 constexpr bool multithreaded() { return true; }
 
+using std::mutex;
+using lock = std::unique_lock<mutex>;
+using std::condition_variable;
+
 class task_group {
 private:
-    std::size_t in_flight = 0;
+    std::atomic<std::size_t> in_flight{0};
     impl::task_system& global_task_system;
+    mutex g_mutex_;
+    condition_variable g_tasks_available;
+
     // notification queue manipulates in_flight
     friend impl::notification_queue;
 
@@ -305,6 +245,26 @@ public:
 
     task_group(const task_group&) = delete;
     task_group& operator=(const task_group&) = delete;
+
+    void dec_in_flight() {
+        {
+            lock g_lock{g_mutex_};
+            in_flight--;
+            //std::cout<<"\t"<<in_flight<<std::endl;
+        }
+        g_tasks_available.notify_all();
+
+    };
+
+    void inc_in_flight() {
+        {
+            lock g_lock{g_mutex_};
+            in_flight++;
+            //std::cout<<in_flight<<std::endl;
+        }
+        g_tasks_available.notify_all();
+
+    };
 
     std::size_t get_in_flight() {
         return in_flight;
@@ -325,19 +285,19 @@ public:
     template<typename F>
     void run_and_wait(const F& f) {
         f();
-        global_task_system.wait(this);
+        wait();
+        //global_task_system.wait(this);
     }
 
     template<typename F>
     void run_and_wait(F&& f) {
         f();
-        global_task_system.wait(this);
+        wait();
+        //global_task_system.wait(this);
     }
 
     // wait till all tasks in this group are done
-    void wait() {
-        global_task_system.wait(this);
-    }
+    void wait();
 
     // Make sure that all tasks are done before clean up
     ~task_group() {
