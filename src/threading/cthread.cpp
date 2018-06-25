@@ -139,6 +139,7 @@ void task_system::run_tasks_loop(B finished ){
     //checking finished without a lock
     //should be okay if we don't add tasks to
     //a task_group while executing tasks in the task_group
+    std::thread::id tid = std::this_thread::get_id();
     size_t i = get_current_thread();
     while (true) {
         task tsk;
@@ -167,6 +168,7 @@ task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
     //thread_ids_[tid] = 0;
 
     // and go from there
+    lock thread_ids_lock{thread_ids_mutex_};
     for (std::size_t i = 0; i < count_; i++) {
         threads_.emplace_back([&]{run_tasks_forever();});
         auto tid = threads_.back().get_id();
@@ -197,7 +199,9 @@ int task_system::get_num_threads() {
 }
 
 std::size_t task_system::get_current_thread() {
-    return thread_ids_[std::this_thread::get_id()];
+    lock thread_ids_lock{thread_ids_mutex_};
+    std::thread::id tid = std::this_thread::get_id();
+    return thread_ids_[tid];
 }
 
 task_system& task_system::get_global_task_system() {

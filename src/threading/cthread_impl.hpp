@@ -90,6 +90,8 @@ private:
     thread_list threads_;
     // threads -> index
     thread_map thread_ids_;
+    //lock for thread_map
+    mutex thread_ids_mutex_;
     // total number of tasks pushed in all queues
     std::atomic<unsigned> index_{0};
 
