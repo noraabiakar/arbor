@@ -84,12 +84,12 @@ class task_system {
 public:
     // queue of tasks
     std::vector<notification_queue> q_;
+    // threads -> index
+    thread_map thread_ids_;
 private:
     std::size_t count_;
     //thread_resource
     thread_list threads_;
-    // threads -> index
-    thread_map thread_ids_;
     //lock for thread_map
     mutex thread_ids_mutex_;
     // total number of tasks pushed in all queues
@@ -254,7 +254,7 @@ public:
             in_flight--;
             //std::cout<<"\t"<<in_flight<<std::endl;
         }
-        g_tasks_available.notify_all();
+        //g_tasks_available.notify_all();
 
     };
 
@@ -264,7 +264,7 @@ public:
             in_flight++;
             //std::cout<<in_flight<<std::endl;
         }
-        g_tasks_available.notify_all();
+        //g_tasks_available.notify_all();
 
     };
 

@@ -139,7 +139,6 @@ void task_system::run_tasks_loop(B finished ){
     //checking finished without a lock
     //should be okay if we don't add tasks to
     //a task_group while executing tasks in the task_group
-    std::thread::id tid = std::this_thread::get_id();
     size_t i = get_current_thread();
     while (true) {
         task tsk;
@@ -164,8 +163,8 @@ task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
     assert( nthreads > 0);
 
     // now for the main thread
-    //auto tid = std::this_thread::get_id();
-    //thread_ids_[tid] = 0;
+    auto tid = std::this_thread::get_id();
+    thread_ids_[tid] = count_;
 
     // and go from there
     lock thread_ids_lock{thread_ids_mutex_};
@@ -211,26 +210,26 @@ task_system& task_system::get_global_task_system() {
 }
 
 void task_group::wait() {
-    //std::cout<<"\tstart waiting\n";
-    //global_task_system.wait(this);
-
-    lock g_lock{g_mutex_};
-    while(get_in_flight()) {
-        // we get a task if there is any
-        /*auto tid = global_task_system.get_current_thread();
-        task sub_task;
-        while (global_task_system.q_[tid].try_pop(sub_task)) {
-            sub_task.first();
-            if (sub_task.second != this) {
-                sub_task.second->dec_in_flight();
-            } else {
-                sub_task.second->in_flight--;
-                sub_task.second->g_tasks_available.notify_all();
+    if (global_task_system.get_current_thread() != global_task_system.get_num_threads() - 1) {
+        while(get_in_flight()) {
+            size_t i = global_task_system.get_current_thread();
+            task tsk;
+            /*for(unsigned n = 0; n != global_task_system.get_num_threads(); n++) {
+                if(global_task_system.q_[(i + n) % global_task_system.get_num_threads()].try_pop(tsk)) break;
             }
-        }*/
-        g_tasks_available.wait(g_lock);
+            if(!tsk.first && !global_task_system.q_[i].pop(tsk)) break;*/
+            if (global_task_system.q_[i].try_pop(tsk)) {
+                tsk.first();
+                tsk.second->in_flight--;
+            }
+        }
     }
-    //std::cout<<"\tdone waiting\n";
+    else {
+        //lock g_lock{g_mutex_};
+        while(get_in_flight()) {
+            //g_tasks_available.wait(g_lock);
+        }
+    }
 }
 /*template<typename B>
 void task_pool::run_tasks_loop(B finished) {
