@@ -164,11 +164,11 @@ task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
 
     // now for the main thread
     auto tid = std::this_thread::get_id();
-    thread_ids_[tid] = count_;
+    thread_ids_[tid] = 0;
 
     // and go from there
     lock thread_ids_lock{thread_ids_mutex_};
-    for (std::size_t i = 0; i < count_; i++) {
+    for (std::size_t i = 1; i < count_; i++) {
         threads_.emplace_back([&]{run_tasks_forever();});
         auto tid = threads_.back().get_id();
         thread_ids_[tid] = i;
@@ -210,24 +210,16 @@ task_system& task_system::get_global_task_system() {
 }
 
 void task_group::wait() {
-    if (global_task_system.get_current_thread() != global_task_system.get_num_threads() - 1) {
-        while(get_in_flight()) {
-            size_t i = global_task_system.get_current_thread();
-            task tsk;
-            /*for(unsigned n = 0; n != global_task_system.get_num_threads(); n++) {
-                if(global_task_system.q_[(i + n) % global_task_system.get_num_threads()].try_pop(tsk)) break;
-            }
-            if(!tsk.first && !global_task_system.q_[i].pop(tsk)) break;*/
-            if (global_task_system.q_[i].try_pop(tsk)) {
-                tsk.first();
-                tsk.second->in_flight--;
-            }
+    while(get_in_flight()) {
+        size_t i = global_task_system.get_current_thread();
+        task tsk;
+        /*for(unsigned n = 0; n != global_task_system.get_num_threads(); n++) {
+            if(global_task_system.q_[(i + n) % global_task_system.get_num_threads()].try_pop(tsk)) break;
         }
-    }
-    else {
-        //lock g_lock{g_mutex_};
-        while(get_in_flight()) {
-            //g_tasks_available.wait(g_lock);
+        if(!tsk.first && !global_task_system.q_[i].pop(tsk)) break;*/
+        if (global_task_system.q_[i].try_pop(tsk)) {
+            tsk.first();
+            tsk.second->dec_in_flight();
         }
     }
 }
