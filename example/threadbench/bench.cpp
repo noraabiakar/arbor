@@ -34,7 +34,7 @@ int main() {
     const auto nthreads = threading::num_threads();
     std::cout << "## thread benchmark: " << threading::description() << " with " << nthreads << " threads\n";
 
-    const unsigned long us_per_sec = 1000000;
+    const unsigned long us_per_sec = 100000;
 
     timer_c timer;
 
@@ -42,7 +42,7 @@ int main() {
     run(1000, 1000); // 1000 * 1 ms tasks
 
     // pre-compute the output strings
-    const std::vector<unsigned long> tasks_per_second_per_thread{100, 1000, 10000};//, 100000};
+    const std::vector<unsigned long> tasks_per_second_per_thread{1000};//{100, 1000, 2000, 4000, 6000, 8000, 10000};//, 100000};
     const auto nruns = tasks_per_second_per_thread.size();
 
     std::cout << "\ngathering results..." << std::endl;
@@ -56,7 +56,7 @@ int main() {
         t_run.push_back(timer.toc(start));
     }
 
-    // Perform one thread's worth of work in a for loop.
+    /*// Perform one thread's worth of work in a for loop.
     // The time taken to perform this work can be used to
     // determine the best case performance for the multithreaded
     // runs.
@@ -72,15 +72,15 @@ int main() {
             std::this_thread::sleep_for(duration);
         }
         t_baseline.push_back(timer.toc(start));
-    }
+    }*/
 
-    std::printf("\n## %12s%12s%12s%12s\n",
-                "us-per-task", "baseline", "run", "efficiency");
+    std::printf("\n## %12s%12s%12s\n",
+                "us-per-task", "run", "efficiency");
     for (auto i=0u; i<nruns; ++i) {
-        const auto tb = t_baseline[i];
+        //const auto tb = t_baseline[i];
         const auto tr = t_run[i];
         unsigned us_per_task = us_per_sec / tasks_per_second_per_thread[i];
-        std::printf("## %12u%12.3f%12.3f%12.1f\n",
-                    us_per_task, float(tb), float(tr), float(tb/tr*100.));
+        std::printf("## %12u%12.3f%12.1f\n",
+                    us_per_task, float(tr), float(0.1/tr*100.));
     }
 }

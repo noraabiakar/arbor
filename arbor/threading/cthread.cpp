@@ -120,7 +120,7 @@ task_system::~task_system() {
 void task_system::async_(task&& tsk) {
     auto i = index_++;
 
-    for(unsigned n = 0; n != count_; n++) {
+    for(unsigned n = 0; n != 32*count_; n++) {
         if(q_[(i + n) % count_].try_push(tsk)) {
             count_q[(i + n) % count_]++;
             return;
