@@ -88,8 +88,13 @@ void task_system::run_tasks_loop(){
     while (true) {
         task tsk;
         for(unsigned n = 0; n != count_; n++) {
-            if(q_[(i + n) % count_].try_pop(tsk)) break;
+            if(q_[(i + n) % count_].try_pop(tsk)) {
+                count_trypop++;
+                break;
+            }
         }
+        if(!tsk.first)
+            count_pop++;
         if(!tsk.first && !q_[i].pop(tsk)) break;
         tsk.first();
         tsk.second->dec_in_flight();
@@ -123,11 +128,13 @@ void task_system::async_(task&& tsk) {
     for(unsigned n = 0; n != 32*count_; n++) {
         if(q_[(i + n) % count_].try_push(tsk)) {
             count_q[(i + n) % count_]++;
+            count_trypush++;
             return;
         }
     }
     q_[i % count_].push(tsk);
     count_q[i  % count_]++;
+    count_push++;
 }
 
 int task_system::get_num_threads() {
@@ -160,4 +167,9 @@ void task_system::wait(task_group* g) {
     }
     for(int i = 0; i < count_q.size(); i++)
         std::cout<<count_q[i]<<std::endl;
+    std::cout<<"try_pop "<<count_trypop<<std::endl;
+    std::cout<<"pop "<<count_pop<<std::endl;
+    std::cout<<"try_push "<<count_trypush<<std::endl;
+    std::cout<<"push "<<count_push<<std::endl;
+
 }
