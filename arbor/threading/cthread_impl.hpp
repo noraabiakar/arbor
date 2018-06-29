@@ -90,6 +90,7 @@ private:
     thread_map thread_ids_;
     // total number of tasks pushed in all queues
     std::atomic<unsigned> index_{0};
+    std::vector<std::atomic<unsigned>> count_q;
 
 public:
     // Create nthreads-1 new c std threads

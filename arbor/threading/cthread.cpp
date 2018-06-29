@@ -96,7 +96,7 @@ void task_system::run_tasks_loop(){
     }
 }
 
-task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
+task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads), count_q(nthreads) {
     assert( nthreads > 0);
 
     // now for the main thread
@@ -121,9 +121,13 @@ void task_system::async_(task&& tsk) {
     auto i = index_++;
 
     for(unsigned n = 0; n != count_; n++) {
-        if(q_[(i + n) % count_].try_push(tsk)) return;
+        if(q_[(i + n) % count_].try_push(tsk)) {
+            count_q[(i + n) % count_]++;
+            return;
+        }
     }
     q_[i % count_].push(tsk);
+    count_q[i  % count_]++;
 }
 
 int task_system::get_num_threads() {
@@ -154,4 +158,6 @@ void task_system::wait(task_group* g) {
             }
         }
     }
+    for(int i = 0; i < count_q.size(); i++)
+        std::cout<<count_q[i]<<std::endl;
 }
