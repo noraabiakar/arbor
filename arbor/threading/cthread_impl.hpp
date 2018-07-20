@@ -61,8 +61,10 @@ public:
     // Pushes a task into the task queue and increases task group counter.
     void push(task&& tsk); // TODO: need to use value?
     void push4(task&& tsk0, task&& tsk1, task&& tsk2, task&& tsk3);
+    void push_x(std::vector<task>&& tsk);
     bool try_push(task& tsk);
     bool try_push4(task& tsk0, task& tsk1, task& tsk2, task& tsk3);
+    bool try_push_x(std::vector<task>& tsk);
 
     // Finish popping all waiting tasks on queue then stop trying to pop new tasks
     void quit();
@@ -97,6 +99,7 @@ public:
     // Pushes tasks into notification queue.
     void async(task tsk);
     void async4(task tsk0, task tsk1, task tsk2, task tsk3);
+    void async_x(std::vector<task> v_tsk);
 
     // Runs tasks until quit is true.
     void run_tasks_loop(int i);
@@ -231,6 +234,16 @@ public:
         task_system_->async4(w0, w1, w2, w3);
     }
 
+    template<typename F>
+    void run_x(std::vector<F> v) {
+        in_flight_+= v.size();
+        std::vector<task> w;
+        for (unsigned i = 0; i < v.size(); i++) {
+            w.push_back(make_wrapped_function(std::forward<F>(v[i]), in_flight_));
+        }
+        task_system_->async_x(w);
+    }
+
     // wait till all tasks in this group are done
     void wait() {
         while (in_flight_) {
@@ -250,15 +263,19 @@ public:
 struct parallel_for {
     template <typename F>
     static void apply(int left, int right, task_system* ts, F f) {
+        int size = 4;
         task_group g(ts);
-        for (int i = left; i < right; i+=4) {
-            if (i + 4 > right) {
+        for (int i = left; i < right; i+=size) {
+            if (i + size > right) {
                 for (int j = i; j < right; j++) {
                     g.run([=] { f(j); });
                 }
             }
             else {
-                g.run4<task>([=] {f(i);}, [=] {f(i + 1);}, [=] {f(i + 2);}, [=] {f(i + 3);});
+                std::vector<task> v;
+                for (int j = i; j < i + size ; j++)
+                    v.push_back([=] {f(j);});
+                g.run_x<task>(v);
             }
         }
         g.wait();

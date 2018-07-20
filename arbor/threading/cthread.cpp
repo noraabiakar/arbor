@@ -61,6 +61,27 @@ bool notification_queue::try_push4(task& tsk0, task& tsk1, task& tsk2, task& tsk
     return true;
 }
 
+bool notification_queue::try_push_x(std::vector<task>& v_tsk) {
+    {
+        lock q_lock{q_mutex_, std::try_to_lock};
+        if (!q_lock) return false;
+        for (unsigned i = 0; i < v_tsk.size(); i++) {
+            q_tasks_.push_back(std::move(v_tsk[i]));
+            v_tsk[i] = 0;
+        }
+    }
+    q_tasks_available_.notify_all();
+    return true;
+}
+
+void notification_queue::push(task&& tsk) {
+    {
+        lock q_lock{q_mutex_};
+        q_tasks_.push_back(std::move(tsk));
+    }
+    q_tasks_available_.notify_all();
+}
+
 void notification_queue::push4(task&& tsk0, task&& tsk1, task&& tsk2, task&& tsk3) {
     {
         lock q_lock{q_mutex_};
@@ -72,10 +93,11 @@ void notification_queue::push4(task&& tsk0, task&& tsk1, task&& tsk2, task&& tsk
     q_tasks_available_.notify_all();
 }
 
-void notification_queue::push(task&& tsk) {
+void notification_queue::push_x(std::vector<task>&& v_tsk) {
     {
         lock q_lock{q_mutex_};
-        q_tasks_.push_back(std::move(tsk));
+        for (unsigned i = 0; i < v_tsk.size(); i++)
+            q_tasks_.push_back(std::move(v_tsk[i]));
     }
     q_tasks_available_.notify_all();
 }
@@ -150,6 +172,14 @@ void task_system::async4(task tsk0, task tsk1, task tsk2, task tsk3) {
     q_[i % count_].push4(std::move(tsk0), std::move(tsk1), std::move(tsk2), std::move(tsk3));
 }
 
+void task_system::async_x(std::vector<task> v_tsk) {
+    auto i = index_++;
+
+    for (unsigned n = 0; n != count_; n++) {
+        if (q_[(i + n) % count_].try_push_x(v_tsk)) return;
+    }
+    q_[i % count_].push_x(std::move(v_tsk));
+}
 
 int task_system::get_num_threads() {
     return threads_.size() + 1;
