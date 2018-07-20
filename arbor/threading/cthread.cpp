@@ -47,6 +47,31 @@ bool notification_queue::try_push(task& tsk) {
     return true;
 }
 
+bool notification_queue::try_push4(task& tsk0, task& tsk1, task& tsk2, task& tsk3) {
+    {
+        lock q_lock{q_mutex_, std::try_to_lock};
+        if (!q_lock) return false;
+        q_tasks_.push_back(std::move(tsk0));
+        q_tasks_.push_back(std::move(tsk1));
+        q_tasks_.push_back(std::move(tsk2));
+        q_tasks_.push_back(std::move(tsk3));
+        tsk0 = 0; tsk1 = 0; tsk2 = 0; tsk3 = 0;
+    }
+    q_tasks_available_.notify_all();
+    return true;
+}
+
+void notification_queue::push4(task&& tsk0, task&& tsk1, task&& tsk2, task&& tsk3) {
+    {
+        lock q_lock{q_mutex_};
+        q_tasks_.push_back(std::move(tsk0));
+        q_tasks_.push_back(std::move(tsk1));
+        q_tasks_.push_back(std::move(tsk2));
+        q_tasks_.push_back(std::move(tsk3));
+    }
+    q_tasks_available_.notify_all();
+}
+
 void notification_queue::push(task&& tsk) {
     {
         lock q_lock{q_mutex_};
@@ -115,6 +140,16 @@ void task_system::async(task tsk) {
     }
     q_[i % count_].push(std::move(tsk));
 }
+
+void task_system::async4(task tsk0, task tsk1, task tsk2, task tsk3) {
+    auto i = index_++;
+
+    for (unsigned n = 0; n != count_; n++) {
+        if (q_[(i + n) % count_].try_push4(tsk0, tsk1, tsk2, tsk3)) return;
+    }
+    q_[i % count_].push4(std::move(tsk0), std::move(tsk1), std::move(tsk2), std::move(tsk3));
+}
+
 
 int task_system::get_num_threads() {
     return threads_.size() + 1;

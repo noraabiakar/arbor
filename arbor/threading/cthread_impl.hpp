@@ -36,6 +36,10 @@ using lock = std::unique_lock<mutex>;
 using std::condition_variable;
 using task = std::function<void()>;
 
+struct task_box {
+    std::vector<task> tb;
+};
+
 namespace impl {
 class notification_queue {
 private:
@@ -56,7 +60,9 @@ public:
 
     // Pushes a task into the task queue and increases task group counter.
     void push(task&& tsk); // TODO: need to use value?
+    void push4(task&& tsk0, task&& tsk1, task&& tsk2, task&& tsk3);
     bool try_push(task& tsk);
+    bool try_push4(task& tsk0, task& tsk1, task& tsk2, task& tsk3);
 
     // Finish popping all waiting tasks on queue then stop trying to pop new tasks
     void quit();
@@ -90,6 +96,7 @@ public:
 
     // Pushes tasks into notification queue.
     void async(task tsk);
+    void async4(task tsk0, task tsk1, task tsk2, task tsk3);
 
     // Runs tasks until quit is true.
     void run_tasks_loop(int i);
@@ -214,6 +221,16 @@ public:
         task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_));
     }
 
+    template<typename F>
+    void run4(F&& f0, F&& f1, F&& f2, F&& f3) {
+        in_flight_+=4;
+        wrap<callable<F>> w0 = make_wrapped_function(std::forward<F>(f0), in_flight_);
+        wrap<callable<F>> w1 = make_wrapped_function(std::forward<F>(f1), in_flight_);
+        wrap<callable<F>> w2 = make_wrapped_function(std::forward<F>(f2), in_flight_);
+        wrap<callable<F>> w3 = make_wrapped_function(std::forward<F>(f3), in_flight_);
+        task_system_->async4(w0, w1, w2, w3);
+    }
+
     // wait till all tasks in this group are done
     void wait() {
         while (in_flight_) {
@@ -234,8 +251,15 @@ struct parallel_for {
     template <typename F>
     static void apply(int left, int right, task_system* ts, F f) {
         task_group g(ts);
-        for (int i = left; i < right; ++i) {
-          g.run([=] {f(i);});
+        for (int i = left; i < right; i+=4) {
+            if (i + 4 > right) {
+                for (int j = i; j < right; j++) {
+                    g.run([=] { f(j); });
+                }
+            }
+            else {
+                g.run4<task>([=] {f(i);}, [=] {f(i + 1);}, [=] {f(i + 2);}, [=] {f(i + 3);});
+            }
         }
         g.wait();
     }
