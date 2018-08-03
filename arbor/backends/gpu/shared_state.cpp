@@ -109,7 +109,8 @@ void ion_state::zero_current() {
 shared_state::shared_state(
     fvm_size_type n_cell,
     const std::vector<fvm_index_type>& cv_to_cell_vec,
-    unsigned // alignment parameter ignored.
+    unsigned, // alignment parameter ignored.
+    execution_context context
 ):
     n_cell(n_cell),
     n_cv(cv_to_cell_vec.size()),
@@ -120,7 +121,8 @@ shared_state::shared_state(
     dt_cv(n_cv),
     voltage(n_cv),
     current_density(n_cv),
-    deliverable_events(n_cell)
+    deliverable_events(n_cell),
+    gpu_context(context.gpu)
 {}
 
 void shared_state::add_ion(

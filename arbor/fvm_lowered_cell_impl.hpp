@@ -356,7 +356,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name)->data_alignment(); }));
 
-    state_ = std::make_unique<shared_state>(ncell, D.cv_to_cell, data_alignment? data_alignment: 1u);
+    state_ = std::make_unique<shared_state>(ncell, D.cv_to_cell, data_alignment? data_alignment: 1u, context_);
 
     // Instantiate mechanisms and ions.
 

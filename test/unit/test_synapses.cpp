@@ -75,6 +75,7 @@ static bool all_equal_to(const Seq& s, double v) {
 }
 
 TEST(synapses, syn_basic_state) {
+    execution_context context;
     using util::fill;
     using value_type = multicore::backend::value_type;
     using index_type = multicore::backend::index_type;
@@ -96,7 +97,7 @@ TEST(synapses, syn_basic_state) {
     ASSERT_TRUE(exp2syn);
 
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
-    shared_state state(num_cell, std::vector<index_type>(num_comp, 0), align);
+    shared_state state(num_cell, std::vector<index_type>(num_comp, 0), align, context);
 
     state.reset(-65., constant::hh_squid_temp);
     fill(state.current_density, 1.0);

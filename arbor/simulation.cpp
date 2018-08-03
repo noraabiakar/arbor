@@ -136,7 +136,7 @@ simulation_state::simulation_state(
     task_system_(ctx.thread_pool)
 {
     #ifdef ARB_GPU_ENABLED
-    std::cout<<"here: "<<ctx.gpu->attributes<<std::endl;
+    std::cout<<"here: "<<ctx.gpu->attributes_<<std::endl;
     #endif
     const auto num_local_cells = communicator_.num_local_cells();
 

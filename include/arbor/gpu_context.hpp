@@ -19,9 +19,17 @@ enum gpu_flags {
 
 struct gpu_context {
     bool has_gpu_;
-    size_t attributes = 0;
-    gpu_context(): has_gpu_(false), attributes(get_attributes()) {};
-    gpu_context(bool has_gpu): has_gpu_(has_gpu), attributes(get_attributes()) {};
+    size_t attributes_ = 0;
+#ifdef ARB_GPU_ENABLED
+    std::vector<cudaStream_t> streams_;
+#endif
+
+    gpu_context(): has_gpu_(false), attributes_(get_attributes()) {
+        set_cuda_streams();
+    };
+    gpu_context(bool has_gpu): has_gpu_(has_gpu), attributes_(get_attributes()) {
+        set_cuda_streams();
+    };
 
 private:
     size_t get_attributes() {
@@ -37,6 +45,15 @@ private:
 #endif
         return attributes;
     };
+
+    void set_cuda_streams(unsigned nstreams=8) {
+#ifdef ARB_GPU_ENABLED
+        streams_.resize(nstreams);
+        for (unsigned i = 0; i < nstreams; i++) {
+            cudaStreamCreate(&streams_[i]);
+        }
+#endif
+    }
 };
 
 }

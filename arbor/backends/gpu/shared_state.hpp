@@ -75,6 +75,7 @@ struct shared_state {
     array  dt_cv;             // Maps CV index to dt [ms].
     array  voltage;           // Maps CV index to membrane voltage [mV].
     array  current_density;   // Maps CV index to current density [A/m²].
+    gpu_context_handle gpu_context;      // Stores information about cudaStreams.
 
     std::unordered_map<ionKind, ion_state> ion_data;
 
@@ -85,7 +86,8 @@ struct shared_state {
     shared_state(
         fvm_size_type n_cell,
         const std::vector<fvm_index_type>& cv_to_cell_vec,
-        unsigned align
+        unsigned align,
+        execution_context context
     );
 
     void add_ion(

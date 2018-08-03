@@ -58,6 +58,7 @@ void mechanism::instantiate(unsigned id,
 {
     mechanism_id_ = id;
     width_ = pos_data.cv.size();
+    gpu_context_ = shared.gpu_context;
 
     unsigned alignment = std::max(array::alignment(), iarray::alignment());
     auto width_padded_ = math::round_up(width_, alignment);
@@ -75,6 +76,8 @@ void mechanism::instantiate(unsigned id,
 
     pp->vec_v_    = shared.voltage.data();
     pp->vec_i_    = shared.current_density.data();
+
+    pp->gpu_context_ = shared.gpu_context;
 
     auto ion_state_tbl = ion_state_table();
     num_ions_ = ion_state_tbl.size();

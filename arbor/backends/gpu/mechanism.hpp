@@ -62,6 +62,7 @@ public:
 protected:
     size_type width_ = 0;        // Instance width (number of CVs/sites)
     size_type num_ions_ = 0;
+    gpu_context_handle gpu_context_;
 
     // Returns pointer to (derived) parameter-pack object that holds:
     // * pointers to shared cell state `vec_ci_` et al.,

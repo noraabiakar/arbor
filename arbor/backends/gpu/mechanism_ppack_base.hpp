@@ -4,6 +4,7 @@
 // will be included by .cu generated sources.
 
 #include <arbor/fvm_types.hpp>
+#include <arbor/gpu_context.hpp>
 
 namespace arb {
 namespace gpu {
@@ -35,6 +36,7 @@ struct mechanism_ppack_base {
     const value_type* vec_dt_;
     const value_type* vec_v_;
     value_type* vec_i_;
+    gpu_context_handle gpu_context_;
 
     const index_type* node_index_;
     const value_type* weight_;
