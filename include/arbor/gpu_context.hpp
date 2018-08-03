@@ -21,7 +21,7 @@ struct gpu_context {
     bool has_gpu_;
     size_t attributes_ = 0;
 #ifdef ARB_GPU_ENABLED
-    std::vector<cudaStream_t> streams_;
+    cudaStream_t streams_[8];
 #endif
 
     gpu_context(): has_gpu_(false), attributes_(get_attributes()) {
@@ -46,10 +46,9 @@ private:
         return attributes;
     };
 
-    void set_cuda_streams(unsigned nstreams=8) {
+    void set_cuda_streams() {
 #ifdef ARB_GPU_ENABLED
-        streams_.resize(nstreams);
-        for (unsigned i = 0; i < nstreams; i++) {
+        for (unsigned i = 0; i < 8; i++) {
             cudaStreamCreate(&streams_[i]);
         }
 #endif
