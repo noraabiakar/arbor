@@ -121,8 +121,8 @@ shared_state::shared_state(
     dt_cv(n_cv),
     voltage(n_cv),
     current_density(n_cv),
-    deliverable_events(n_cell),
-    gpu_context(context.gpu)
+    gpu_context(context.gpu),
+    deliverable_events(n_cell)
 {}
 
 void shared_state::add_ion(
