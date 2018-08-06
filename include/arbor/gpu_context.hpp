@@ -21,6 +21,7 @@ struct gpu_context {
     bool has_gpu_;
     size_t attributes_ = 0;
 #ifdef ARB_GPU_ENABLED
+    unsigned num_streams_;
     cudaStream_t* streams_;
 #endif
 
@@ -53,8 +54,9 @@ private:
 
     void set_cuda_streams(unsigned size = 4) {
 #ifdef ARB_GPU_ENABLED
-        streams_ = new cudaStream_t[size];
-        for (unsigned i = 0; i < size; i++) {
+        num_streams_ = size;
+        streams_ = new cudaStream_t[num_streams_];
+        for (unsigned i = 0; i < num_streams_; i++) {
             cudaStreamCreate(&streams_[i]);
         }
 #endif

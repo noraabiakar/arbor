@@ -37,6 +37,7 @@ struct mechanism_ppack_base {
     const value_type* vec_v_;
     value_type* vec_i_;
     gpu_context* gpu_context_;
+    unsigned num_streams_;
 
     const index_type* node_index_;
     const value_type* weight_;

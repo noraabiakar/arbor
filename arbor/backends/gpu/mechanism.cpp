@@ -78,6 +78,7 @@ void mechanism::instantiate(unsigned id,
     pp->vec_i_    = shared.current_density.data();
 
     pp->gpu_context_ = shared.gpu_context.get();
+    pp->num_streams_ = shared.gpu_context->num_streams_;
 
     auto ion_state_tbl = ion_state_table();
     num_ions_ = ion_state_tbl.size();
