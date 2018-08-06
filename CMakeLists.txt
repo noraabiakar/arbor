@@ -195,6 +195,7 @@ if(NOT ARB_GPU_MODEL MATCHES "none")
         message(FATAL_ERROR "-- GPU architecture '${ARB_GPU_MODEL}' not supported. Use one of {none, K20, K80, P100}")
     endif()
 
+    add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-\-default\-stream=per\-thread>)
     add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=${cuda_arch_0},code=${cuda_code_0}>)
     add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=${cuda_arch_1},code=${cuda_code_1}>)
     add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=${cuda_arch_2},code=${cuda_code_2}>)

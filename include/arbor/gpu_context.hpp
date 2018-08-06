@@ -36,9 +36,14 @@ struct gpu_context {
     ~gpu_context() {
         delete[] streams_;
     }
+    unsigned get_stream_id() {
+        return stream_id_++ % num_streams_;
+    }
 #endif
 
+
 private:
+    int stream_id_;
     size_t get_attributes() {
         size_t attributes = 0;
 #ifdef ARB_GPU_ENABLED
@@ -54,6 +59,7 @@ private:
 
     void set_cuda_streams(unsigned size = 4) {
 #ifdef ARB_GPU_ENABLED
+        stream_id_ = 0;
         num_streams_ = size;
         streams_ = new cudaStream_t[num_streams_];
         for (unsigned i = 0; i < num_streams_; i++) {
