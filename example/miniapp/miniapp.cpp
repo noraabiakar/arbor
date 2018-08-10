@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 
         partition_hint_map hint_map;
         partition_hint hint;
-        hint.gpu_group_size = 10;
+        hint.gpu_group_size = 250;
         hint_map[cell_kind::cable1d_neuron] = hint;
 
         auto decomp = partition_load_balance(*recipe, nd, context, hint_map);

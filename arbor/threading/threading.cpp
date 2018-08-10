@@ -3,6 +3,7 @@
 #include "threading.hpp"
 #include "thread_info.hpp"
 #include <arbor/execution_context.hpp>
+#include <arbor/gpu_context.hpp>
 
 using namespace arb::threading::impl;
 using namespace arb::threading;
@@ -128,4 +129,8 @@ task_system_handle arb::make_thread_pool() {
 
 task_system_handle arb::make_thread_pool(int nthreads) {
     return task_system_handle(new task_system(nthreads));
+}
+
+std::unordered_map<std::thread::id, std::size_t> arb::get_map(task_system_handle& ts) {
+    return ts->get_thread_ids();
 }
