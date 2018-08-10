@@ -21,7 +21,7 @@ namespace gpu {
 
 void init_concentration_impl(
     std::size_t n, fvm_value_type* Xi, fvm_value_type* Xo, const fvm_value_type* weight_Xi,
-    const fvm_value_type* weight_Xo, fvm_value_type iconc, fvm_value_type econc);
+    const fvm_value_type* weight_Xo, fvm_value_type iconc, fvm_value_type econc, cudaStream_t* stream);
 
 void nernst_impl(
     std::size_t n, fvm_value_type factor,
@@ -30,19 +30,17 @@ void nernst_impl(
 
 void update_time_to_impl(
     std::size_t n, fvm_value_type* time_to, const fvm_value_type* time,
-    fvm_value_type dt, fvm_value_type tmax);
-
-void update_time_to_impl(
-    std::size_t n, fvm_value_type* time_to, const fvm_value_type* time,
-    fvm_value_type dt, fvm_value_type tmax);
+    fvm_value_type dt, fvm_value_type tmax, cudaStream_t* stream);
 
 void set_dt_impl(
     fvm_size_type ncell, fvm_size_type ncomp, fvm_value_type* dt_cell, fvm_value_type* dt_comp,
-    const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_cell);
+    const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_cell,
+    cudaStream_t* stream);
 
 void take_samples_impl(
     const multi_event_stream_state<raw_probe_info>& s,
-    const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value);
+    const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value,
+    cudaStream_t* stream);
 
 // GPU-side minmax: consider CUDA kernel replacement.
 std::pair<fvm_value_type, fvm_value_type> minmax_value_impl(fvm_size_type n, const fvm_value_type* v) {
@@ -101,7 +99,8 @@ void ion_state::init_concentration() {
         Xi_.size(),
         Xi_.data(), Xo_.data(),
         weight_Xi_.data(), weight_Xo_.data(),
-        default_int_concentration, default_ext_concentration);
+        default_int_concentration, default_ext_concentration,
+        gpu_context_->get_thread_stream(std::this_thread::get_id()));
 }
 
 void ion_state::zero_current() {
@@ -171,11 +170,13 @@ void shared_state::ions_nernst_reversal_potential(fvm_value_type temperature_K) 
 }
 
 void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
-    update_time_to_impl(n_cell, time_to.data(), time.data(), dt_step, tmax);
+    update_time_to_impl(n_cell, time_to.data(), time.data(), dt_step, tmax,
+            gpu_context->get_thread_stream(std::this_thread::get_id()));
 }
 
 void shared_state::set_dt() {
-    set_dt_impl(n_cell, n_cv, dt_cell.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_cell.data());
+    set_dt_impl(n_cell, n_cv, dt_cell.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_cell.data(),
+                gpu_context->get_thread_stream(std::this_thread::get_id()));
 }
 
 std::pair<fvm_value_type, fvm_value_type> shared_state::time_bounds() const {
@@ -187,7 +188,8 @@ std::pair<fvm_value_type, fvm_value_type> shared_state::voltage_bounds() const {
 }
 
 void shared_state::take_samples(const sample_event_stream::state& s, array& sample_time, array& sample_value) {
-    take_samples_impl(s, time.data(), sample_time.data(), sample_value.data());
+    take_samples_impl(s, time.data(), sample_time.data(), sample_value.data(),
+            gpu_context->get_thread_stream(std::this_thread::get_id()));
 }
 
 // Debug interface
