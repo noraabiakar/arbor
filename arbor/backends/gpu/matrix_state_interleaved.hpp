@@ -2,6 +2,7 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/math.hpp>
 
 #include "memory/memory.hpp"
@@ -131,6 +132,8 @@ struct matrix_state_interleaved {
     //  after each call to the ::solve() method.
     array solution_;
 
+    gpu_context_handle gpu_context;
+
     // default constructor
     matrix_state_interleaved() = default;
 
@@ -144,7 +147,8 @@ struct matrix_state_interleaved {
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond,
-                 const std::vector<value_type>& area)
+                 const std::vector<value_type>& area,
+                 const gpu_context_handle& gpu_ctx) : gpu_context(gpu_ctx)
     {
         arb_assert(cv_cap.size()    == p.size());
         arb_assert(face_cond.size() == p.size());

@@ -3,6 +3,7 @@
 #include <type_traits>
 
 #include <arbor/assert.hpp>
+#include <arbor/execution_context.hpp>
 
 #include <memory/memory.hpp>
 #include <util/span.hpp>
@@ -35,10 +36,11 @@ public:
            const std::vector<index_type>& ci,
            const std::vector<value_type>& cv_capacitance,
            const std::vector<value_type>& face_conductance,
-           const std::vector<value_type>& cv_area):
+           const std::vector<value_type>& cv_area,
+           const gpu_context_handle& gpu_context):
         parent_index_(pi.begin(), pi.end()),
         cell_index_(ci.begin(), ci.end()),
-        state_(pi, ci, cv_capacitance, face_conductance, cv_area)
+        state_(pi, ci, cv_capacitance, face_conductance, cv_area, gpu_context)
     {
         arb_assert(cell_index_[num_cells()] == index_type(parent_index_.size()));
     }

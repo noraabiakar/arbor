@@ -1,6 +1,7 @@
 #pragma once
 
 #include <arbor/fvm_types.hpp>
+#include <arbor/execution_context.hpp>
 
 #include "memory/memory.hpp"
 #include "memory/wrappers.hpp"
@@ -60,13 +61,16 @@ struct matrix_state_flat {
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
 
+    gpu_context_handle gpu_context;
+
     matrix_state_flat() = default;
 
     matrix_state_flat(const std::vector<index_type>& p,
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond,
-                 const std::vector<value_type>& area):
+                 const std::vector<value_type>& area,
+                 const gpu_context_handle& gpu_ctx):
         parent_index(memory::make_const_view(p)),
         cell_cv_divs(memory::make_const_view(cell_cv_divs)),
         cv_to_cell(p.size()),
@@ -74,7 +78,8 @@ struct matrix_state_flat {
         u(p.size()),
         rhs(p.size()),
         cv_capacitance(memory::make_const_view(cv_cap)),
-        cv_area(memory::make_const_view(area))
+        cv_area(memory::make_const_view(area)),
+        gpu_context(gpu_ctx)
     {
         arb_assert(cv_cap.size() == size());
         arb_assert(face_cond.size() == size());

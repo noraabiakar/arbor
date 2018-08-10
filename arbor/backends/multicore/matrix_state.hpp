@@ -3,6 +3,8 @@
 #include <util/partition.hpp>
 #include <util/span.hpp>
 
+#include <arbor/execution_context.hpp>
+
 #include "multicore_common.hpp"
 
 namespace arb {
@@ -32,19 +34,23 @@ public:
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
 
+    gpu_context_handle gpu_context;
+
     matrix_state() = default;
 
     matrix_state(const std::vector<index_type>& p,
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond,
-                 const std::vector<value_type>& area):
+                 const std::vector<value_type>& area,
+                 const gpu_context_handle& gpu_ctx):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
         d(size(), 0), u(size(), 0), rhs(size()),
         cv_capacitance(cap.begin(), cap.end()),
         face_conductance(cond.begin(), cond.end()),
-        cv_area(area.begin(), area.end())
+        cv_area(area.begin(), area.end()),
+        gpu_context(gpu_ctx)
     {
         arb_assert(cap.size() == size());
         arb_assert(cond.size() == size());
