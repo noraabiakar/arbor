@@ -24,12 +24,14 @@ void test_thresholds_impl(
     const fvm_index_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
     stack_storage<threshold_crossing>& stack,
     fvm_index_type* is_crossed, fvm_value_type* prev_values,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
+    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds,
+    cudaStream_t* stream);
 
 void reset_crossed_impl(
     int size,
     fvm_index_type* is_crossed,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
+    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds,
+    cudaStream_t* stream);
 
 
 class threshold_watcher {
@@ -61,7 +63,8 @@ public:
         v_prev_(memory::const_host_view<fvm_value_type>(values, cv_index.size())),
         // TODO: allocates enough space for 10 spikes per watch.
         // A more robust approach might be needed to avoid overflows.
-        stack_(10*size(), context.gpu->attributes_)
+        stack_(10*size(), context.gpu->attributes_),
+        gpu_context_(context.gpu)
     {
         crossings_.reserve(stack_.capacity());
         reset();
@@ -79,7 +82,8 @@ public:
     void reset() {
         clear_crossings();
         if (size()>0) {
-            reset_crossed_impl((int)size(), is_crossed_.data(), cv_index_.data(), values_, thresholds_.data());
+            reset_crossed_impl((int)size(), is_crossed_.data(), cv_index_.data(), values_, thresholds_.data(),
+                               gpu_context_->get_thread_stream(std::this_thread::get_id()););
         }
     }
 
@@ -111,7 +115,8 @@ public:
                 cv_to_cell_, t_after_, t_before_,
                 stack_.storage(),
                 is_crossed_.data(), v_prev_.data(),
-                cv_index_.data(), values_, thresholds_.data());
+                cv_index_.data(), values_, thresholds_.data(),
+                gpu_context_->get_thread_stream(std::this_thread::get_id()););
 
             // Check that the number of spikes has not exceeded capacity.
             // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous
@@ -141,6 +146,8 @@ private:
 
     // Hybrid host/gpu data structure for accumulating threshold crossings.
     stack_type stack_;
+
+    gpu_context_handle gpu_context_;
 
     // host side storage for the crossings
     mutable std::vector<threshold_crossing> crossings_;
