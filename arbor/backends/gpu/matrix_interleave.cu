@@ -13,14 +13,15 @@ void flat_to_interleaved(
     const fvm_index_type* sizes,
     const fvm_index_type* starts,
     unsigned padded_size,
-    unsigned num_vec)
+    unsigned num_vec,
+    cudaStream_t* stream)
 {
     constexpr unsigned BlockWidth = impl::matrices_per_block();
     constexpr unsigned LoadWidth  = impl::load_width();
 
     flat_to_interleaved
         <fvm_value_type, fvm_index_type, BlockWidth, LoadWidth>
-        (in, out, sizes, starts, padded_size, num_vec);
+        (in, out, sizes, starts, padded_size, num_vec, stream);
 }
 
 // host side wrapper for the interleave to flat operation
@@ -30,14 +31,15 @@ void interleaved_to_flat(
     const fvm_index_type* sizes,
     const fvm_index_type* starts,
     unsigned padded_size,
-    unsigned num_vec)
+    unsigned num_vec,
+    cudaStream_t* stream)
 {
     constexpr unsigned BlockWidth = impl::matrices_per_block();
     constexpr unsigned LoadWidth  = impl::load_width();
 
     interleaved_to_flat
         <fvm_value_type, fvm_index_type, BlockWidth, LoadWidth>
-        (in, out, sizes, starts, padded_size, num_vec);
+        (in, out, sizes, starts, padded_size, num_vec, stream);
 }
 
 } // namespace gpu

@@ -30,7 +30,8 @@ void assemble_matrix_interleaved(
     const fvm_index_type* starts,
     const fvm_index_type* matrix_to_cell,
     const fvm_value_type* dt_cell,
-    unsigned padded_size, unsigned num_mtx);
+    unsigned padded_size, unsigned num_mtx,
+    cudaStream_t* stream);
 
 // host side wrapper for interleaved matrix solver kernel
 void solve_matrix_interleaved(
@@ -40,7 +41,8 @@ void solve_matrix_interleaved(
     const fvm_index_type* p,
     const fvm_index_type* sizes,
     int padded_size,
-    int num_mtx);
+    int num_mtx,
+    cudaStream_t* stream);
 
 // host side wrapper for the flat to interleaved operation
 void flat_to_interleaved(
@@ -49,7 +51,8 @@ void flat_to_interleaved(
     const fvm_index_type* sizes,
     const fvm_index_type* starts,
     unsigned padded_size,
-    unsigned num_vec);
+    unsigned num_vec,
+    cudaStream_t* stream);
 
 // host side wrapper for the interleave to flat operation
 void interleaved_to_flat(
@@ -58,7 +61,8 @@ void interleaved_to_flat(
     const fvm_index_type* sizes,
     const fvm_index_type* starts,
     unsigned padded_size,
-    unsigned num_vec);
+    unsigned num_vec,
+    cudaStream_t* stream);
 
 // A helper that performs the interleave operation on host memory.
 template <typename T, typename I>
@@ -272,7 +276,8 @@ struct matrix_state_interleaved {
              voltage.data(), current.data(), cv_capacitance.data(), cv_area.data(),
              matrix_sizes.data(), matrix_index.data(),
              matrix_to_cell_index.data(),
-             dt_cell.data(), padded_matrix_size(), num_matrices());
+             dt_cell.data(), padded_matrix_size(), num_matrices(),
+             gpu_context->get_thread_stream(std::this_thread::get_id()));
 
     }
 
@@ -280,12 +285,14 @@ struct matrix_state_interleaved {
         // Perform the Hines solve.
         solve_matrix_interleaved(
              rhs.data(), d.data(), u.data(), parent_index.data(), matrix_sizes.data(),
-             padded_matrix_size(), num_matrices());
+             padded_matrix_size(), num_matrices(),
+             gpu_context->get_thread_stream(std::this_thread::get_id()));
 
         // Copy the solution from interleaved to front end storage.
         interleaved_to_flat
             (rhs.data(), solution_.data(), matrix_sizes.data(), matrix_index.data(),
-             padded_matrix_size(), num_matrices());
+             padded_matrix_size(), num_matrices(),
+             gpu_context->get_thread_stream(std::this_thread::get_id()));
     }
 
 private:

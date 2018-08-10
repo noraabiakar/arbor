@@ -156,14 +156,15 @@ void assemble_matrix_flat(
         const fvm_value_type* area,
         const fvm_index_type* cv_to_cell,
         const fvm_value_type* dt_cell,
-        unsigned n)
+        unsigned n,
+        cudaStream_t* stream)
 {
     constexpr unsigned block_dim = 128;
     const unsigned grid_dim = impl::block_count(n, block_dim);
 
     kernels::assemble_matrix_flat
         <fvm_value_type, fvm_index_type>
-        <<<grid_dim, block_dim>>>
+        <<<grid_dim, block_dim, 0, *stream>>>
         (d, rhs, invariant_d, voltage, current, cv_capacitance,
          area, cv_to_cell, dt_cell, n);
 }
@@ -181,7 +182,8 @@ void assemble_matrix_interleaved(
     const fvm_index_type* starts,
     const fvm_index_type* matrix_to_cell,
     const fvm_value_type* dt_cell,
-    unsigned padded_size, unsigned num_mtx)
+    unsigned padded_size, unsigned num_mtx,
+    cudaStream_t* stream)
 {
     constexpr unsigned bd = impl::matrices_per_block();
     constexpr unsigned lw = impl::load_width();
@@ -192,7 +194,7 @@ void assemble_matrix_interleaved(
 
     kernels::assemble_matrix_interleaved
         <fvm_value_type, fvm_index_type, bd, lw, block_dim>
-        <<<grid_dim, block_dim>>>
+        <<<grid_dim, block_dim, 0, *stream>>>
         (d, rhs, invariant_d, voltage, current, cv_capacitance, area,
          sizes, starts, matrix_to_cell,
          dt_cell, padded_size, num_mtx);

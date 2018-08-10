@@ -117,14 +117,15 @@ void flat_to_interleaved(
     const I* sizes,
     const I* starts,
     unsigned padded_size,
-    unsigned num_vec)
+    unsigned num_vec,
+    cudaStream_t* stream)
 {
     constexpr unsigned Threads = BlockWidth*LoadWidth;
     const unsigned blocks = impl::block_count(num_vec, BlockWidth);
 
     kernels::flat_to_interleaved
         <T, I, BlockWidth, LoadWidth, Threads>
-        <<<blocks, Threads>>>
+        <<<blocks, Threads, 0, *stream>>>
         (in, out, sizes, starts, padded_size, num_vec);
 }
 
@@ -136,14 +137,15 @@ void interleaved_to_flat(
     const I* sizes,
     const I* starts,
     unsigned padded_size,
-    unsigned num_vec)
+    unsigned num_vec,
+    cudaStream_t* stream)
 {
     constexpr unsigned Threads = BlockWidth*LoadWidth;
     const unsigned blocks = impl::block_count(num_vec, BlockWidth);
 
     kernels::interleaved_to_flat
         <T, I, BlockWidth, LoadWidth, Threads>
-        <<<blocks, Threads>>>
+        <<<blocks, Threads, 0, *stream>>>
         (in, out, sizes, starts, padded_size, num_vec);
 }
 

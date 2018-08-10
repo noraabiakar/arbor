@@ -91,13 +91,14 @@ void solve_matrix_flat(
     const fvm_value_type* u,
     const fvm_index_type* p,
     const fvm_index_type* cell_cv_divs,
-    int num_mtx)
+    int num_mtx,
+    cudaStream_t* stream)
 {
     constexpr unsigned block_dim = 128;
     const unsigned grid_dim = impl::block_count(num_mtx, block_dim);
     kernels::solve_matrix_flat
         <fvm_value_type, fvm_index_type>
-        <<<grid_dim, block_dim>>>
+        <<<grid_dim, block_dim, 0, *stream>>>
         (rhs, d, u, p, cell_cv_divs, num_mtx);
 }
 
@@ -108,12 +109,13 @@ void solve_matrix_interleaved(
     const fvm_index_type* p,
     const fvm_index_type* sizes,
     int padded_size,
-    int num_mtx)
+    int num_mtx,
+    cudaStream_t* stream)
 {
     constexpr unsigned block_dim = impl::matrices_per_block();
     const unsigned grid_dim = impl::block_count(num_mtx, block_dim);
     kernels::solve_matrix_interleaved<fvm_value_type, fvm_index_type, block_dim>
-        <<<grid_dim, block_dim>>>
+        <<<grid_dim, block_dim, 0, *stream>>>
         (rhs, d, u, p, sizes, padded_size, num_mtx);
 }
 
