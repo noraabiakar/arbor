@@ -81,13 +81,14 @@ using impl::block_count;
 
 void nernst_impl(
     std::size_t n, fvm_value_type factor,
-    const fvm_value_type* Xo, const fvm_value_type* Xi, fvm_value_type* eX)
+    const fvm_value_type* Xo, const fvm_value_type* Xi, fvm_value_type* eX,
+    cudaStream_t* stream)
 {
     if (!n) return;
 
     constexpr int block_dim = 128;
     int nblock = block_count(n, block_dim);
-    kernel::nernst_impl<<<nblock, block_dim>>>(n, factor, Xo, Xi, eX);
+    kernel::nernst_impl<<<nblock, block_dim, 0, *stream>>>(n, factor, Xo, Xi, eX);
 }
 
 void init_concentration_impl(

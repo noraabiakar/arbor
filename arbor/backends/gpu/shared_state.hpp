@@ -33,6 +33,7 @@ struct ion_state {
     array Xo_;          // (mM) external concentration
     array weight_Xi_;   // (1) concentration weight internal
     array weight_Xo_;   // (1) concentration weight external
+    gpu_context_handle gpu_context_;      // Stores information about cudaStreams.
 
     int charge;    // charge of ionic species
     fvm_value_type default_int_concentration; // (mM) default internal concentration
@@ -45,7 +46,8 @@ struct ion_state {
         const std::vector<fvm_index_type>& cv,
         const std::vector<fvm_value_type>& iconc_norm_area,
         const std::vector<fvm_value_type>& econc_norm_area,
-        unsigned align
+        unsigned align,
+        gpu_context_handle gpu_context
     );
 
     // Calculate the reversal potential eX (mV) using Nernst equation

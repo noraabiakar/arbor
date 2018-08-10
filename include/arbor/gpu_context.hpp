@@ -46,6 +46,11 @@ struct gpu_context {
         delete[] streams_;
     }
 
+    cudaStream_t* get_thread_stream(std::thread::id thread_id) {
+        std::size_t stream_id = thread_to_stream_[thread_id];
+        return &streams_[stream_id];
+    }
+
 private:
 
     size_t get_attributes() {
@@ -67,12 +72,6 @@ private:
             cudaStreamCreate(&streams_[i]);
         }
     }
-
-    cudaStream_t* get_thread_stream(std::thread::id thread_id) {
-        std::size_t stream_id = thread_to_stream_[thread_id];
-        return &streams_[stream_id];
-    }
-
 };
 
 #endif

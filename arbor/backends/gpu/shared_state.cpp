@@ -25,7 +25,8 @@ void init_concentration_impl(
 
 void nernst_impl(
     std::size_t n, fvm_value_type factor,
-    const fvm_value_type* Xi, const fvm_value_type* Xo, fvm_value_type* eX);
+    const fvm_value_type* Xi, const fvm_value_type* Xo, fvm_value_type* eX,
+    cudaStream_t* stream);
 
 void update_time_to_impl(
     std::size_t n, fvm_value_type* time_to, const fvm_value_type* time,
@@ -56,7 +57,8 @@ ion_state::ion_state(
     const std::vector<fvm_index_type>& cv,
     const std::vector<fvm_value_type>& iconc_norm_area,
     const std::vector<fvm_value_type>& econc_norm_area,
-    unsigned // alignment/padding ignored.
+    unsigned, // alignment/padding ignored.
+    gpu_context_handle gpu_context
 ):
     node_index_(make_const_view(cv)),
     iX_(cv.size(), NAN),
@@ -67,7 +69,8 @@ ion_state::ion_state(
     weight_Xo_(make_const_view(econc_norm_area)),
     charge(info.charge),
     default_int_concentration(info.default_int_concentration),
-    default_ext_concentration(info.default_ext_concentration)
+    default_ext_concentration(info.default_ext_concentration),
+    gpu_context_(gpu_context)
 {
     arb_assert(node_index_.size()==weight_Xi_.size());
     arb_assert(node_index_.size()==weight_Xo_.size());
@@ -89,7 +92,8 @@ void ion_state::nernst(fvm_value_type temperature_K) {
     constexpr fvm_value_type RF = 1e3*constant::gas_constant/constant::faraday;
 
     fvm_value_type factor = RF*temperature_K/charge;
-    nernst_impl(Xi_.size(), factor, Xo_.data(), Xi_.data(), eX_.data());
+    nernst_impl(Xi_.size(), factor, Xo_.data(), Xi_.data(), eX_.data(),
+            gpu_context_->get_thread_stream(std::this_thread::get_id()));
 }
 
 void ion_state::init_concentration() {
@@ -133,7 +137,7 @@ void shared_state::add_ion(
 {
     ion_data.emplace(std::piecewise_construct,
         std::forward_as_tuple(info.kind),
-        std::forward_as_tuple(info, cv, iconc_norm_area, econc_norm_area, 1u));
+        std::forward_as_tuple(info, cv, iconc_norm_area, econc_norm_area, 1u, gpu_context));
 }
 
 void shared_state::reset(fvm_value_type initial_voltage, fvm_value_type temperature_K) {
