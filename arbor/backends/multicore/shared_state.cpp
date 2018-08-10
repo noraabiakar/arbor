@@ -117,7 +117,7 @@ shared_state::shared_state(
     fvm_size_type n_cell,
     const std::vector<fvm_index_type>& cv_to_cell_vec,
     unsigned align,
-    execution_context // Ignored
+    execution_context ctx
 ):
     alignment(min_alignment(align)),
     alloc(alignment),
@@ -130,7 +130,7 @@ shared_state::shared_state(
     dt_cv(n_cv, pad(alignment)),
     voltage(n_cv, pad(alignment)),
     current_density(n_cv, pad(alignment)),
-    deliverable_events(n_cell)
+    deliverable_events(n_cell, ctx.gpu)
 {
     // For indices in the padded tail of cv_to_cell, set index to last valid cell index.
 

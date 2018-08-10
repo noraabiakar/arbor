@@ -8,6 +8,7 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/generic_event.hpp>
 
@@ -36,7 +37,7 @@ public:
 
     multi_event_stream() {}
 
-    explicit multi_event_stream(size_type n_stream):
+    explicit multi_event_stream(size_type n_stream, const gpu_context_handle& gpu_context):
        span_begin_(n_stream), span_end_(n_stream), mark_(n_stream) {}
 
     size_type n_streams() const { return span_begin_.size(); }

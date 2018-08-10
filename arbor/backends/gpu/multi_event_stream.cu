@@ -93,9 +93,11 @@ void multi_event_stream_base::mark_until_after(const_view t_until) {
 
     constexpr int block_dim = 128;
 
+    cudaStream_t* stream = gpu_context_->get_thread_stream(std::this_thread::get_id());
+
     unsigned n = n_stream_;
     int nblock = impl::block_count(n, block_dim);
-    kernels::mark_until_after<<<nblock, block_dim>>>(
+    kernels::mark_until_after<<<nblock, block_dim, 0, *stream>>>(
         n, mark_.data(), span_end_.data(), ev_time_.data(), t_until.data());
 }
 
@@ -105,9 +107,11 @@ void multi_event_stream_base::mark_until(const_view t_until) {
     arb_assert(n_streams()==t_until.size());
     constexpr int block_dim = 128;
 
+    cudaStream_t* stream = gpu_context_->get_thread_stream(std::this_thread::get_id());
+
     unsigned n = n_stream_;
     int nblock = impl::block_count(n, block_dim);
-    kernels::mark_until<<<nblock, block_dim>>>(
+    kernels::mark_until<<<nblock, block_dim, 0, *stream>>>(
         n, mark_.data(), span_end_.data(), ev_time_.data(), t_until.data());
 }
 
@@ -116,8 +120,11 @@ void multi_event_stream_base::drop_marked_events() {
     constexpr int block_dim = 128;
 
     unsigned n = n_stream_;
+
+    cudaStream_t* stream = gpu_context_->get_thread_stream(std::this_thread::get_id());
+
     int nblock = impl::block_count(n, block_dim);
-    kernels::drop_marked_events<<<nblock, block_dim>>>(
+    kernels::drop_marked_events<<<nblock, block_dim, 0, *stream>>>(
         n, n_nonempty_stream_.data(), span_begin_.data(), span_end_.data(), mark_.data());
 }
 
@@ -125,8 +132,11 @@ void multi_event_stream_base::drop_marked_events() {
 // `t_until[i]` to the event time.
 void multi_event_stream_base::event_time_if_before(view t_until) {
     constexpr int block_dim = 128;
+
+    cudaStream_t* stream = gpu_context_->get_thread_stream(std::this_thread::get_id());
+
     int nblock = impl::block_count(n_stream_, block_dim);
-    kernels::event_time_if_before<<<nblock, block_dim>>>(
+    kernels::event_time_if_before<<<nblock, block_dim, 0, *stream>>>(
         n_stream_, span_begin_.data(), span_end_.data(), ev_time_.data(), t_until.data());
 }
 

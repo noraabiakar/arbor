@@ -4,6 +4,7 @@
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/generic_event.hpp>
 
@@ -54,12 +55,13 @@ public:
 protected:
     multi_event_stream_base() {}
 
-    explicit multi_event_stream_base(size_type n_stream):
+    explicit multi_event_stream_base(size_type n_stream, const gpu_context_handle& gpu_context):
         n_stream_(n_stream),
         span_begin_(n_stream),
         span_end_(n_stream),
         mark_(n_stream),
-        n_nonempty_stream_(1)
+        n_nonempty_stream_(1),
+        gpu_context_(gpu_context)
     {}
 
     // The list of events must be sorted sorted first by index and then by time.
@@ -113,6 +115,7 @@ protected:
     iarray span_end_;
     iarray mark_;
     iarray n_nonempty_stream_;
+    gpu_context_handle gpu_context_;
 
     // Host-side vectors for staging values in init():
     std::vector<value_type> tmp_ev_time_;
@@ -129,8 +132,8 @@ public:
 
     multi_event_stream() {}
 
-    explicit multi_event_stream(size_type n_stream):
-        multi_event_stream_base(n_stream) {}
+    explicit multi_event_stream(size_type n_stream, const gpu_context_handle& gpu_context):
+        multi_event_stream_base(n_stream, gpu_context) {}
 
     // Initialize event streams from a vector of events, sorted first by index
     // and then by time.
