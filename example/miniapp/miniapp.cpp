@@ -80,7 +80,12 @@ int main(int argc, char** argv) {
             report_compartment_stats(*recipe);
         }
 
-        auto decomp = partition_load_balance(*recipe, nd, context);
+        partition_hint_map hint_map;
+        partition_hint hint;
+        hint.gpu_group_size = 10;
+        hint_map[cell_kind::cable1d_neuron] = hint;
+
+        auto decomp = partition_load_balance(*recipe, nd, context, hint_map);
         simulation sim(*recipe, decomp, context);
 
         // Set up samplers for probes on local cable cells, as requested

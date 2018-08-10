@@ -12,24 +12,26 @@
 
 namespace arb {
 
+namespace threading {
+    class task_system;
+}
+using task_system_handle = std::shared_ptr<threading::task_system>;
+
 enum gpu_flags {
     no_sync = 0,
     has_atomic_double = 1
 };
 
 struct gpu_context {
-    bool has_gpu_;
     size_t attributes_ = 0;
 #ifdef ARB_GPU_ENABLED
     unsigned num_streams_;
     cudaStream_t* streams_;
+    std::unordered_map<std::thread::id, std::size_t> thread_to_stream_;
 #endif
 
-    gpu_context(): has_gpu_(false), attributes_(get_attributes()) {
-        set_cuda_streams();
-    };
-    gpu_context(bool has_gpu): has_gpu_(has_gpu), attributes_(get_attributes()) {
-        set_cuda_streams();
+    gpu_context(task_system_handle& ts): attributes_(get_attributes()) {
+        set_cuda_streams(ts);
     };
 
 #ifdef ARB_GPU_ENABLED
@@ -61,6 +63,18 @@ private:
 #ifdef ARB_GPU_ENABLED
         stream_id_ = 0;
         num_streams_ = size;
+        streams_ = new cudaStream_t[num_streams_];
+        for (unsigned i = 0; i < num_streams_; i++) {
+            cudaStreamCreate(&streams_[i]);
+        }
+#endif
+    }
+
+    void set_cuda_streams(task_system_handle& ts) {
+#ifdef ARB_GPU_ENABLED
+        stream_id_ = 0;
+        num_streams_ = ts->get_num_threads();
+        thread_to_stream_ = ts->get_thread_ids();
         streams_ = new cudaStream_t[num_streams_];
         for (unsigned i = 0; i < num_streams_; i++) {
             cudaStreamCreate(&streams_[i]);

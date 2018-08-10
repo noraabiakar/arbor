@@ -27,7 +27,7 @@ struct execution_context {
 
     execution_context(): distributed(std::make_shared<distributed_context>()),
                          thread_pool(arb::make_thread_pool()),
-                         gpu(std::make_shared<gpu_context>()) {};
+                         gpu(std::make_shared<gpu_context>(thread_pool)) {};
 };
 
 }
