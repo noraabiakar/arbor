@@ -219,6 +219,7 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/cuda_common.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/math_cu.hpp>\n"
+        "#include <" << arb_private_header_prefix() << "backends/gpu/cuda_atomic.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
 
     is_point_proc && out <<
@@ -306,13 +307,18 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
         out << "void " << class_name << "_" << e->name() << "_(" << ppack_name << "& p) {";
 
         // Only call the kernel if the kernel is required.
-        !e->body()->statements().empty() && out
-            << "\n" << indent
-            << "auto n = p.width_;\n"
-            << "unsigned block_dim = 128;\n"
-            << "unsigned grid_dim = gpu::impl::block_count(n, block_dim);\n"
-            << e->name() << "<<<grid_dim, block_dim>>>(p);\n"
-            << popindent;
+        if(!e->body()->statements().empty()) {
+            out << "\n" << indent
+                << "auto n = p.width_;\n"
+                << "unsigned block_dim = 128;\n"
+                << "unsigned grid_dim = gpu::impl::block_count(n, block_dim);\n";
+            if (e->name() == "nrn_state"  || e->name() == "nrn_current") {
+                out << e->name() << "<<<grid_dim, block_dim, 0, *(p.gpu_context_->get_thread_stream(std::this_thread::get_id()))>>>(p);\n";
+            } else {
+                out << e->name() << "<<<grid_dim, block_dim>>>(p);\n";
+            }
+            out << popindent;
+        }
 
         out << "}\n\n";
     };
@@ -328,7 +334,7 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
         << "auto n = events.n;\n"
         << "unsigned block_dim = 128;\n"
         << "unsigned grid_dim = gpu::impl::block_count(n, block_dim);\n"
-        << "deliver_events<<<grid_dim, block_dim>>>(mech_id, p, events);\n"
+        << "deliver_events<<<grid_dim, block_dim, 0, *(p.gpu_context_->get_thread_stream(std::this_thread::get_id()))>>>(mech_id, p, events);\n"
         << popindent << "}\n\n";
 
     out << namespace_declaration_close(ns_components);
@@ -427,7 +433,7 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
             << ", params_." << d.data_var << ", " << index_i_name(d.index_var) << ");\n";
     }
     else {
-        out << cuprint(external) << (is_minus? " -= ": " += ") << from->name() << ";\n";
+        out << (is_minus? "cuda_atomic_sub(": "cuda_atomic_add(&") << cuprint(external) << ", " << from->name() << ");\n";
     }
 }
 
