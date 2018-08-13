@@ -7,6 +7,12 @@
 
 #include <arbor/fvm_types.hpp>
 #include <arbor/ion.hpp>
+#include <arbor/version.hpp>
+
+#ifdef ARB_GPU_ENABLED
+#include <cuda.h>
+#include <cuda_runtime.h>
+#endif
 
 #include "backends/gpu/gpu_store_types.hpp"
 
@@ -58,6 +64,8 @@ struct ion_state {
 
     // Set ionic current density to zero.
     void zero_current();
+
+    void zero_current(cudaStream_t* stream);
 
     void reset(fvm_value_type temperature_K) {
         zero_current();

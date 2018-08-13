@@ -107,6 +107,15 @@ void ion_state::zero_current() {
     memory::fill(iX_, 0);
 }
 
+void ion_state::zero_current(cudaStream_t* stream) {
+    auto iX_v = make_view(iX_);
+    using iX_t = std::decay_t<array>;
+
+    if (iX_v.size()) {
+        arb::gpu::fill<iX_t::value_type>(iX_v.data(), 0, iX_v.size(), stream);
+    }
+}
+
 // Shared state methods:
 
 shared_state::shared_state(
@@ -159,7 +168,7 @@ void shared_state::zero_currents() {
                                               gpu_context->get_thread_stream(std::this_thread::get_id()));
     }
     for (auto& i: ion_data) {
-        i.second.zero_current();
+        i.second.zero_current(gpu_context->get_thread_stream(std::this_thread::get_id()));
     }
 }
 
