@@ -4,6 +4,7 @@
 #include <exception>
 
 #include <arbor/assert.hpp>
+#include <arbor/version.hpp>
 
 #include "allocator.hpp"
 #include "array.hpp"
@@ -229,6 +230,13 @@ public:
             arb::gpu::fill<value_type>(rng.data(), value, rng.size());
         }
     }
+#ifdef ARB_GPU_ENABLED
+    void set(view_type &rng, value_type value, cudaStream_t* stream) {
+        if (rng.size()) {
+            arb::gpu::fill<value_type>(rng.data(), value, rng.size(), stream);
+        }
+    }
+#endif
 
     // generate reference objects for a raw pointer.
     reference make_reference(value_type* p) {

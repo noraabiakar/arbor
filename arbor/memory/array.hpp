@@ -11,6 +11,7 @@
 #include <type_traits>
 
 #include <arbor/assert.hpp>
+#include <arbor/version.hpp>
 
 #include <util/range.hpp>
 
@@ -140,6 +141,26 @@ public:
         #endif
         coordinator_type().set(*this, value_type(value));
     }
+
+#ifdef ARB_GPU_ENABLED
+    // constructor by size with default value on cudaStream
+    template <
+            typename II, typename TT,
+            typename = std::enable_if_t<std::is_integral<II>::value>,
+            typename = std::enable_if_t<std::is_convertible<TT,value_type>::value> >
+    array(II n, TT value, cudaStream_t* stream) :
+            base(coordinator_type().allocate(n))
+    {
+#ifdef VERBOSE
+        std::cerr << util::green("array(" + std::to_string(n) + ", " + std::to_string(value) + ")")
+                  << "\n  this  " << util::pretty_printer<array>::print(*this) << "\n";
+#endif
+        if (*this.size()) {
+            coordinator_type().set(*this, value_type(value), stream);
+        }
+    }
+#endif
+
 
     // copy constructor
     array(const array& other) :

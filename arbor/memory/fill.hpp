@@ -16,10 +16,12 @@
 namespace arb {
 namespace gpu {
 
+#ifdef ARB_GPU_ENABLED
 void fill8_stream(uint8_t* v, uint8_t value, std::size_t n, cudaStream_t* stream);
 void fill16_stream(uint16_t* v, uint16_t value, std::size_t n, cudaStream_t* stream);
 void fill32_stream(uint32_t* v, uint32_t value, std::size_t n, cudaStream_t* stream);
 void fill64_stream(uint64_t* v, uint64_t value, std::size_t n, cudaStream_t* stream);
+#endif
 
 void fill8(uint8_t* v, uint8_t value, std::size_t n);
 void fill16(uint16_t* v, uint16_t value, std::size_t n);
@@ -43,6 +45,7 @@ void fill64(uint64_t* v, uint64_t value, std::size_t n);
 // that require memcpy of single bytes if alignment of the two types does
 // not match.
 
+#ifdef ARB_GPU_ENABLED
 #define FILL_STREAM(N) \
 template <typename T> \
 std::enable_if_t<sizeof(T)==sizeof(uint ## N ## _t)> \
@@ -56,6 +59,12 @@ fill(T* ptr, T value, std::size_t n, cudaStream_t* stream) { \
     ); \
     arb::gpu::fill ## N ## _stream(reinterpret_cast<I*>(ptr), v, n, stream); \
 }
+
+FILL_STREAM(8)
+FILL_STREAM(16)
+FILL_STREAM(32)
+FILL_STREAM(64)
+#endif
 
 #define FILL(N) \
 template <typename T> \
@@ -75,11 +84,6 @@ FILL(8)
 FILL(16)
 FILL(32)
 FILL(64)
-
-FILL_STREAM(8)
-FILL_STREAM(16)
-FILL_STREAM(32)
-FILL_STREAM(64)
 
 } // namespace gpu
 } // namespace arb

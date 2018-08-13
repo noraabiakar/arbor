@@ -109,7 +109,11 @@ void mechanism::instantiate(unsigned id,
     auto fields = field_table();
     std::size_t num_fields = fields.size();
 
+#ifdef ARB_GPU_ENABLED
+    data_ = array((1+num_fields)*width_padded_, NAN, gpu_context_->get_thread_stream(std::this_thread::get_id()));
+#else
     data_ = array((1+num_fields)*width_padded_, NAN);
+#endif
     memory::copy(make_const_view(pos_data.weight), device_view(data_.data(), width_));
     pp->weight_ = data_.data();
 
