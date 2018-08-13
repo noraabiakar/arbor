@@ -83,7 +83,7 @@ public:
         clear_crossings();
         if (size()>0) {
             reset_crossed_impl((int)size(), is_crossed_.data(), cv_index_.data(), values_, thresholds_.data(),
-                               gpu_context_->get_thread_stream(std::this_thread::get_id()););
+                               gpu_context_->get_thread_stream(std::this_thread::get_id()));
         }
     }
 
@@ -116,7 +116,7 @@ public:
                 stack_.storage(),
                 is_crossed_.data(), v_prev_.data(),
                 cv_index_.data(), values_, thresholds_.data(),
-                gpu_context_->get_thread_stream(std::this_thread::get_id()););
+                gpu_context_->get_thread_stream(std::this_thread::get_id()));
 
             // Check that the number of spikes has not exceeded capacity.
             // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous

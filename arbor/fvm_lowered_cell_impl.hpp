@@ -18,11 +18,13 @@
 #include <arbor/common_types.hpp>
 #include <arbor/ion.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/version.hpp>
 
 #include "builtin_mechanisms.hpp"
 #include "fvm_layout.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "matrix.hpp"
+#include "memory/wrappers.hpp"
 #include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"
 #include "util/maputil.hpp"
@@ -212,7 +214,14 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PL();
         PE(advance_integrate_matrix_solve);
         matrix_.solve();
+
+#ifdef ARB_GPU_ENABLED
+        int size = matrix_.solution().size()*sizeof(decltype(matrix_.solution()[0]));
+        cudaMemcpyAsync(memory::make_view(state_->voltage).data(), memory::make_const_view(matrix_.solution()).data(),
+                size, cudaMemcpyDeviceToDevice, *(context_.gpu->get_thread_stream(std::this_thread::get_id())));
+#else
         memory::copy(matrix_.solution(), state_->voltage);
+#endif
         PL();
 
         // Integrate mechanism state.
@@ -230,7 +239,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Update time and test for spike threshold crossings.
 
         PE(advance_integrate_threshold);
+#ifdef ARB_GPU_ENABLED
+        int size_1 = state_->time_to.size()*sizeof(decltype(state_->time_to[0]));
+        cudaMemcpyAsync(memory::make_view(state_->time).data(), memory::make_const_view(state_->time_to).data(),
+                size_1, cudaMemcpyDeviceToDevice, *(context_.gpu->get_thread_stream(std::this_thread::get_id())));
+#else
         memory::copy(state_->time_to, state_->time);
+#endif
         threshold_watcher_.test();
         PL();
 
