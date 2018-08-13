@@ -17,24 +17,24 @@ inline unsigned grid_dim(std::size_t n, unsigned block_dim) {
     return (n+block_dim-1)/block_dim;
 }
 
-void fill8(uint8_t* v, uint8_t value, std::size_t n) {
+void fill8(uint8_t* v, uint8_t value, std::size_t n, cudaStream_t* stream) {
     unsigned block_dim = 192;
-    fill_kernel<<<grid_dim(n, block_dim), block_dim>>>(v, value, n);
+    fill_kernel<<<grid_dim(n, block_dim), block_dim, 0, stream>>>(v, value, n);
 };
 
-void fill16(uint16_t* v, uint16_t value, std::size_t n) {
+void fill16(uint16_t* v, uint16_t value, std::size_t n, cudaStream_t* stream) {
     unsigned block_dim = 192;
-    fill_kernel<<<grid_dim(n, block_dim), block_dim>>>(v, value, n);
+    fill_kernel<<<grid_dim(n, block_dim), block_dim, 0, stream>>>(v, value, n);
 };
 
-void fill32(uint32_t* v, uint32_t value, std::size_t n) {
+void fill32(uint32_t* v, uint32_t value, std::size_t n, cudaStream_t* stream) {
     unsigned block_dim = 192;
-    fill_kernel<<<grid_dim(n, block_dim), block_dim>>>(v, value, n);
+    fill_kernel<<<grid_dim(n, block_dim), block_dim, 0, stream>>>(v, value, n);
 };
 
-void fill64(uint64_t* v, uint64_t value, std::size_t n) {
+void fill64(uint64_t* v, uint64_t value, std::size_t n, cudaStream_t* stream) {
     unsigned block_dim = 192;
-    fill_kernel<<<grid_dim(n, block_dim), block_dim>>>(v, value, n);
+    fill_kernel<<<grid_dim(n, block_dim), block_dim, 0, stream>>>(v, value, n);
 };
 
 } // namespace gpu

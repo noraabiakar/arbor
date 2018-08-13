@@ -1,6 +1,10 @@
 #include <algorithm>
 #include <cstdint>
 #include <type_traits>
+#ifdef ARB_GPU_ENABLED
+#include <cuda.h>
+#include <cuda_runtime.h>
+#endif
 
 //
 // prototypes for compiled wrappers around fill kernels for GPU memory
@@ -31,6 +35,21 @@ void fill64(uint64_t* v, uint64_t value, std::size_t n);
 // that require memcpy of single bytes if alignment of the two types does
 // not match.
 
+#ifdef ARB_GPU_ENABLED
+#define FILL(N) \
+template <typename T> \
+std::enable_if_t<sizeof(T)==sizeof(uint ## N ## _t)> \
+fill(T* ptr, T value, std::size_t n, cudaStream_t* stream) { \
+    using I = uint ## N ## _t; \
+    I v; \
+    std::copy_n( \
+        reinterpret_cast<char*>(&value), \
+        sizeof(T), \
+        reinterpret_cast<char*>(&v) \
+    ); \
+    arb::gpu::fill ## N(reinterpret_cast<I*>(ptr), v, n, stream); \
+}
+#else
 #define FILL(N) \
 template <typename T> \
 std::enable_if_t<sizeof(T)==sizeof(uint ## N ## _t)> \
@@ -44,6 +63,7 @@ fill(T* ptr, T value, std::size_t n) { \
     ); \
     arb::gpu::fill ## N(reinterpret_cast<I*>(ptr), v, n); \
 }
+#endif
 
 FILL(8)
 FILL(16)

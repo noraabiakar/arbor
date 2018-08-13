@@ -151,7 +151,12 @@ void shared_state::reset(fvm_value_type initial_voltage, fvm_value_type temperat
 }
 
 void shared_state::zero_currents() {
-    memory::fill(current_density, 0);
+    auto current_density_v = make_view(current_density);
+    using current_t = std::decay_t<array>;
+
+    if (current_density_v.size()) {
+        arb::gpu::fill<current_t::value_type>(current_density_v.data(), 0, current_density_v.size());
+    }
     for (auto& i: ion_data) {
         i.second.zero_current();
     }
