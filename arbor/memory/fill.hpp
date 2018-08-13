@@ -1,6 +1,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <type_traits>
+
+#include <arbor/version.hpp>
+
 #ifdef ARB_GPU_ENABLED
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -12,6 +15,11 @@
 
 namespace arb {
 namespace gpu {
+
+void fill8_stream(uint8_t* v, uint8_t value, std::size_t n, cudaStream_t* stream);
+void fill16_stream(uint16_t* v, uint16_t value, std::size_t n, cudaStream_t* stream);
+void fill32_stream(uint32_t* v, uint32_t value, std::size_t n, cudaStream_t* stream);
+void fill64_stream(uint64_t* v, uint64_t value, std::size_t n, cudaStream_t* stream);
 
 void fill8(uint8_t* v, uint8_t value, std::size_t n);
 void fill16(uint16_t* v, uint16_t value, std::size_t n);
@@ -35,8 +43,7 @@ void fill64(uint64_t* v, uint64_t value, std::size_t n);
 // that require memcpy of single bytes if alignment of the two types does
 // not match.
 
-#ifdef ARB_GPU_ENABLED
-#define FILL(N) \
+#define FILL_STREAM(N) \
 template <typename T> \
 std::enable_if_t<sizeof(T)==sizeof(uint ## N ## _t)> \
 fill(T* ptr, T value, std::size_t n, cudaStream_t* stream) { \
@@ -47,9 +54,9 @@ fill(T* ptr, T value, std::size_t n, cudaStream_t* stream) { \
         sizeof(T), \
         reinterpret_cast<char*>(&v) \
     ); \
-    arb::gpu::fill ## N(reinterpret_cast<I*>(ptr), v, n, stream); \
+    arb::gpu::fill ## N ## _stream(reinterpret_cast<I*>(ptr), v, n, stream); \
 }
-#else
+
 #define FILL(N) \
 template <typename T> \
 std::enable_if_t<sizeof(T)==sizeof(uint ## N ## _t)> \
@@ -63,12 +70,16 @@ fill(T* ptr, T value, std::size_t n) { \
     ); \
     arb::gpu::fill ## N(reinterpret_cast<I*>(ptr), v, n); \
 }
-#endif
 
 FILL(8)
 FILL(16)
 FILL(32)
 FILL(64)
+
+FILL_STREAM(8)
+FILL_STREAM(16)
+FILL_STREAM(32)
+FILL_STREAM(64)
 
 } // namespace gpu
 } // namespace arb

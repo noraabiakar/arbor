@@ -155,7 +155,8 @@ void shared_state::zero_currents() {
     using current_t = std::decay_t<array>;
 
     if (current_density_v.size()) {
-        arb::gpu::fill<current_t::value_type>(current_density_v.data(), 0, current_density_v.size());
+        arb::gpu::fill<current_t::value_type>(current_density_v.data(), 0, current_density_v.size(), 
+                                              gpu_context->get_thread_stream(std::this_thread::get_id()));
     }
     for (auto& i: ion_data) {
         i.second.zero_current();
