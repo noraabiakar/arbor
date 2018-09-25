@@ -26,7 +26,9 @@ unsigned bench_params::expected_events_per_interval() const {
 std::ostream& operator<<(std::ostream& o, const bench_params& p) {
     o << "benchmark parameters:\n"
       << "  name:          " << p.name << "\n"
+      << "  dryrun:        " << p.dry_run << "\n"
       << "  num cells:     " << p.num_cells << "\n"
+      << "  num tiles:     " << p.num_tiles << "\n"
       << "  duration:      " << p.duration << " ms\n"
       << "  fan in:        " << p.network.fan_in << " connections/cell\n"
       << "  min delay:     " << p.network.min_delay << " ms\n"
@@ -65,7 +67,9 @@ bench_params read_options(int argc, char** argv) {
     json << f;
 
     param_from_json(params.name, "name", json);
+    param_from_json(params.dry_run, "dry-run", json);
     param_from_json(params.num_cells, "num-cells", json);
+    param_from_json(params.num_tiles, "num-tiles", json);
     param_from_json(params.duration, "duration", json);
     param_from_json(params.network.min_delay, "min-delay", json);
     param_from_json(params.network.fan_in, "fan-in", json);

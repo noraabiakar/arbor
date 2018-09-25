@@ -33,6 +33,9 @@ int main(int argc, char** argv) {
     bool is_root = true;
 
     try {
+#ifdef ARB_MPI_ENABLED
+        aux::with_mpi guard(argc, argv, false);
+#endif
         bench_params params = read_options(argc, argv);
         auto resources = arb::proc_allocation();
         auto context = arb::make_context(resources);
