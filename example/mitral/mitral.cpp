@@ -283,7 +283,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
 
         arb::mechanism_desc pas("pas");
         pas["g"] = 1.0/12000.0;
-        pas["e"] = -65;
+        pas["e"] = -61.77233511;
 
         arb::mechanism_desc nax("nax");
         nax["gbar"] = 0;
@@ -308,7 +308,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
 
         arb::mechanism_desc pas("pas");
         pas["g"] = 1.0/12000.0;
-        pas["e"] = -65;
+        pas["e"] = -61.77233511;
 
         arb::mechanism_desc nax("nax");
         nax["gbar"] = 0.04;
@@ -333,7 +333,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
 
         arb::mechanism_desc pas("pas");
         pas["g"] = 1.0/12000.0;
-        pas["e"] = -65;
+        pas["e"] = -61.77233511;
 
         arb::mechanism_desc nax("nax");
         nax["gbar"] = 0.04;
@@ -358,7 +358,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
 
         arb::mechanism_desc pas("pas");
         pas["g"] = 1.0/1000.0;
-        pas["e"] = -65;
+        pas["e"] = -62.95363505;
 
         arb::mechanism_desc nax("nax");
         nax["gbar"] = 0.4;
