@@ -278,7 +278,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
     arb::mc_cell cell;
 
     auto add_tuft_mech = [](arb::cable_segment* seg) {
-        seg->cm = 0.0184;
+        seg->cm = 0.018;
         seg->rL = 150;
 
         arb::mechanism_desc pas("pas");
@@ -303,7 +303,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
     };
 
     auto add_dend_mech = [](arb::cable_segment* seg) {
-        seg->cm = 0.0184;
+        seg->cm = 0.018;
         seg->rL = 150;
 
         arb::mechanism_desc pas("pas");
@@ -328,7 +328,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
     };
 
     auto add_soma_mech = [](arb::soma_segment* seg) {
-        seg->cm = 0.0184;
+        seg->cm = 0.018;
         seg->rL = 150;
 
         arb::mechanism_desc pas("pas");
@@ -353,7 +353,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
     };
 
     auto add_init_seg_mech = [](arb::cable_segment* seg) {
-        seg->cm = 0.0184;
+        seg->cm = 0.018;
         seg->rL = 150;
 
         arb::mechanism_desc pas("pas");
@@ -381,7 +381,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
     // a "hillock" segment at the soma and the initial segment of an axon
 
 
-    auto soma = cell.add_soma(20.0/2.0);
+    auto soma = cell.add_soma(22.360679775/2.0); //cable 0
     soma->set_compartments(1);
     add_soma_mech(soma);
 

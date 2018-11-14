@@ -5,13 +5,14 @@ TITLE nax
 
 NEURON {
     SUFFIX nax
-    USEION na READ ena WRITE ina
+    USEION na WRITE ina
     RANGE  gbar, sh
 }
 
 PARAMETER {
     sh   = 5    (mV)
     gbar = 0.010    (mho/cm2)
+    ena = 50 (mV)
 
     tha  =  -30 (mV)        : v 1/2 for act 
     qa   = 7.2  (mV)        : act slope (4.5)
