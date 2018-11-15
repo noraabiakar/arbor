@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-include("NaXChannels_multipleSomas.jl")
+include("NaXChannels.jl")
 
 using JSON
 using Unitful
