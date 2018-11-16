@@ -43,7 +43,7 @@ using arb::cell_probe_address;
 void write_trace_json(const std::vector<arb::trace_data<double>>& trace);
 
 // Generate a cell.
-arb::mc_cell branch_cell(double delay, double duration);
+arb::mc_cell branch_cell(double delay, double duration, bool tweak);
 
 class gj_recipe: public arb::recipe {
 public:
@@ -51,9 +51,11 @@ public:
         num_cells_(params.num_cells)
     {
         double tstart = 0.0;
+        bool tweak = false;
         for (unsigned i = 0; i < num_cells_; i++) {
-            cells.push_back(branch_cell(tstart, params.duration));
+            cells.push_back(branch_cell(tstart, params.duration, tweak));
             tstart+=10.0;
+            tweak = true;
         }
         cells[0].add_gap_junction(0, {0, 1}, 1, {0, 1}, 0.000760265);
         cells[1].add_gap_junction(1, {0, 1}, 0, {0, 1}, 0.000760265);
@@ -306,14 +308,14 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
     }
 }
 
-arb::mc_cell branch_cell(double delay, double duration) {
+arb::mc_cell branch_cell(double delay, double duration, bool tweak) {
     arb::mc_cell cell;
 
     // Add soma.
     auto soma = cell.add_soma(22.0/2.0);
     soma->cm = 0.018;
     arb::mechanism_desc nax("nax");
-    nax["gbar"] = 0.04;
+    nax["gbar"] = tweak==true ? 0.015 : 0.04;
     nax["sh"] = 10;
     soma->add_mechanism(nax);
 

@@ -248,6 +248,11 @@ function f(t, state; p_na=naxParam(), p_ka=kamtParam(), p_kd=kdrmtParam(), stim=
         gna = p_na.gbar * na_m * na_m * na_m * na_h
         ina = gna*(v - p_na.ena)
 
+        if i == 2
+            gna = 0.015S*cm^-2 * na_m * na_m * na_m * na_h
+            ina = gna*(v - p_na.ena)
+        end
+
         ika = p_ka.gbar * ka_m * ka_h * (v - p_ka.ek)
 
         ikd = p_kd.gbar * kd_m * (v - p_kd.ek)
