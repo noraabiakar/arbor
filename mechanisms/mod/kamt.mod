@@ -8,7 +8,7 @@ TITLE K-A
 NEURON {
     THREADSAFE
     SUFFIX kamt
-    USEION k READ ek WRITE ik
+    USEION k WRITE ik
     RANGE  gbar, q10
     GLOBAL minf, mtau, hinf, htau
 }
@@ -16,6 +16,7 @@ NEURON {
 PARAMETER {
     gbar = 0.002    (mho/cm2)
 
+    ek = -90 (mV)
     celsius
     a0m=0.04
     vhalfm=-45

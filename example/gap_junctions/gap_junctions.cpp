@@ -308,9 +308,9 @@ arb::mc_cell branch_cell(double delay, double duration) {
     // Add soma.
     auto soma = cell.add_soma(22.0/2.0);
     soma->cm = 0.018;
-    arb::mechanism_desc kdrmt("kdrmt");
-    kdrmt["gbar"] = 0.0001;
-    soma->add_mechanism(kdrmt);
+    arb::mechanism_desc kamt("kamt");
+    kamt["gbar"] = 0.004;
+    soma->add_mechanism(kamt);
 
     arb::i_clamp stim(delay, duration, 0.1);
     cell.add_stimulus({0, 1}, stim);
