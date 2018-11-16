@@ -308,6 +308,15 @@ arb::mc_cell branch_cell(double delay, double duration) {
     // Add soma.
     auto soma = cell.add_soma(22.0/2.0);
     soma->cm = 0.018;
+    arb::mechanism_desc nax("nax");
+    nax["gbar"] = 0.04;
+    nax["sh"] = 10;
+    soma->add_mechanism(nax);
+
+    arb::mechanism_desc kdrmt("kdrmt");
+    kdrmt["gbar"] = 0.0001;
+    soma->add_mechanism(kdrmt);
+
     arb::mechanism_desc kamt("kamt");
     kamt["gbar"] = 0.004;
     soma->add_mechanism(kamt);
