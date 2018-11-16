@@ -43,21 +43,15 @@ using arb::cell_probe_address;
 void write_trace_json(const std::vector<arb::trace_data<double>>& trace);
 
 // Generate a cell.
-arb::mc_cell branch_cell(double delay, double duration, bool tweak);
+arb::mc_cell branch_cell(double delay, double duration);
 
 class gj_recipe: public arb::recipe {
 public:
     gj_recipe(gap_params params):
-        num_cells_(params.num_cells),
-        min_delay_(params.min_delay)
+        num_cells_(params.num_cells)
     {
         for (unsigned i = 0; i < num_cells_; i++) {
-            if(i != 0) {
-                cells.push_back(branch_cell(0, params.duration, false));
-            }
-            else {
-                cells.push_back(branch_cell(10.0, params.duration, params.tweak));
-            }
+            cells.push_back(branch_cell(0, params.duration));
         }
     }
 
@@ -104,7 +98,6 @@ public:
 
 private:
     cell_size_type num_cells_;
-    double min_delay_;
     std::vector<arb::mc_cell> cells;
 };
 
@@ -309,7 +302,7 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
     }
 }
 
-arb::mc_cell branch_cell(double delay, double duration, bool tweak) {
+arb::mc_cell branch_cell(double delay, double duration) {
     arb::mc_cell cell;
 
     // Add soma.

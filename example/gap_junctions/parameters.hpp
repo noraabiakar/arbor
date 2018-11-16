@@ -14,11 +14,7 @@ struct gap_params {
 
     std::string name = "default";
     unsigned num_cells = 1;
-    double min_delay = 10;
-    double duration = 300;
-    double gap_cond = 0.005; // conductance of gap_junction in μS
-    bool gap_junc = false;
-    bool tweak = false;
+    double duration = 50;
 };
 
 gap_params read_options(int argc, char** argv) {
@@ -47,10 +43,6 @@ gap_params read_options(int argc, char** argv) {
     param_from_json(params.name, "name", json);
     param_from_json(params.num_cells, "num-cells", json);
     param_from_json(params.duration, "duration", json);
-    param_from_json(params.min_delay, "min-delay", json);
-    param_from_json(params.gap_cond, "gap-cond", json);
-    param_from_json(params.gap_junc, "gap-junction", json);
-    param_from_json(params.tweak, "tweak", json);
 
     if (!json.empty()) {
         for (auto it=json.begin(); it!=json.end(); ++it) {

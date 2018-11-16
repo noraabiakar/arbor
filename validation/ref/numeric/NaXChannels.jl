@@ -54,8 +54,8 @@ struct naxParam
         qd     = 1.5mV,
         qg     =1.5mV,
 
-        mmin   = 0.02ms*mV^-1,
-        hmin   = 0.5ms*mV^-1,
+        mmin   = 0.02ms,
+        hmin   = 0.5ms,
         q10    = 2,
 
         Rg     = 0.01ms^-1,
@@ -87,7 +87,7 @@ function m_lims(v, p)
     t  = p.tha + p.sh;
     a  = trap(v, t, p.Ra, p.qa)
     b  = trap(-v, -t, p.Rb, p.qa)
-    mtau = max(1/(a+b)/qt, p.mmin)
+    mtau = max(1mV/(a+b)/qt, p.mmin)
     minf = a/(a+b)
     return mtau, minf
 end
@@ -98,7 +98,7 @@ function h_lims(v, p)
     t = p.thi1 + p.sh
     a = trap(v, t, p.Rd, p.qd)
     b = trap(-v, -t, p.Rg, p.qg)
-    htau = max(1/(a+b)/qt, p.hmin)
+    htau = max(1mV/(a+b)/qt, p.hmin)
     hinf = 1/(1 + exp((v - p.thinf - p.sh)/p.qinf))
     return htau, hinf
 end
@@ -148,7 +148,7 @@ function run_nax(t_end; v0=-65mV, stim=Stim(), param=naxParam(), sample_dt=0.025
             f(t*t_scale, (y[1]*v_scale, y[2], y[3]), stim=stim, p=param)
 
         ydot[1], ydot[2], ydot[3] =
-            vdot*t_scale/v_scale, mdot*t_scale/v_scale, hdot*t_scale/v_scale
+            vdot*t_scale/v_scale, mdot*t_scale, hdot*t_scale
 
         return Sundials.CV_SUCCESS
     end
