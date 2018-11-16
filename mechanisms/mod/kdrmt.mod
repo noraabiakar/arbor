@@ -8,14 +8,14 @@ TITLE K-DR
 NEURON {
     THREADSAFE
     SUFFIX kdrmt
-    USEION k READ ek WRITE ik
+    USEION k WRITE ik
     RANGE  gbar, q10, vhalfm
     GLOBAL minf, mtau
 }
 
 PARAMETER {
     gbar = 0.002    (mho/cm2)
-
+    ek = -90 (mV)
     celsius
     a0m=0.0035
     vhalfm=-50
