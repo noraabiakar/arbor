@@ -13,9 +13,9 @@ radius = 22µm/2
 area = 4*pi*radius^2
 
 stim = []
-push!(stim, Stim(0ms, 50ms, 0.1nA/area))
-push!(stim, Stim(10ms, 50ms, 0.1nA/area))
-ts, vs = run_spike(50ms, stim=stim, sample_dt=0.025ms)
+push!(stim, Stim(0ms, 100ms, 0.1nA/area))
+push!(stim, Stim(10ms, 100ms, 0.1nA/area))
+ts, vs = run_spike(100ms, stim=stim, sample_dt=0.025ms)
 
 trace = Dict(
     :name => "membrane voltage",

@@ -55,6 +55,8 @@ public:
             cells.push_back(branch_cell(tstart, params.duration));
             tstart+=10.0;
         }
+        cells[0].add_gap_junction(0, {0, 1}, 1, {0, 1}, 0.000760265);
+        cells[1].add_gap_junction(1, {0, 1}, 0, {0, 1}, 0.000760265);
     }
 
     cell_size_type num_cells() const override {

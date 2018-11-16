@@ -7,6 +7,7 @@ using Unitful
 using Unitful.DefaultSymbols
 
 c_m    = 0.018F*m^-2
+ggap   = 5e-5S*cm^-2
 
 struct naxParam
     ena       # Na channel reversal potential
@@ -251,7 +252,11 @@ function f(t, state; p_na=naxParam(), p_ka=kamtParam(), p_kd=kdrmtParam(), stim=
 
         ikd = p_kd.gbar * kd_m * (v - p_kd.ek)
 
-        itot = ina + ika + ikd
+        neighbor = i%2 + 1
+        vn  = state[(neighbor-1)*6 + 1]
+        igap = ggap*(v - vn)
+
+        itot = ina + ika + ikd + igap
 
         # calculate current density due to stimulus
         if t>=stim[i].t0 && t<stim[i].t1

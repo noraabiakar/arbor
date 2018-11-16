@@ -14,7 +14,7 @@ struct gap_params {
 
     std::string name = "default";
     unsigned num_cells = 2;
-    double duration = 50;
+    double duration = 100;
 };
 
 gap_params read_options(int argc, char** argv) {
