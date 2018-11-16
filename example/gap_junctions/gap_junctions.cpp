@@ -50,8 +50,10 @@ public:
     gj_recipe(gap_params params):
         num_cells_(params.num_cells)
     {
+        double tstart = 0.0;
         for (unsigned i = 0; i < num_cells_; i++) {
-            cells.push_back(branch_cell(0, params.duration));
+            cells.push_back(branch_cell(tstart, params.duration));
+            tstart+=10.0;
         }
     }
 

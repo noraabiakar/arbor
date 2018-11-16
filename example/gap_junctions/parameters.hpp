@@ -13,7 +13,7 @@ struct gap_params {
     gap_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 1;
+    unsigned num_cells = 2;
     double duration = 50;
 };
 

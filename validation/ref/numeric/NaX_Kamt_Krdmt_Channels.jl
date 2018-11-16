@@ -233,49 +233,80 @@ end
 # Given time t and state (v, m, h, n),
 # return (vdot, mdot, hdot, ndot)
 function f(t, state; p_na=naxParam(), p_ka=kamtParam(), p_kd=kdrmtParam(), stim=Stim())
-    v, na_m, na_h, ka_m, ka_h, kd_m = state
+    result = []
 
-    # calculate current density due to ion channels
-    gna = p_na.gbar * na_m * na_m * na_m * na_h
-    ina = gna*(v - p_na.ena)
+    for i=1:2
+        v    = state[(i-1)*6 + 1]
+        na_m = state[(i-1)*6 + 2]
+        na_h = state[(i-1)*6 + 3]
+        ka_m = state[(i-1)*6 + 4]
+        ka_h = state[(i-1)*6 + 5]
+        kd_m = state[(i-1)*6 + 6]
 
-    ika = p_ka.gbar * ka_m * ka_h * (v - p_ka.ek)
+        # calculate current density due to ion channels
+        gna = p_na.gbar * na_m * na_m * na_m * na_h
+        ina = gna*(v - p_na.ena)
 
-    ikd = p_kd.gbar * kd_m * (v - p_kd.ek)
+        ika = p_ka.gbar * ka_m * ka_h * (v - p_ka.ek)
 
-    itot = ina + ika + ikd
+        ikd = p_kd.gbar * kd_m * (v - p_kd.ek)
 
-    # calculate current density due to stimulus
-    if t>=stim.t0 && t<stim.t1
-        itot -= stim.i_e
+        itot = ina + ika + ikd
+
+        # calculate current density due to stimulus
+        if t>=stim[i].t0 && t<stim[i].t1
+            itot -= stim[i].i_e
+        end
+
+        # calculate the voltage dependent rates for the gating variables
+        na_mtau, na_minf = na_m_lims(v, p_na)
+        na_htau, na_hinf = na_h_lims(v, p_na)
+
+        ka_mtau, ka_minf = ka_m_lims(v, p_ka)
+        ka_htau, ka_hinf = ka_h_lims(v, p_ka)
+
+        kd_mtau, kd_minf = kd_m_lims(v, p_kd)
+
+        push!(result,-itot/c_m, (na_minf-na_m)/na_mtau, (na_hinf-na_h)/na_htau,
+                                (ka_minf-ka_m)/ka_mtau, (ka_hinf-ka_h)/ka_htau,
+                                (kd_minf-kd_m)/kd_mtau )
     end
-
-    # calculate the voltage dependent rates for the gating variables
-    na_mtau, na_minf = na_m_lims(v, p_na)
-    na_htau, na_hinf = na_h_lims(v, p_na)
-
-    ka_mtau, ka_minf = ka_m_lims(v, p_ka)
-    ka_htau, ka_hinf = ka_h_lims(v, p_ka)
-
-    kd_mtau, kd_minf = kd_m_lims(v, p_kd)
-    return (-itot/c_m, (na_minf-na_m)/na_mtau, (na_hinf-na_h)/na_htau, (ka_minf-ka_m)/ka_mtau, (ka_hinf-ka_h)/ka_htau, (kd_minf-kd_m)/kd_mtau)
+    return result
 end
 
-function run_spike(t_end; v0=-65mV, stim=Stim(), na_p=naxParam(), ka_p=kamtParam(), kd_p=kdrmtParam(), sample_dt=0.025ms)
+function run_spike(t_end; v0=-65mV, stim, na_p=naxParam(), ka_p=kamtParam(), kd_p=kdrmtParam(), sample_dt=0.025ms)
     v_scale = 1V
     t_scale = 1s
 
+    y0 = Float64[]
+
     v0, na_m0, na_h0, ka_m0, ka_h0, kd_m0 = initial_conditions(v0, na_p, ka_p, kd_p)
-    y0 = [v0/v_scale, na_m0, na_h0, ka_m0, ka_h0, kd_m0]
+
+    for i=1:2
+       push!(y0, v0/v_scale, na_m0, na_h0, ka_m0, ka_h0, kd_m0)
+    end
 
     samples = collect(0s: sample_dt: t_end)
 
     fbis(t, y, ydot) = begin
-        vdot, na_mdot, na_hdot, ka_mdot, ka_hdot, kd_mdot =
-            f(t*t_scale, (y[1]*v_scale, y[2], y[3], y[4], y[5], y[6]), p_na=na_p, p_ka=ka_p, p_kd=kd_p, stim=stim)
+        state = []
 
-        ydot[1], ydot[2], ydot[3], ydot[4], ydot[5], ydot[6] =
-            vdot*t_scale/v_scale, na_mdot*t_scale, na_hdot*t_scale, ka_mdot*t_scale, ka_hdot*t_scale, kd_mdot*t_scale
+        for i=1:2
+           push!(state, y[(i-1)*6 + 1]*v_scale, y[(i-1)*6 + 2], y[(i-1)*6 + 3],
+                                                y[(i-1)*6 + 4], y[(i-1)*6 + 5],
+                                                y[(i-1)*6 + 6])
+        end
+
+        fdot = f(t*t_scale, state, p_na=na_p, p_ka=ka_p, p_kd=kd_p, stim=stim)
+
+        for i=1:2
+           ydot[(i-1)*6 + 1] = fdot[(i-1)*6 + 1]*t_scale/v_scale
+           ydot[(i-1)*6 + 2] = fdot[(i-1)*6 + 2]*t_scale
+           ydot[(i-1)*6 + 3] = fdot[(i-1)*6 + 3]*t_scale
+           ydot[(i-1)*6 + 4] = fdot[(i-1)*6 + 4]*t_scale
+           ydot[(i-1)*6 + 5] = fdot[(i-1)*6 + 5]*t_scale
+           ydot[(i-1)*6 + 6] = fdot[(i-1)*6 + 6]*t_scale
+        end
 
         return Sundials.CV_SUCCESS
     end
@@ -285,7 +316,12 @@ function run_spike(t_end; v0=-65mV, stim=Stim(), na_p=naxParam(), ka_p=kamtParam
 
     res = Sundials.cvode(fbis, y0, scale.(samples, t_scale), abstol=1e-6, reltol=5e-10)
 
-    return samples, res[:, 1]*v_scale
+    result = []
+    for i=1:2
+      push!(result, res[:,(i-1)*6+1]*v_scale)
+    end
+
+    return samples, result
 end
 
 end # module spikeChannels
