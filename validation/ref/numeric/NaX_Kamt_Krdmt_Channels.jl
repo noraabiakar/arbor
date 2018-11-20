@@ -53,7 +53,7 @@ struct naxParam
         thi1   = -45mV,
         thi2   = -45mV,
         qd     = 1.5mV,
-        qg     =1.5mV,
+        qg     = 1.5mV,
 
         mmin   = 0.02ms,
         hmin   = 0.5ms,

@@ -9,7 +9,7 @@ using Main.spikeChannels
 
 scale(quantity, unit) = uconvert(NoUnits, quantity/unit)
 
-radius = 22µm/2
+radius = 22.360679775µm/2
 area = 4*pi*radius^2
 
 stim = []

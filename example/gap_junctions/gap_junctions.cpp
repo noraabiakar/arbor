@@ -312,7 +312,7 @@ arb::mc_cell branch_cell(double delay, double duration, bool tweak) {
     arb::mc_cell cell;
 
     // Add soma.
-    auto soma = cell.add_soma(22.0/2.0);
+    auto soma = cell.add_soma(22.360679775/2.0);
     soma->cm = 0.018;
     arb::mechanism_desc nax("nax");
     nax["gbar"] = tweak==true ? 0.015 : 0.04;
