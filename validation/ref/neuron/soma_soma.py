@@ -154,6 +154,8 @@ gmat.x[0][1] = -0.760265*0.1/area_src
 gmat.x[1][1] = 0.760265*0.1/area_dest
 gmat.x[1][0] = -0.760265*0.1/area_dest
 
+soma_cell1.soma.gbar_nax = 0.015
+
 gj = h.LinearMechanism(cmat, gmat, y, b, sl, xvec)
 
 soma_cell0.add_iclamp(0, 100, 0.1)
