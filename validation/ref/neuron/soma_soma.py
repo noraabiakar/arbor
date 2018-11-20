@@ -125,44 +125,51 @@ class cell:
 
         self.soma = soma
 
+    def add_gap_junction(self, other, cm, gm, y, b, sl, xvec, ggap):
+        xvec.x[0] = 0.95
+        xvec.x[1] = 0.95
+        sl.append(sec = self.soma)
+        sl.append(sec = other.soma)
+        area_src = self.soma.diam*math.pi * self.soma.L
+        area_dest = other.soma.diam*math.pi * other.soma.L
 
-soma_cell0 = cell()
-soma_cell1 = cell()
+        gmat.x[0][0] =  ggap*0.1/area_src
+        gmat.x[0][1] = -ggap*0.1/area_src
+        gmat.x[1][1] =  ggap*0.1/area_dest
+        gmat.x[1][0] = -ggap*0.1/area_dest
 
-soma_cell0.add_soma(25, 20)
-soma_cell1.add_soma(25, 20)
+        gj = h.LinearMechanism(cm, gm, y, b, sl, xvec)
+        return gj
 
+# Linear mechanism state, needs to be part of the "state"
 cmat = h.Matrix(2,2,2)
 gmat = h.Matrix(2,2,2)
-
 y = h.Vector(2)
 b = h.Vector(2)
 xvec = h.Vector(2)
-
-xvec.x[0] = 0.95
-xvec.x[1] = 0.95
-
 sl = h.SectionList()
-sl.append(sec = soma_cell0.soma)
-sl.append(sec = soma_cell1.soma)
 
-area_src = soma_cell0.soma.diam*math.pi * soma_cell0.soma.L
-area_dest = soma_cell1.soma.diam*math.pi * soma_cell1.soma.L
+# Create 2 soma cells
+soma_cell0 = cell()
+soma_cell1 = cell()
 
-gmat.x[0][0] = 0.760265*0.1/area_src
-gmat.x[0][1] = -0.760265*0.1/area_src
-gmat.x[1][1] = 0.760265*0.1/area_dest
-gmat.x[1][0] = -0.760265*0.1/area_dest
+# Add somas
+soma_cell0.add_soma(25, 20)
+soma_cell1.add_soma(25, 20)
 
+# Add gap junction
+gj = soma_cell0.add_gap_junction(soma_cell1, cmat, gmat, y, b, sl, xvec, 0.760265)
+
+# Optionally modify some parameters
 soma_cell1.soma.gbar_nax = 0.015
 
-gj = h.LinearMechanism(cmat, gmat, y, b, sl, xvec)
-
+# Add current stim
 soma_cell0.add_iclamp(0, 100, 0.1)
 soma_cell1.add_iclamp(10, 100, 0.1)
 
-
+# Run simulation
 data = V.run_nrn_sim(100, report_dt=None, model='soma')
+
 print(json.dumps(data))
 V.nrn_stop()
 
