@@ -330,6 +330,11 @@ arb::mc_cell branch_cell(double delay, double duration, bool tweak) {
     arb::i_clamp stim(delay, duration, 0.1);
     cell.add_stimulus({0, 1}, stim);
 
+    auto dend = cell.add_cable(0, arb::section_kind::dendrite, 1.0/2.0, 1.0/2.0, 100); //cable 1
+    dend->set_compartments(5);
+    dend->cm = 0.018;
+    dend->add_mechanism("pas");
+
     return cell;
 }
 

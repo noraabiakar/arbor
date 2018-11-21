@@ -240,7 +240,7 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=None, *
     # Run sim
     if dt==0:
         # Use CVODE instead
-        h.cvode.active(1)
+        h.cvode.active(0)
         abstol = default_model_parameters['abstol']
         h.cvode.atol(abstol)
         common_meta = { 'dt': 0, 'cvode': True, 'abstol': abstol }
