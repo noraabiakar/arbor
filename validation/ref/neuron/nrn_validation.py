@@ -240,7 +240,7 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=None, *
     # Run sim
     if dt==0:
         # Use CVODE instead
-        h.cvode.active(0)
+        h.cvode.active(1)
         abstol = default_model_parameters['abstol']
         h.cvode.atol(abstol)
         common_meta = { 'dt': 0, 'cvode': True, 'abstol': abstol }
@@ -249,7 +249,7 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=None, *
         h.steps_per_ms = 1/dt # or else NEURON might noisily fudge dt
         common_meta = { 'dt': dt, 'cvode': False }
 
-    h.secondorder = 0
+    h.secondorder = 2
     h.tstop = tend
     h.run()
 

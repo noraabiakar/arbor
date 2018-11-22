@@ -8,9 +8,140 @@ import os
 import re
 import numpy as np
 import neuron
-import nrn_validation as V
 from neuron import h
 from builtins import range
+
+# Run 'current' model, return list of traces.
+# Samples at cable mid- and end-points taken every `sample_dt`;
+# Voltage on all compartments per section reported every `report_dt`.
+def hoc_execute_quiet(arg):
+    with open(os.devnull, 'wb') as null:
+        fd = sys.stdout.fileno()
+        keep = os.dup(fd)
+        sys.stdout.flush()
+        os.dup2(null.fileno(), fd)
+        h(arg)
+        sys.stdout.flush()
+        os.dup2(keep, fd)
+
+def hoc_setup():
+    hoc_execute_quiet('load_file("stdrun.hoc")')
+
+def hoc_quit():
+    hoc_execute_quiet('quit()')
+
+def combine(*dicts, **kw):
+    r = {}
+    for d in dicts:
+        r.update(d)
+    r.update(kw)
+    return r
+
+def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=None, **meta):
+    if dt is None:
+        dt = 0.0
+
+    # Instrument mid-point and ends of each section for traces.
+    vtraces = []
+    vtrace_t_hoc = h.Vector()
+
+    ncomps = set([s.nseg for s in h.allsec() if s.name()!='soma'])
+    if len(ncomps)==1:
+        common_ncomp = { 'ncomp': ncomps.pop() }
+    else:
+        common_ncomp = {}
+
+    i = 0
+    for s in h.allsec():
+        vend = h.Vector()
+        vend.record(s(0.5)._ref_v, sample_dt)
+        vtraces.append((s.name()+str(i)+".mid", vend))
+        i = i + 1
+        if s.nseg!=1 or s.name()!='soma':
+            vmid = h.Vector()
+            vmid.record(s(1.0)._ref_v, sample_dt)
+            vtraces.append((s.name()+".end", vmid))
+
+    vtrace_t_hoc.record(h._ref_t, sample_dt)
+
+    # Instrument every segment for section voltage reports.
+    if report_t is None:
+        if report_dt is not None:
+            report_t = [report_dt*(1+i) for i in range(int(tend/report_dt))]
+        else:
+            report_t = []
+    elif not isinstance(report_t, list):
+        report_t = [report_t]
+
+    vreports = []
+    vreport_t_hoc = h.Vector(report_t)
+
+    if report_t:
+        for s in h.allsec():
+            nseg = s.nseg;
+            ps = [0] + [(i+0.5)/nseg for i in range(nseg)] + [1]
+            vs = [h.Vector() for p in ps]
+            for p, v in zip(ps, vs):
+                v.record(s(p)._ref_v, vreport_t_hoc)
+            vreports.append((s.name(), s.L, s.nseg, ps, vs))
+
+    # Run sim
+    if dt==0:
+        # Use CVODE instead
+        h.cvode.active(1)
+        abstol = 1e-6
+        h.cvode.atol(abstol)
+        common_meta = { 'dt': 0, 'cvode': True, 'abstol': abstol }
+    else:
+        h.dt = dt
+        h.steps_per_ms = 1/dt # or else NEURON might noisily fudge dt
+        common_meta = { 'dt': dt, 'cvode': False }
+
+    h.secondorder = 0
+    h.tstop = tend
+    h.run()
+
+    # convert results to traces with metadata
+    traces = []
+
+    vtrace_t = list(vtrace_t_hoc)
+    traces.append(combine(common_meta, meta, common_ncomp, {
+        'name':  'membrane voltage',
+        'sim':   'neuron',
+        'units': 'mV',
+        'data':  combine({n: list(v) for n, v in vtraces}, time=vtrace_t)
+    }))
+
+    # and section reports too
+    vreport_t = list(vreport_t_hoc)
+    for name, length, nseg, ps, vs in vreports:
+        obs = np.column_stack([np.array(v) for v in vs])
+        xs = [length*p for p in ps]
+        for i, t in enumerate(report_t):
+            if i>=obs.shape[0]:
+                break
+
+            traces.append(combine(common_meta, meta, {
+                'name': 'membrane voltage',
+                'sim':  'neuron',
+                'units': {'x': 'µm', name: 'mV'},
+                'ncomp': nseg,
+                'time': t,
+                'data': {
+                    'x': xs,
+                    name: list(obs[i,:])
+                }
+            }))
+
+    return traces
+
+def nrn_assert_no_sections():
+    for s in h.allsec():
+        assert False, 'a section exists'
+
+def nrn_stop():
+    hoc_quit()
+
 
 default_seg_parameters = {
     'Ra':  100,    # Intracellular resistivity in Ω·cm
@@ -133,11 +264,10 @@ class cell:
 
         # Add passive membrane properties to dendrite.
         dend.insert('pas')
-        dend.g_pas = p_pas['g']
-        dend.e_pas = p_pas['e']
+        dend.g_pas = 0.001
+        dend.e_pas = -65
 
-        dend.nseg = 5
-
+        dend.nseg = 200
         if to is None:
             if self.soma is not None:
                 dend.connect(self.soma(1))
@@ -152,17 +282,17 @@ class cell:
 
         if src is None:
             sl.append(sec = self.soma)
-            area_src = self.soma.diam*math.pi * self.soma.L
+            area_src = h.area(0.95, sec = self.soma)
         else:
             sl.append(sec = self.sections[src])
-            area_src = self.sections[src].diam*math.pi * self.sections[src].L
+            area_src = h.area(0.95, sec = self.sections[src])
 
         if dest is None:
             sl.append(sec = other.soma)
-            area_dest = other.soma.diam*math.pi * other.soma.L
+            area_dest = h.area(0.95, sec = other.soma)
         else:
             sl.append(sec = other.sections[dest])
-            area_dest = other.sections[dest].diam*math.pi * other.sections[dest].L
+            area_dest = h.area(0.95, sec = other.sections[dest])
 
         gmat.x[0][0] =  ggap*0.1/area_src
         gmat.x[0][1] = -ggap*0.1/area_src
@@ -171,6 +301,8 @@ class cell:
 
         gj = h.LinearMechanism(cm, gm, y, b, sl, xvec)
         return gj
+
+hoc_setup()
 
 # Linear mechanism state, needs to be part of the "state"
 cmat = h.Matrix(2,2,2)
@@ -195,18 +327,18 @@ cell0.add_dendrite('stick0', geom)
 cell1.add_dendrite('stick1', geom)
 
 # Add gap junction
-# gj = cell0.add_gap_junction(cell1, cmat, gmat, y, b, sl, xvec, 5, 'stick0', 'stick1')
+gj = cell0.add_gap_junction(cell1, cmat, gmat, y, b, sl, xvec, 0.760265, 'stick0', 'stick1')
 
 # Optionally modify some parameters
-# cell1.soma.gbar_nax = 0.015
+cell1.soma.gbar_nax = 0.015
 
 # Add current stim
 cell0.add_iclamp(0, 100, 0.1)
 cell1.add_iclamp(10, 100, 0.1)
 
 # Run simulation
-data = V.run_nrn_sim(100, report_dt=None, model='soma')
+data = run_nrn_sim(100, report_dt=None, model='soma')
 
 print(json.dumps(data))
-V.nrn_stop()
+nrn_stop()
 

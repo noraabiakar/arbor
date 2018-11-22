@@ -57,8 +57,8 @@ public:
             tstart+=10.0;
             tweak = true;
         }
-        cells[0].add_gap_junction(0, {0, 1}, 1, {0, 1}, 0.000760265);
-        cells[1].add_gap_junction(1, {0, 1}, 0, {0, 1}, 0.000760265);
+        cells[0].add_gap_junction(0, {1, 0.95}, 1, {1, 0.95}, 0.000760265);
+        cells[1].add_gap_junction(1, {1, 0.95}, 0, {1, 0.95}, 0.000760265);
     }
 
     cell_size_type num_cells() const override {
@@ -221,7 +221,7 @@ int main(int argc, char** argv) {
 
         // Set up the probe that will measure voltage in the cell.
 
-        auto sched = arb::regular_schedule(0.025);
+        auto sched = arb::regular_schedule(0.0025);
         // This is where the voltage samples will be stored as (time, value) pairs
         std::vector<arb::trace_data<double>> voltage(recipe.num_cells());
 
@@ -244,7 +244,7 @@ int main(int argc, char** argv) {
 
         std::cout << "running simulation" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
-        sim.run(params.duration, 0.025);
+        sim.run(params.duration, 0.0025);
 
         meters.checkpoint("model-run", context);
 
@@ -327,13 +327,17 @@ arb::mc_cell branch_cell(double delay, double duration, bool tweak) {
     kamt["gbar"] = 0.004;
     soma->add_mechanism(kamt);
 
+    auto dend = cell.add_cable(0, arb::section_kind::dendrite, 1.0/2.0, 1.0/2.0, 100); //cable 1
+    dend->set_compartments(200);
+    dend->cm = 0.018;
+    dend->rL = 100;
+    arb::mechanism_desc pas("pas");
+    pas["g"] = 0.001;
+    pas["e"] = -65;
+    dend->add_mechanism(pas);
+
     arb::i_clamp stim(delay, duration, 0.1);
     cell.add_stimulus({0, 1}, stim);
-
-    auto dend = cell.add_cable(0, arb::section_kind::dendrite, 1.0/2.0, 1.0/2.0, 100); //cable 1
-    dend->set_compartments(5);
-    dend->cm = 0.018;
-    dend->add_mechanism("pas");
 
     return cell;
 }
