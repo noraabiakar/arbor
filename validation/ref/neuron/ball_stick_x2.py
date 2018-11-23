@@ -397,7 +397,7 @@ geom_hill = [(0,20), (5, 1.5)]
 cell0.add_dendrite('hillock0', geom_hill, 50)
 cell1.add_dendrite('hillock0', geom_hill, 50)
 
-geom_init = [(0,1), (30, 1.5)]
+geom_init = [(0,1.5), (30, 1.5)]
 cell0.add_seg('seg0', geom_init, 50, 'hillock0')
 cell1.add_seg('seg0', geom_init, 50, 'hillock0')
 

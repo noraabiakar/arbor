@@ -368,6 +368,7 @@ arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tw
     setup_seg(hillock);
 
     auto init_seg = cell.add_cable(4, arb::section_kind::dendrite, 1.5/2.0, 1.5/2.0, 30); //cable 5
+    init_seg->set_compartments(50);
     set_axon_params();
     setup_seg(init_seg);
 
