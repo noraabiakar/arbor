@@ -313,96 +313,71 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
 arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tweak) {
     arb::mc_cell cell;
 
-    // Add soma.
     arb::mechanism_desc nax("nax");
-    nax["gbar"] = 0.04;
-    nax["sh"] = 10;
-
     arb::mechanism_desc kdrmt("kdrmt");
-    kdrmt["gbar"] = 0.0001;
-
     arb::mechanism_desc kamt("kamt");
-    kamt["gbar"] = 0.004;
-
     arb::mechanism_desc pas("pas");
-    pas["g"] =  1.0/12000.0;
-    pas["e"] =  -65;
+
+    auto set_reg_params = [&]() {
+        nax["gbar"] = 0.04;
+        nax["sh"] = 10;
+        kdrmt["gbar"] = 0.0001;
+        kamt["gbar"] = 0.004;
+        pas["g"] =  1.0/12000.0;
+        pas["e"] =  -65;
+    };
+
+    auto set_axon_params = [&]() {
+        pas["g"] = 1.0/1000.0;
+        nax["gbar"] = 0.4;
+        nax["sh"] = 0;
+        kamt["gbar"] = 0.04;
+    };
+
+    auto setup_seg = [&](auto seg) {
+        seg->rL = 100;
+        seg->cm = 0.018;
+        seg->add_mechanism(nax);
+        seg->add_mechanism(kdrmt);
+        seg->add_mechanism(kamt);
+        seg->add_mechanism(pas);
+    };
 
     auto soma = cell.add_soma(22.360679775/2.0);
-    soma->cm = 0.018;
-    soma->rL = 100;
-    nax["gbar"] = 0.04;
-    soma->add_mechanism(nax);
-    soma->add_mechanism(kdrmt);
-    soma->add_mechanism(kamt);
-    soma->add_mechanism(pas);
+    set_reg_params();
+    setup_seg(soma);
 
     auto dend = cell.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300); //cable 1
     dend->set_compartments(200);
-    dend->cm = 0.018;
-    dend->rL = 100;
-    nax["gbar"] = 0.04;
-    dend->add_mechanism(nax);
-    dend->add_mechanism(kdrmt);
-    dend->add_mechanism(kamt);
-    dend->add_mechanism(pas);
+    set_reg_params();
+    setup_seg(dend);
 
     auto dend_min0 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 2
     dend_min0->set_compartments(50);
-    dend_min0->cm = 0.018;
-    dend_min0->rL = 100;
-    nax["gbar"] = 0.04;
-    dend_min0->add_mechanism(nax);
-    dend_min0->add_mechanism(kdrmt);
-    dend_min0->add_mechanism(kamt);
-    dend_min0->add_mechanism(pas);
+    set_reg_params();
+    setup_seg(dend_min0);
 
     auto dend_min1 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 3
     dend_min1->set_compartments(50);
-    dend_min1->cm = 0.018;
-    dend_min1->rL = 100;
-    nax["gbar"] = 0.04;
-    dend_min1->add_mechanism(nax);
-    dend_min1->add_mechanism(kdrmt);
-    dend_min1->add_mechanism(kamt);
-    dend_min1->add_mechanism(pas);
+    set_reg_params();
+    setup_seg(dend_min1);
 
     auto hillock = cell.add_cable(0, arb::section_kind::dendrite, 20.0/2.0, 1.5/2.0, 5); //cable 4
     hillock->set_compartments(50);
-    hillock->cm = 0.018;
-    hillock->rL = 100;
-    nax["gbar"] = 0.04;
-    hillock->add_mechanism(nax);
-    hillock->add_mechanism(kdrmt);
-    hillock->add_mechanism(kamt);
-    hillock->add_mechanism(pas);
+    set_reg_params();
+    setup_seg(hillock);
 
     auto init_seg = cell.add_cable(4, arb::section_kind::dendrite, 1.5/2.0, 1.5/2.0, 30); //cable 5
-    init_seg->set_compartments(50);
-    init_seg->cm = 0.018;
-    init_seg->rL = 100;
-    pas["g"] = 1.0/1000.0;
-    nax["gbar"] = 0.4;
-    nax["sh"] = 0;
-    kamt["gbar"] = 0.04;
-    init_seg->add_mechanism(nax);
-    init_seg->add_mechanism(kdrmt);
-    init_seg->add_mechanism(kamt);
-    init_seg->add_mechanism(pas);
+    set_axon_params();
+    setup_seg(init_seg);
 
     for(unsigned i = 0; i < num_gj; i++) {
-        auto tuft0 = cell.add_cable(1, arb::section_kind::dendrite, 0.4/2.0, 0.4/2.0, 300); //cable 6
-        tuft0->set_compartments(100);
-        tuft0->cm = 0.018;
-        tuft0->rL = 100;
-        pas["g"] = 1.0 / 12000.0;
+        auto tuft = cell.add_cable(1, arb::section_kind::dendrite, 0.4/2.0, 0.4/2.0, 300); //cable 6
+        tuft->set_compartments(100);
+        set_reg_params();
         nax["gbar"] = tweak==true ? 0.0 : 0.04;
-        nax["sh"] = 10;
-        kamt["gbar"] = 0.004;
-        tuft0->add_mechanism(nax);
-        tuft0->add_mechanism(kdrmt);
-        tuft0->add_mechanism(kamt);
-        tuft0->add_mechanism(pas);
+
+        setup_seg(tuft);
 
         arb::i_clamp stim(delay, duration, 0.02);
         cell.add_stimulus({6 + i, 0.25}, stim);
