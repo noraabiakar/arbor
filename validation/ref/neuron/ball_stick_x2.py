@@ -234,7 +234,7 @@ class cell:
         soma.Ra = 100
         soma.cm = 1.8
 
-        # Insert active nax channels in the soma.
+        # Insert channels in the soma.
         soma.insert('nax')
         soma.gbar_nax = 0.04
         soma.sh_nax = 10
@@ -244,6 +244,10 @@ class cell:
 
         soma.insert('kdrmt')
         soma.gbar_kdrmt = 0.0001
+
+        soma.insert('pas')
+        soma.g_pas = 1.0/12000.0
+        soma.e_pas = -65
 
         soma.ena = 50
         soma.ek = -90
@@ -262,12 +266,26 @@ class cell:
         dend.Ra = 100
         dend.cm = 1.8
 
-        # Add passive membrane properties to dendrite.
+        # Insert channels in the soma.
+        dend.insert('nax')
+        dend.gbar_nax = 0.04
+        dend.sh_nax = 10
+
+        dend.insert('kamt')
+        dend.gbar_kamt = 0.004
+
+        dend.insert('kdrmt')
+        dend.gbar_kdrmt = 0.0001
+
         dend.insert('pas')
-        dend.g_pas = 0.001
+        dend.g_pas = 1.0/12000.0
         dend.e_pas = -65
 
+        dend.ena = 50
+        dend.ek = -90
+
         dend.nseg = 200
+
         if to is None:
             if self.soma is not None:
                 dend.connect(self.soma(1))

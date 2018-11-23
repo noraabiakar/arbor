@@ -221,7 +221,7 @@ int main(int argc, char** argv) {
 
         // Set up the probe that will measure voltage in the cell.
 
-        auto sched = arb::regular_schedule(0.0025);
+        auto sched = arb::regular_schedule(0.025);
         // This is where the voltage samples will be stored as (time, value) pairs
         std::vector<arb::trace_data<double>> voltage(recipe.num_cells());
 
@@ -244,7 +244,7 @@ int main(int argc, char** argv) {
 
         std::cout << "running simulation" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
-        sim.run(params.duration, 0.0025);
+        sim.run(params.duration, 0.001);
 
         meters.checkpoint("model-run", context);
 
@@ -312,28 +312,36 @@ arb::mc_cell branch_cell(double delay, double duration, bool tweak) {
     arb::mc_cell cell;
 
     // Add soma.
-    auto soma = cell.add_soma(22.360679775/2.0);
-    soma->cm = 0.018;
     arb::mechanism_desc nax("nax");
     nax["gbar"] = tweak==true ? 0.015 : 0.04;
     nax["sh"] = 10;
-    soma->add_mechanism(nax);
 
     arb::mechanism_desc kdrmt("kdrmt");
     kdrmt["gbar"] = 0.0001;
-    soma->add_mechanism(kdrmt);
 
     arb::mechanism_desc kamt("kamt");
     kamt["gbar"] = 0.004;
+
+    arb::mechanism_desc pas("pas");
+    pas["g"] =  1.0/12000.0;
+    pas["e"] =  -65;
+
+    auto soma = cell.add_soma(22.360679775/2.0);
+    soma->cm = 0.018;
+    soma->rL = 100;
+    soma->add_mechanism(nax);
+    soma->add_mechanism(kdrmt);
     soma->add_mechanism(kamt);
+    soma->add_mechanism(pas);
 
     auto dend = cell.add_cable(0, arb::section_kind::dendrite, 1.0/2.0, 1.0/2.0, 100); //cable 1
     dend->set_compartments(200);
     dend->cm = 0.018;
     dend->rL = 100;
-    arb::mechanism_desc pas("pas");
-    pas["g"] = 0.001;
-    pas["e"] = -65;
+    nax["gbar"] = 0.04;
+    dend->add_mechanism(nax);
+    dend->add_mechanism(kdrmt);
+    dend->add_mechanism(kamt);
     dend->add_mechanism(pas);
 
     arb::i_clamp stim(delay, duration, 0.1);
