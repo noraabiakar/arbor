@@ -254,7 +254,7 @@ class cell:
 
         self.soma = soma
 
-    def add_dendrite(self, name, geom, ncomp, to=None):
+    def add_dendrite(self, name, geom, ncomp, to=None, rallbranch=0):
         p_pas  = default_pas_parameters
 
         dend = h.Section(name=name)
@@ -262,6 +262,9 @@ class cell:
         for x, d in geom:
             h.pt3dadd(x, 0, 0, d)
         h.pop_section()
+
+        if rallbranch != 0:
+            dend.rallbranch = rallbranch
 
         dend.Ra = 100
         dend.cm = 1.8
@@ -351,10 +354,10 @@ class cell:
             sl.append(sec = other.sections[dest])
             area_dest = h.area(0.95, sec = other.sections[dest])
 
-        gmat.x[0][0] =  ggap*0.1/area_src
-        gmat.x[0][1] = -ggap*0.1/area_src
-        gmat.x[1][1] =  ggap*0.1/area_dest
-        gmat.x[1][0] = -ggap*0.1/area_dest
+        gm.x[0][0] =  ggap*0.1/area_src
+        gm.x[0][1] = -ggap*0.1/area_src
+        gm.x[1][1] =  ggap*0.1/area_dest
+        gm.x[1][0] = -ggap*0.1/area_dest
 
         gj = h.LinearMechanism(cm, gm, y, b, sl, xvec)
         return gj
@@ -398,8 +401,12 @@ geom_init = [(0,1), (5, 1)]
 cell0.add_seg('seg0', geom_init, 50, 'hillock0')
 cell1.add_seg('seg0', geom_init, 50, 'hillock0')
 
+geom_tuft = [(0,0.4), (100, 0.4)]
+cell0.add_dendrite('tuft0', geom_tuft, 100, 'stick0', 20)
+cell1.add_dendrite('tuft0', geom_tuft, 100, 'stick0', 20)
+
 # Add gap junction
-gj = cell0.add_gap_junction(cell1, cmat, gmat, y, b, sl, xvec, 0.760265, 'stick0', 'stick0')
+gj0 = cell0.add_gap_junction(cell1, cmat, gmat, y, b, sl, xvec, 0.00760265, 'tuft0', 'tuft0')
 
 # Optionally modify some parameters
 cell1.soma.gbar_nax = 0.015

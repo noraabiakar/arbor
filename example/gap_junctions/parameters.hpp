@@ -15,6 +15,7 @@ struct gap_params {
     std::string name = "default";
     unsigned num_cells = 2;
     double duration = 100;
+    unsigned num_gj = 20;
 };
 
 gap_params read_options(int argc, char** argv) {
@@ -43,6 +44,7 @@ gap_params read_options(int argc, char** argv) {
     param_from_json(params.name, "name", json);
     param_from_json(params.num_cells, "num-cells", json);
     param_from_json(params.duration, "duration", json);
+    param_from_json(params.num_gj, "num-gj", json);
 
     if (!json.empty()) {
         for (auto it=json.begin(); it!=json.end(); ++it) {
