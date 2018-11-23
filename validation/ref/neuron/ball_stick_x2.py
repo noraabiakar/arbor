@@ -254,7 +254,7 @@ class cell:
 
         self.soma = soma
 
-    def add_dendrite(self, name, geom, to=None):
+    def add_dendrite(self, name, geom, ncomp, to=None):
         p_pas  = default_pas_parameters
 
         dend = h.Section(name=name)
@@ -284,7 +284,7 @@ class cell:
         dend.ena = 50
         dend.ek = -90
 
-        dend.nseg = 200
+        dend.nseg = ncomp
 
         if to is None:
             if self.soma is not None:
@@ -293,6 +293,45 @@ class cell:
             dend.connect(self.sections[to](1))
 
         self.sections[name] = dend
+
+    def add_seg(self, name, geom, ncomp, to=None):
+
+        seg = h.Section(name=name)
+        seg.push()
+        for x, d in geom:
+            h.pt3dadd(x, 0, 0, d)
+        h.pop_section()
+
+        seg.Ra = 100
+        seg.cm = 1.8
+
+        # Insert channels in the soma.
+        seg.insert('nax')
+        seg.gbar_nax = 0.4
+        seg.sh_nax = 0
+
+        seg.insert('kamt')
+        seg.gbar_kamt = 0.04
+
+        seg.insert('kdrmt')
+        seg.gbar_kdrmt = 0.0001
+
+        seg.insert('pas')
+        seg.g_pas = 1.0/1000.0
+        seg.e_pas = -65
+
+        seg.ena = 50
+        seg.ek = -90
+
+        seg.nseg = ncomp
+
+        if to is None:
+            if self.soma is not None:
+                seg.connect(self.soma(1))
+        else:
+            seg.connect(self.sections[to](1))
+
+        self.sections[name] = seg
 
     def add_gap_junction(self, other, cm, gm, y, b, sl, xvec, ggap, src=None, dest=None):
         xvec.x[0] = 0.95
@@ -341,11 +380,26 @@ cell1.add_soma(25, 20)
 # Add dendrite
 # Dendrite geometry: all 100 µm long, 1 µm diameter.
 geom = [(0,1), (100, 1)]
-cell0.add_dendrite('stick0', geom)
-cell1.add_dendrite('stick1', geom)
+cell0.add_dendrite('stick0', geom, 200)
+cell1.add_dendrite('stick0', geom, 200)
+
+geom_min = [(0,1), (10, 1)]
+cell0.add_dendrite('min_stick0', geom_min, 50)
+cell1.add_dendrite('min_stick0', geom_min, 50)
+
+cell0.add_dendrite('min_stick1', geom_min, 50)
+cell1.add_dendrite('min_stick1', geom_min, 50)
+
+geom_hill = [(0,20), (5, 1)]
+cell0.add_dendrite('hillock0', geom_hill, 50)
+cell1.add_dendrite('hillock0', geom_hill, 50)
+
+geom_init = [(0,1), (5, 1)]
+cell0.add_seg('seg0', geom_init, 50, 'hillock0')
+cell1.add_seg('seg0', geom_init, 50, 'hillock0')
 
 # Add gap junction
-gj = cell0.add_gap_junction(cell1, cmat, gmat, y, b, sl, xvec, 0.760265, 'stick0', 'stick1')
+gj = cell0.add_gap_junction(cell1, cmat, gmat, y, b, sl, xvec, 0.760265, 'stick0', 'stick0')
 
 # Optionally modify some parameters
 cell1.soma.gbar_nax = 0.015
