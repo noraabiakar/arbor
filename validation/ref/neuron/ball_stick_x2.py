@@ -382,38 +382,38 @@ cell1.add_soma(25, 20)
 
 # Add dendrite
 # Dendrite geometry: all 100 µm long, 1 µm diameter.
-geom = [(0,1), (100, 1)]
+geom = [(0,3), (300, 3)]
 cell0.add_dendrite('stick0', geom, 200)
 cell1.add_dendrite('stick0', geom, 200)
 
-geom_min = [(0,1), (10, 1)]
+geom_min = [(0,2), (100, 2)]
 cell0.add_dendrite('min_stick0', geom_min, 50)
 cell1.add_dendrite('min_stick0', geom_min, 50)
 
 cell0.add_dendrite('min_stick1', geom_min, 50)
 cell1.add_dendrite('min_stick1', geom_min, 50)
 
-geom_hill = [(0,20), (5, 1)]
+geom_hill = [(0,20), (5, 1.5)]
 cell0.add_dendrite('hillock0', geom_hill, 50)
 cell1.add_dendrite('hillock0', geom_hill, 50)
 
-geom_init = [(0,1), (5, 1)]
+geom_init = [(0,1), (30, 1.5)]
 cell0.add_seg('seg0', geom_init, 50, 'hillock0')
 cell1.add_seg('seg0', geom_init, 50, 'hillock0')
 
-geom_tuft = [(0,0.4), (100, 0.4)]
+geom_tuft = [(0,0.4), (300, 0.4)]
 cell0.add_dendrite('tuft0', geom_tuft, 100, 'stick0', 20)
 cell1.add_dendrite('tuft0', geom_tuft, 100, 'stick0', 20)
 
 # Add gap junction
-gj0 = cell0.add_gap_junction(cell1, cmat, gmat, y, b, sl, xvec, 0.00760265, 'tuft0', 'tuft0')
+gj0 = cell0.add_gap_junction(cell1, cmat, gmat, y, b, sl, xvec, 0.37, 'tuft0', 'tuft0')
 
 # Optionally modify some parameters
-cell1.soma.gbar_nax = 0.015
+cell1.sections['tuft0'].gbar_nax = 0.0
 
 # Add current stim
-cell0.add_iclamp(0, 100, 0.1)
-cell1.add_iclamp(10, 100, 0.1)
+cell0.add_iclamp(0, 100, 0.02, 'tuft0', 0.25)
+cell1.add_iclamp(10, 100, 0.02, 'tuft0', 0.25)
 
 # Run simulation
 data = run_nrn_sim(100, report_dt=None, model='soma')

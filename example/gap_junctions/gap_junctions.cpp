@@ -58,8 +58,8 @@ public:
             tweak = true;
         }
         for (unsigned i = 0; i < params.num_gj; i++) {
-            cells[0].add_gap_junction(0, {6 + i, 0.95}, 1, {6 + i, 0.95}, 0.00000760265);
-            cells[1].add_gap_junction(1, {6 + i, 0.95}, 0, {6 + i, 0.95}, 0.00000760265);
+            cells[0].add_gap_junction(0, {6 + i, 0.95}, 1, {6 + i, 0.95}, 0.00037);
+            cells[1].add_gap_junction(1, {6 + i, 0.95}, 0, {6 + i, 0.95}, 0.00037);
         }
     }
 
@@ -246,7 +246,7 @@ int main(int argc, char** argv) {
 
         std::cout << "running simulation" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
-        sim.run(params.duration, 0.025);
+        sim.run(params.duration, 0.0025);
 
         meters.checkpoint("model-run", context);
 
@@ -331,13 +331,13 @@ arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tw
     auto soma = cell.add_soma(22.360679775/2.0);
     soma->cm = 0.018;
     soma->rL = 100;
-    nax["gbar"] = tweak==true ? 0.015 : 0.04;
+    nax["gbar"] = 0.04;
     soma->add_mechanism(nax);
     soma->add_mechanism(kdrmt);
     soma->add_mechanism(kamt);
     soma->add_mechanism(pas);
 
-    auto dend = cell.add_cable(0, arb::section_kind::dendrite, 1.0/2.0, 1.0/2.0, 100); //cable 1
+    auto dend = cell.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300); //cable 1
     dend->set_compartments(200);
     dend->cm = 0.018;
     dend->rL = 100;
@@ -347,7 +347,7 @@ arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tw
     dend->add_mechanism(kamt);
     dend->add_mechanism(pas);
 
-    auto dend_min0 = cell.add_cable(0, arb::section_kind::dendrite, 1.0/2.0, 1.0/2.0, 10); //cable 2
+    auto dend_min0 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 2
     dend_min0->set_compartments(50);
     dend_min0->cm = 0.018;
     dend_min0->rL = 100;
@@ -357,7 +357,7 @@ arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tw
     dend_min0->add_mechanism(kamt);
     dend_min0->add_mechanism(pas);
 
-    auto dend_min1 = cell.add_cable(0, arb::section_kind::dendrite, 1.0/2.0, 1.0/2.0, 10); //cable 3
+    auto dend_min1 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 3
     dend_min1->set_compartments(50);
     dend_min1->cm = 0.018;
     dend_min1->rL = 100;
@@ -367,7 +367,7 @@ arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tw
     dend_min1->add_mechanism(kamt);
     dend_min1->add_mechanism(pas);
 
-    auto hillock = cell.add_cable(0, arb::section_kind::dendrite, 20.0/2.0, 1.0/2.0, 5); //cable 4
+    auto hillock = cell.add_cable(0, arb::section_kind::dendrite, 20.0/2.0, 1.5/2.0, 5); //cable 4
     hillock->set_compartments(50);
     hillock->cm = 0.018;
     hillock->rL = 100;
@@ -377,7 +377,7 @@ arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tw
     hillock->add_mechanism(kamt);
     hillock->add_mechanism(pas);
 
-    auto init_seg = cell.add_cable(4, arb::section_kind::dendrite, 1.0/2.0, 1.0/2.0, 5); //cable 5
+    auto init_seg = cell.add_cable(4, arb::section_kind::dendrite, 1.5/2.0, 1.5/2.0, 30); //cable 5
     init_seg->set_compartments(50);
     init_seg->cm = 0.018;
     init_seg->rL = 100;
@@ -391,22 +391,22 @@ arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tw
     init_seg->add_mechanism(pas);
 
     for(unsigned i = 0; i < num_gj; i++) {
-        auto tuft0 = cell.add_cable(1, arb::section_kind::dendrite, 0.4 / 2.0, 0.4 / 2.0, 100); //cable 6
+        auto tuft0 = cell.add_cable(1, arb::section_kind::dendrite, 0.4/2.0, 0.4/2.0, 300); //cable 6
         tuft0->set_compartments(100);
         tuft0->cm = 0.018;
         tuft0->rL = 100;
         pas["g"] = 1.0 / 12000.0;
-        nax["gbar"] = 0.04;
+        nax["gbar"] = tweak==true ? 0.0 : 0.04;
         nax["sh"] = 10;
         kamt["gbar"] = 0.004;
         tuft0->add_mechanism(nax);
         tuft0->add_mechanism(kdrmt);
         tuft0->add_mechanism(kamt);
         tuft0->add_mechanism(pas);
-    }
 
-    arb::i_clamp stim(delay, duration, 0.1);
-    cell.add_stimulus({0, 1}, stim);
+        arb::i_clamp stim(delay, duration, 0.02);
+        cell.add_stimulus({6 + i, 0.25}, stim);
+    }
 
     return cell;
 }
