@@ -77,9 +77,14 @@ meter.start()
 # build the model #####
 params = parameters.model_parameters(env.parameter_file)
 model = ring_network(params)
-soma_voltage, time_points = model.cells[0].set_recorder()
 
+# set recorder for time and voltage
+soma0_voltage, time0_points = model.cells[0].set_recorder()
+soma1_voltage, time1_points = model.cells[1].set_recorder()
+
+# do stdinit after set_recorder()
 h.stdinit()
+
 #####
 
 ctx.init(params.min_delay, env.dt)
@@ -103,21 +108,34 @@ report.to_file(prefix+'meters.json')
 
 spikes.print(prefix+'spikes.gdf')
 
-#data=open('/home/bcumming/software/github/arbor/build/bin/meters.json').read()
-#orep = metering.report_from_json(data)
-#print(orep.to_json())
+# print in correct format
+with open('neuron.json', 'w') as f:
+    f.write('[{\"units\": \"mV\",')
+    f.write('\"data\": {\"soma0\": [')
 
+    for x in soma0_voltage:
+        f.write("%s,\n" % x)
+    f.write("%s\n" % soma0_voltage[-1])
 
-## BEFORE h.stdinit
-#if do_plot and ctx.is_root:
+    f.write('],\n\"soma1\": [')
 
-## After simulation
-#if do_plot and ctx.is_root:
-soma_plot = plot(time_points, soma_voltage, color='black')
-legend(soma_plot, ['soma'])
+    for x in soma1_voltage:
+        f.write("%s,\n" % x)
+    f.write("%s\n" % soma1_voltage[-1])
+
+    f.write('],\n\"time\": [')
+
+    for x in time0_points:
+        f.write("%s,\n" % x)
+    f.write("%s\n" % time0_points[-1])
+
+    f.write(']}}]')
+
+soma0_plot = plot(time0_points, soma0_voltage, color='black')
+soma1_plot = plot(time1_points, soma1_voltage, color='red')
+
+legend(soma0_plot + soma1_plot, ['soma0', 'soma1'])
 xlabel('time (ms)')
 show()
-#    dend_plot = pyplot.plot(time_points, dend_voltage, color='red')
-#    pyplot.legend(soma_plot + dend_plot, ['soma', 'dend(0.5)'])
-#    pyplot.xlabel('time (ms)')
-#    pyplot.show()
+
+
