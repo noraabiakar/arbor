@@ -16,7 +16,9 @@ class environment:
                     'duration (ms)', int(self.duration),
                     'dt (ms)', self.dt,
                     'output path', self.opath,
-                    'parameter file', self.parameter_file if self.parameter_file else 'none')
+                    'parameter file', self.parameter_file if self.parameter_file else 'none',
+                    'gap_junctions', self.gap,
+                    'nax_tweak', self.nax_tweak)
 
         return s
 
@@ -26,6 +28,8 @@ class environment:
         self.dt = 0.025
         self.duration = 100
         self.parameter_file = None
+        self.gap = False
+        self.nax_tweak = False
 
 def parse_clargs():
     P = argparse.ArgumentParser(description='Neuron Benchmark.')
@@ -39,6 +43,10 @@ def parse_clargs():
                    help='path for output files')
     P.add_argument('--duration', type=float, default=100,
                    help='time step size')
+    P.add_argument('--gap', action='store_true',
+                   help='connect ring with gap_junctions')
+    P.add_argument('--nax-tweak', action='store_true',
+                   help='change nax parameters for last soma')
 
     return P.parse_args()
 
@@ -58,5 +66,7 @@ def load_env():
     env.dt = args.dt
     env.opath = args.opath
     env.duration = args.duration
+    env.gap = args.gap
+    env.nax_tweak = args.nax_tweak
 
     return env

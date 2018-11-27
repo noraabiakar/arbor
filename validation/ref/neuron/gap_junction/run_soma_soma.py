@@ -11,7 +11,7 @@ else:
 
 from neuron import h
 
-import soma_soma
+import soma_model
 import parameters
 import json
 from matplotlib.pyplot import *
@@ -32,10 +32,15 @@ class ring_network:
 
         # distribute gid in round robin
         self.gids = range(self.d_rank, self.num_cells, self.d_size)
+        print(self.gids)
 
         # generate the cells
         for gid in self.gids:
-            c = soma_soma.cell(gid, self.cell_params)
+            c = soma_model.cell(gid, self.cell_params)
+
+            # attach delayed stimulus
+            c.add_iclamp(gid*10, env.duration, 0.1)
+
             self.cells.append(c)
 
             # register this gid
@@ -48,12 +53,17 @@ class ring_network:
             nc.threshold = 10
             self.pc.cell(gid, nc) # Associate the cell with this host and gid
 
-        self.cells[0].add_iclamp(0, 100, 0.1)
-        self.cells[1].add_iclamp(10, 100, 0.1)
+        # connect consecutive somas with gap junctions
+        if(env.gap):
+            for gid in self.gids[:-1]:
+                self.cells[gid].add_point_gap(self.cells[gid + 1], 0.000760265)
+            # this method must be called after all the calls to source_var() and target_var()
+            # and before initializing the simulation
+            self.pc.setup_transfer()
 
-        self.cells[1].soma.gbar_nax = 0.015
-        self.cells[0].add_point_gap(self.cells[1], 0.000760265)
-        self.pc.setup_transfer()
+        # change the parameters for the last cell
+        if(env.nax_tweak):
+            self.cells[-1].soma.gbar_nax = 0.015
 
 # hoc setup
 nrn.hoc_setup()
