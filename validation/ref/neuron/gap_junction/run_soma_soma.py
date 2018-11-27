@@ -36,8 +36,6 @@ class ring_network:
         # generate the cells
         for gid in self.gids:
             c = soma_soma.cell(gid, self.cell_params)
-            c.add_iclamp(gid*10, 100, 0.1)
-
             self.cells.append(c)
 
             # register this gid
@@ -50,20 +48,12 @@ class ring_network:
             nc.threshold = 10
             self.pc.cell(gid, nc) # Associate the cell with this host and gid
 
-        total_comp = 0
-        total_seg = 0
-        for c in self.cells:
-            total_comp += c.ncomp
-            total_seg += c.nseg
+        self.cells[0].add_iclamp(0, 100, 0.1)
+        self.cells[1].add_iclamp(10, 100, 0.1)
 
-        if self.d_size>1:
-            from mpi4py import MPI
-            total_comp = MPI.COMM_WORLD.reduce(total_comp, op=MPI.SUM, root=0)
-            total_seg = MPI.COMM_WORLD.reduce(total_seg, op=MPI.SUM, root=0)
-
-        if self.d_rank==0:
-            print('cell stats: {} cells; {} segments; {} compartments; {} comp/cell.'.format(self.num_cells, total_seg, total_comp, total_comp/self.num_cells))
-
+        self.cells[1].soma.gbar_nax = 0.015
+        self.cells[0].add_point_gap(self.cells[1], 0.000760265)
+        self.pc.setup_transfer()
 
 # hoc setup
 nrn.hoc_setup()

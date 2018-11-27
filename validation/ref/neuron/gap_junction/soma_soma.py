@@ -1,23 +1,19 @@
 #!/usr/bin/env python
 #coding: utf-8
 
-import json
 import math
-import sys
-import os
-import re
-import numpy as np
-import neuron
 from neuron import h
 from builtins import range
 
 class cell:
     def __init__(self, gid, params=None):
+        self.pc = h.ParallelContext()
         self.soma = None
         self.gid = gid
         self.sections = {}
         self.stims = []
         self.netcons = []
+        self.halfgap_list = []
 
         soma = h.Section(name='soma', cell=self)
         h.celsius = 35
@@ -71,23 +67,38 @@ class cell:
         area_src = self.soma.diam*math.pi * self.soma.L
         area_dest = other.soma.diam*math.pi * other.soma.L
 
-        gmat.x[0][0] =  ggap*0.1/area_src
-        gmat.x[0][1] = -ggap*0.1/area_src
-        gmat.x[1][1] =  ggap*0.1/area_dest
-        gmat.x[1][0] = -ggap*0.1/area_dest
+        gm.x[0][0] =  ggap*0.1/area_src
+        gm.x[0][1] = -ggap*0.1/area_src
+        gm.x[1][1] =  ggap*0.1/area_dest
+        gm.x[1][0] = -ggap*0.1/area_dest
 
         gj = h.LinearMechanism(cm, gm, y, b, sl, xvec)
         return gj
 
     def add_point_gap(self, other, ggap):
-        other.mk_halfgap(self.gid, ggap)
-        self.mk_halfgap(other.gid, ggap)
+        if self.pc.gid_exists(self.gid):
+            print(self.gid)
+            seg0 = self.pc.gid2cell(self.gid).soma(.5)
+            self.pc.source_var(seg0._ref_v, self.gid, sec=seg0.sec)
+            hg0 = h.HalfGap(seg0)
+            self.pc.target_var(hg0, hg0._ref_vgap, other.gid)
+            hg0.g = ggap
+            self.halfgap_list.append(hg0)
 
-    def mk_halfgap(self, gid_src, ggap):
-        pc.source_var(self.soma(.5)._ref_v, self.gid, sec=self.soma)
-        hg = h.HalfGap(self.soma(.5))
-        pc.target_var(hg, hg._ref_vgap, gid_src)
+        if self.pc.gid_exists(other.gid):
+            seg1 = self.pc.gid2cell(other.gid).soma(.5)
+            self.pc.source_var(seg1._ref_v, other.gid, sec=seg1.sec)
+            hg1 = h.HalfGap(seg1)
+            self.pc.target_var(hg1, hg1._ref_vgap, self.gid)
+            hg1.g = ggap
+            self.halfgap_list.append(hg1)
+
+    def mk_halfgap(self, gid_src, ggap, seg):
+        self.pc.source_var(seg._ref_v, self.gid, sec=seg.sec)
+        hg = h.HalfGap(seg)
+        self.pc.target_var(hg, hg._ref_vgap, gid_src)
         hg.g = ggap
+        self.halfgap_list.append(hg)
 
     def set_recorder(self):
         """Set soma, dendrite, and time recording vectors on the cell.
@@ -101,28 +112,4 @@ class cell:
         t.record(h._ref_t)
         return soma_v, t
 
-# pc.set_gid2node(soma_cell0.gid, rank)
-# nc0 = h.NetCon(soma_cell0.soma(.5)._ref_v, None, sec=soma_cell0.soma)
-# pc.cell(soma_cell0.gid, nc0)
-#
-# pc.set_gid2node(soma_cell1.gid, rank)
-# nc1 = h.NetCon(soma_cell1.soma(.5)._ref_v, None, sec=soma_cell1.soma)
-# pc.cell(soma_cell1.gid, nc1)
-
-# Add gap junction
-# gj = soma_cell0.add_gap_junction(soma_cell1, cmat, gmat, y, b, sl, xvec, 0.760265)
-# soma_cell0.add_point_gap(soma_cell1, 0.760265)
-
-# Optionally modify some parameters
-# soma_cell1.soma.gbar_nax = 0.015
-
-# Add current stim
-# soma_cell0.add_iclamp(0, 100, 0.1)
-# soma_cell1.add_iclamp(10, 100, 0.1)
-
-# Run simulation
-# data = V.run_nrn_sim(100, report_dt=None, dt=0.025, model='soma')
-
-# print(json.dumps(data))
-# V.nrn_stop()
 
