@@ -158,7 +158,7 @@ soma_cell0.add_soma(25, 20)
 soma_cell1.add_soma(25, 20)
 
 # Add gap junction
-gj = soma_cell0.add_gap_junction(soma_cell1, cmat, gmat, y, b, sl, xvec, 0.760265)
+gj = soma_cell0.add_gap_junction(soma_cell1, cmat, gmat, y, b, sl, xvec, 0.760265) #ggap in nS
 
 # Optionally modify some parameters
 soma_cell1.soma.gbar_nax = 0.015

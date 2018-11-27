@@ -58,7 +58,7 @@ public:
             tweak = true;
         }
         for (unsigned i = 0; i < params.num_gj; i++) {
-            cells[0].add_gap_junction(0, {6 + i, 0.95}, 1, {6 + i, 0.95}, 0.00037);
+            cells[0].add_gap_junction(0, {6 + i, 0.95}, 1, {6 + i, 0.95}, 0.00037); //ggap in μS
             cells[1].add_gap_junction(1, {6 + i, 0.95}, 0, {6 + i, 0.95}, 0.00037);
         }
     }

@@ -7,7 +7,7 @@ using Unitful
 using Unitful.DefaultSymbols
 
 c_m    = 0.018F*m^-2
-ggap   = 5e-5S*cm^-2
+ggap   = 4.84e-5S*cm^-2
 
 struct naxParam
     ena       # Na channel reversal potential

@@ -67,7 +67,7 @@ class cell:
     # 1. assign the voltage of the soma on 'self' to a unique id (cell gid) using 'source_var'
     # 2. attach the voltage of the half gap_junction at 'other' to the voltage of the soma of 'self'
     #    using 'target_var' and the unique id (gid) of the soma of 'self'
-    def add_point_gap(self, other, ggap):
+    def add_point_gap(self, other, ggap):  #ggap in nS
         if self.pc.gid_exists(self.gid):
             self.mk_halfgap(other, ggap)
 
