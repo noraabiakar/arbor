@@ -39,7 +39,7 @@ class ring_network:
             c = soma_model.cell(gid, self.cell_params)
 
             # attach delayed stimulus
-            c.add_iclamp(gid*10, env.duration, 0.1)
+            c.add_iclamp(gid*10, env.duration, 0.02, 'tuft0', 0.25)
 
             self.cells.append(c)
 
@@ -56,14 +56,14 @@ class ring_network:
         # connect consecutive somas with gap junctions
         if(env.gap):
             for gid in self.gids[:-1]:
-                self.cells[gid].add_point_gap(self.cells[gid + 1], 0.000760265)
+                self.cells[gid].add_point_gap(self.cells[gid + 1], 0.00037, 'tuft0', 'tuft0')
             # this method must be called after all the calls to source_var() and target_var()
             # and before initializing the simulation
             self.pc.setup_transfer()
 
         # change the parameters for the last cell
         if(env.nax_tweak):
-            self.cells[-1].soma.gbar_nax = 0.015
+            self.cells[-1].sections["tuft0"].gbar_nax = 0.0
 
 # hoc setup
 nrn.hoc_setup()

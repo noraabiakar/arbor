@@ -412,11 +412,11 @@ gj0 = cell0.add_gap_junction(cell1, cmat, gmat, y, b, sl, xvec, 0.37, 'tuft0', '
 cell1.sections['tuft0'].gbar_nax = 0.0
 
 # Add current stim
-cell0.add_iclamp(0, 100, 0.02, 'tuft0', 0.25)
-cell1.add_iclamp(10, 100, 0.02, 'tuft0', 0.25)
+cell0.add_iclamp(0, 300, 0.02, 'tuft0', 0.25)
+cell1.add_iclamp(10, 300, 0.02, 'tuft0', 0.25)
 
 # Run simulation
-data = run_nrn_sim(100, report_dt=None, model='soma')
+data = run_nrn_sim(300, report_dt=None, model='soma')
 
 print(json.dumps(data))
 nrn_stop()
