@@ -10,15 +10,6 @@ namespace multicore {
 namespace S = ::arb::simd;
 using S::index_constraint;
 
-struct constraint_partition {
-    using iarray = arb::multicore::iarray;
-
-    iarray contiguous;
-    iarray constant;
-    iarray independent;
-    iarray none;
-};
-
 template <typename It>
 bool is_contiguous_n(It first, unsigned width) {
     while (--width) {
@@ -72,22 +63,22 @@ index_constraint idx_constraint(It it, unsigned simd_width) {
 }
 
 template <typename T>
-constraint_partition make_constraint_partition(const T& node_index, unsigned width, unsigned simd_width) {
+std::vector<index_constraint> make_constraint_partition(const T& node_index, unsigned width, unsigned simd_width) {
 
-    constraint_partition part;
+    std::vector<index_constraint> part;
+    part.reserve(width/simd_width);
     for (unsigned i = 0; i < width; i+= simd_width) {
         auto ptr = &node_index[i];
         if (is_contiguous_n(ptr, simd_width)) {
-            part.contiguous.push_back(i);
+            part.push_back(index_constraint::contiguous);
         }
         else if (is_constant_n(ptr, simd_width)) {
-            part.constant.push_back(i);
+            part.push_back(index_constraint::constant);
         }
         else if (is_independent_n(ptr, simd_width)) {
-            part.independent.push_back(i);
+            part.push_back(index_constraint::independent);
         }
         else {
-            part.none.push_back(i);
         }
     }
     return part;
