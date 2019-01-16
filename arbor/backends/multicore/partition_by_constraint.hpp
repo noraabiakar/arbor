@@ -79,6 +79,7 @@ std::vector<index_constraint> make_constraint_partition(const T& node_index, uns
             part.push_back(index_constraint::independent);
         }
         else {
+            part.push_back(index_constraint::none);
         }
     }
     return part;

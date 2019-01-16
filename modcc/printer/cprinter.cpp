@@ -592,15 +592,9 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
         }
     }
 
-    std::string common_constraint = module_kind==moduleKind::density?
-                                    //"S::index_constraint::independent":
-                                    "S::index_constraint::none":
-                                    "S::index_constraint::none";
-
     for (auto& index: indices) {
         out << "simd_index " << index_i_name(index) << ";\n";
-        out << "constexpr S::index_constraint " << index_constraint_name(index)
-            << " = " << common_constraint << ";\n";
+        out << "S::index_constraint " << index_constraint_name(index) << ";\n";
     }
 
     if (!body->statements().empty()) {
@@ -608,6 +602,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
             "int n_ = width_;\n"
             "for (int i_ = 0; i_ < n_; i_ += simd_width_) {\n" << indent;
         for (auto &index: indices) {
+            out << index_constraint_name(index) << " = index_constraints_[i_/simd_width_];\n";
             out << index_i_name(index) << ".copy_from(" << index << ".data()+i_);\n";
         }
 
