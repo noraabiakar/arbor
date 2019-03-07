@@ -1,0 +1,4 @@
+node_type_id,pop_name,source_pop_name,target_pop_name,model_template,dynamics_params,delay,syn_weight,afferent_section_id,afferent_section_pos,efferent_section_id,efferent_section_pos
+100,edges0,pop0,pop1,expsyn,expsyn.json,10,0.002,1,0.9,1,0.2
+101,edges0,pop0,pop1,exp2syn,exp2syn.json,10,0.002,2,0.2,2,0.9
+102,edges1,pop0,pop0,expsyn,expsyn.json,10,0.002,0,0.5,0,0.5
