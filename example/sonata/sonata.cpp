@@ -71,57 +71,38 @@ private:
 
 int main(int argc, char **argv)
 {
-    h5_file nodes("nodes.h5");
+    h5_file nodes("edges.h5");
 
-    std::cout << "Populations in file: " << std::endl;
-    for (auto i: nodes.get_populations()) {
-        std::cout << "\t" << i.get_name() << std::endl;
-        std::cout << "\tGroups in populations: " << std::endl;
-        for (auto g: i.get_groups()) {
-            std::cout << "\t\t" << g.get_name() << std::endl;
+    std::cout << nodes.top_group_.name() <<std::endl;
+    for (auto &g0: nodes.top_group_.groups_) {
+        std::cout << "\t" << g0.name() <<std::endl;
+        for (auto &g1: g0.groups_) {
+            std::cout << "\t\t" << g1.name() <<std::endl;
+            for (auto &g2: g1.groups_) {
+                std::cout << "\t\t\t" << g2.name() <<std::endl;
+                for (auto &g3: g2.groups_) {
+                    std::cout << "\t\t\t\t" << g3.name() <<std::endl;
+                    for (auto &g4: g3.groups_) {
+                        std::cout << "\t\t\t\t\t" << g4.name() <<std::endl;
+                    }
+                    for (auto &d4: g3.datasets_) {
+                        std::cout << "\t\t\t\t\t" << d4.name() <<std::endl;
+                    }
+                }
+                for (auto &d3: g2.datasets_) {
+                    std::cout << "\t\t\t\t" << d3.name() <<std::endl;
+                }
+            }
+            for (auto &d2: g1.datasets_) {
+                std::cout << "\t\t\t" << d2.name() <<std::endl;
+            }
         }
-        std::cout << "\tDatasets in populations: " << std::endl;
-        for (auto d: i.get_datasets()) {
-            std::cout << "\t\t" << d.get_name() << std::endl;
-        }
-    }
-    std::cout << std::endl;
-
-    std::cout << "total number of cells in file: "<< nodes.get_num_elements() << std::endl;
-    std::cout << "partition of cells: " << std::endl;
-    for(auto e: nodes.get_partition()) {
-        std::cout << e << " ";
-    }
-    std::cout << std::endl;
-
-    h5_file edges("edges.h5");
-
-    std::cout << "Populations in file: " << std::endl;
-    for (auto i: edges.get_populations()) {
-        std::cout << "\t" << i.get_name() << std::endl;
-        std::cout << "\tGroups in populations: " << std::endl;
-        for (auto g: i.get_groups()) {
-            std::cout << "\t\t" << g.get_name() << std::endl;
-        }
-        std::cout << "\tDatasets in populations: " << std::endl;
-        for (auto d: i.get_datasets()) {
-            std::cout << "\t\t" << d.get_name() << std::endl;
+        for (auto &d1: g0.datasets_) {
+            std::cout << "\t\t" << d1.name() <<std::endl;
         }
     }
-    std::cout << std::endl;
-
-    std::cout << "total number of edges in file: "<< edges.get_num_elements() << std::endl;
-    std::cout << "partition of edges: " << std::endl;
-    for(auto e: edges.get_partition()) {
-        std::cout << e << " ";
-    }
-    std::cout << std::endl;
-
-    std::cout << std::endl << "Testing: open a dataet" << std::endl;
-    for(auto p: nodes.get_populations()) {
-        for (auto d: p.get_datasets()) {
-            d.get_value_at(0);
-        }
+    for (auto &d0: nodes.top_group_.datasets_) {
+        std::cout << "\t" << d0.name() <<std::endl;
     }
 
     return 0;

@@ -7,87 +7,13 @@
 
 #define MAX_NAME 1024
 
-
 using arb::cell_size_type;
-
-
-std::vector<cell_size_type> get_population_patition(std::string filename);
-void scan_group(hid_t, std::vector<cell_size_type>&);
-
-std::vector<cell_size_type> get_population_patition(std::string filename) {
-    std::vector<cell_size_type> partition;
-    hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-    hid_t grp = H5Gopen(file, "/", H5P_DEFAULT);
-    scan_group(grp, partition);
-    H5Fclose(file);
-    return partition;
-}
-
-void scan_group(hid_t gid, std::vector<cell_size_type>& partition) {
-    char memb_name[MAX_NAME];
-
-    hsize_t nobj;
-    H5Gget_num_objs(gid, &nobj);
-
-    for (unsigned i = 0; i < nobj; i++) {
-        H5Gget_objname_by_idx(gid, (hsize_t)i, memb_name, (size_t)MAX_NAME );
-        int otype =  H5Gget_objtype_by_idx(gid, (size_t)i );
-
-        switch(otype) {
-            case H5G_GROUP:
-            {
-                hid_t grp_id = H5Gopen(gid, memb_name, H5P_DEFAULT);
-                scan_group(grp_id, partition);
-                H5Gclose(grp_id);
-                break;
-            }
-            case H5G_DATASET:
-            {
-                hid_t ds_id = H5Dopen(gid, memb_name, H5P_DEFAULT);
-                if (strcmp(memb_name, "node_type_id") == 0) {
-                    hid_t dspace = H5Dget_space(ds_id);
-                    const int ndims = H5Sget_simple_extent_ndims(dspace);
-                    if (ndims > 1) {
-                        printf("Too many entries\n");
-                        exit(1);
-                    }
-
-                    hsize_t dims[ndims];
-                    H5Sget_simple_extent_dims(dspace, dims, NULL);
-
-                    partition.push_back(dims[0]);
-                }
-                H5Dclose(ds_id);
-                break;
-            }
-            default: break;
-        }
-    }
-}
-
 
 class h5_dataset {
 public:
-    std::string get_name() {
-        return name_;
-    }
-
-    int get_num_elements() {
-        return size_;
-    }
-
-    void get_value_at(hid_t i) {
-        hid_t file = H5Fopen(file_.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-        hid_t ds_id = H5Dopen(parent_, name_.c_str(), H5P_DEFAULT);
-        H5Dclose(ds_id);
-        H5Fclose(file);
-    }
-    friend class h5_group;
-
-private:
-    h5_dataset(hid_t parent, std::string name, std::string file): parent_(parent), name_(name), file_(file) {
-        hid_t ds_id = H5Dopen(parent_, name_.c_str(), H5P_DEFAULT);
-        hid_t dspace = H5Dget_space(ds_id);
+    h5_dataset(hid_t parent, std::string name): parent_id_(parent), name_(name) {
+        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        hid_t dspace = H5Dget_space(id_);
 
         const int ndims = H5Sget_simple_extent_ndims(dspace);
         if (ndims > 1) {
@@ -99,141 +25,119 @@ private:
 
         size_ = dims[0];
 
-        H5Dclose(ds_id);
+        H5Dclose(id_);
     }
 
-    hid_t parent_;
+    ~h5_dataset() {
+    }
+
+    std::string name() {
+        return name_;
+    }
+
+    int num_elements() {
+        return size_;
+    }
+
+    /*auto get_value_at(hid_t i) {
+        hid_t ds_id = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        int dset_data
+        H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, dset_data);
+        H5Dclose(ds_id);
+    }*/
+
+private:
+    hid_t parent_id_;
+    hid_t id_;
     std::string name_;
-    std::string file_;
     size_t size_;
 };
 
 class h5_group {
 public:
 
-    std::string get_name() {
-        return name_;
-    }
-
-    int get_num_datasets() {
-        return datasets_.size();
-    }
-
-    std::vector<h5_dataset> get_datasets() {
-        return datasets_;
-    }
-
-    int get_num_groups() {
-        return groups_.size();
-    }
-
-    std::vector<h5_group> get_groups() {
-        return groups_;
-    }
-
-    friend class h5_file;
-
-private:
-    h5_group(hid_t parent, std::string name, std::string file): parent_(parent), name_(name), file_(file) {
-        hid_t grp_id = H5Gopen(parent_, name_.c_str(), H5P_DEFAULT);
+    h5_group(hid_t parent, std::string name): parent_id_(parent), name_(name), group_h_(parent_id_, name_) {
 
         hsize_t nobj;
-        H5Gget_num_objs(grp_id, &nobj);
+        H5Gget_num_objs(group_h_.id, &nobj);
 
         char memb_name[MAX_NAME];
 
+        groups_.reserve(nobj);
+
         for (unsigned i = 0; i < nobj; i++) {
-            H5Gget_objname_by_idx(grp_id, (hsize_t)i, memb_name, (size_t)MAX_NAME);
-            int otype = H5Gget_objtype_by_idx(grp_id, (size_t) i);
+            H5Gget_objname_by_idx(group_h_.id, (hsize_t)i, memb_name, (size_t)MAX_NAME);
+            hid_t otype = H5Gget_objtype_by_idx(group_h_.id, (size_t)i);
             if (otype == H5G_GROUP) {
-                h5_group h(grp_id, memb_name, file_);
-                groups_.push_back(std::move(h));
+                groups_.emplace_back(group_h_.id, memb_name);
             }
             else if (otype == H5G_DATASET) {
-                h5_dataset h(grp_id, memb_name, file_);
+                h5_dataset h(group_h_.id, memb_name);
                 datasets_.push_back(std::move(h));
             }
         }
-
-        H5Gclose(grp_id);
     }
 
-    hid_t parent_;
+    ~h5_group() {
+        //std::cout << "destroying group "<< name_ << std::endl;
+    }
+
+    std::string name() {
+        return name_;
+    }
+
+private:
+    struct group_handle {
+        group_handle(hid_t parent_id, std::string name): id(H5Gopen(parent_id, name.c_str(), H5P_DEFAULT)), name(name){
+            //std::cout << "group handle " << id << " " << name << ": con\n";
+        }
+        ~group_handle() {
+            H5Gclose(id);
+            //std::cout << "group handle " << id << " " << name << ": des\n";
+        }
+        hid_t id;
+        std::string name;
+    };
+
+    hid_t parent_id_;
     std::string name_;
-    std::string file_;
+    group_handle group_h_;
+
+public:
     std::vector<h5_group> groups_;
     std::vector<h5_dataset> datasets_;
 };
 
+
+
 class h5_file {
 public:
-    h5_file(std::string name): file_(name) {
-        hid_t file = H5Fopen(file_.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-        hid_t id = H5Gopen(file, "/", H5P_DEFAULT);
+    h5_file(std::string name): file_(name), file_h_(name), top_group_(file_h_.id, "/"){}
 
-        hsize_t nobj;
-        H5Gget_num_objs(id, &nobj);
-
-        if (nobj > 1) {
-            std::cout << "Too many groups in the top level" << std::endl;
-            exit(1);
-        }
-
-        // Open the first group in the top level: Should be either "nodes" or "edges"
-        char memb_name[MAX_NAME];
-        H5Gget_objname_by_idx(id, (hsize_t)0, memb_name, (size_t)MAX_NAME);
-        hid_t top_id = H5Gopen(id, memb_name, H5P_DEFAULT);
-
-        // Groups inside first group are the populations
-        H5Gget_num_objs(top_id, &nobj);
-        pops_.reserve(nobj);
-
-        for (unsigned i = 0; i < nobj; i++) {
-            H5Gget_objname_by_idx(top_id, (hsize_t)i, memb_name, (size_t)MAX_NAME);
-            int otype = H5Gget_objtype_by_idx(top_id, (size_t) i);
-            if (otype == H5G_GROUP) {
-                h5_group h(top_id, memb_name, file_);
-                pops_.push_back(std::move(h));
-            }
-        }
-
-        num_elements_ = 0;
-        partition_.reserve(pops_.size());
-        for (auto p: pops_) {
-            for (auto d: p.get_datasets()) {
-                if (d.get_name().find("type_id") != std::string::npos) {
-                    num_elements_ += d.get_num_elements();
-                    partition_.push_back(d.get_num_elements());
-                }
-            }
-        }
-
-        H5Fclose(file);
+    ~h5_file() {
+        //std::cout << "destroying file "<< file_ << std::endl;
     }
 
     std::string get_name() {
         return file_;
     }
 
-    int get_num_populations() {
-        return pops_.size();
-    }
-
-    std::vector<h5_group> get_populations() {
-        return pops_;
-    }
-
-    int get_num_elements() {
-        return num_elements_;
-    }
-
-    std::vector<size_t> get_partition() {
-        return partition_;
-    }
-
 private:
+    struct file_handle {
+        file_handle(std::string file): id(H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT)), name(file) {
+            //std::cout << "file handle " << id << " " << name << ": con\n";
+        }
+        ~file_handle() {
+            H5Fclose(id);
+            //std::cout << "file handle " << id << " " << name <<  ": des\n";
+        }
+        hid_t id;
+        std::string name;
+    };
+
     std::string file_;
-    std::vector<h5_group> pops_;
-    size_t num_elements_;
-    std::vector<size_t> partition_;
+    file_handle file_h_;
+
+public:
+    h5_group top_group_;
 };
