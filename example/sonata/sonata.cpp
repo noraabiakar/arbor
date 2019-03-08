@@ -78,9 +78,67 @@ public:
         unsigned pop_loc = gid - gid_partition[node_pop];
         std::cout << node_pop << " " << pop_loc << std::endl;
 
-        // Get edge populations where target_pop==nodes_[node_pop]
-        // Let's say that's edges_[0]
-        
+        // Replace with CSV read
+        std::vector<unsigned> target_pops;
+        if (gid < 8){
+            target_pops.push_back(1);
+        } else {
+            target_pops.push_back(0);
+        }
+
+        for (auto tp: target_pops) {
+            auto indices_id = edges_[tp].find_group("indicies");
+            auto target_to_source_id = edges_[tp][indices_id].find_group("target_to_source");
+
+            std::pair<unsigned, unsigned> range;
+            range.first = edges_[tp][indices_id][target_to_source_id].dataset_at("node_id_to_ranges", pop_loc, 0).value();
+            range.second = edges_[tp][indices_id][target_to_source_id].dataset_at("node_id_to_ranges", pop_loc, 1).value();
+
+            std::cout << "\ttarget range: " << range.first << " " << range.second << std::endl;
+
+            for (unsigned i = range.first; i < range.second; i++) {
+                std::pair<unsigned, unsigned> edge_ids;
+                edge_ids.first = edges_[tp][indices_id][target_to_source_id].dataset_at("range_to_edge_id", i, 0).value();
+                edge_ids.second = edges_[tp][indices_id][target_to_source_id].dataset_at("range_to_edge_id", i, 1).value();
+                std::cout << "\ttarget edges: " << edge_ids.first << " " << edge_ids.second << std::endl;
+
+                for (unsigned j = edge_ids.first; j < edge_ids.second; j++) {
+                    auto type = edges_[tp].dataset_at("edge_type_id", j).value();
+                    std::cout << "\t\tedge: " << j << " is type: " << type << std::endl;
+                }
+            }
+        }
+
+        // Replace with CSV read
+        std::vector<unsigned> source_pops;
+        if (gid < 8) {
+            source_pops.push_back(0);
+            source_pops.push_back(1);
+        }
+
+        for (auto sp: source_pops) {
+            auto indices_id = edges_[sp].find_group("indicies");
+            auto source_to_target_id = edges_[sp][indices_id].find_group("source_to_target");
+
+            std::pair<unsigned, unsigned> range;
+            range.first = edges_[sp][indices_id][source_to_target_id].dataset_at("node_id_to_ranges", pop_loc, 0).value();
+            range.second = edges_[sp][indices_id][source_to_target_id].dataset_at("node_id_to_ranges", pop_loc, 1).value();
+
+            std::cout << "\tsource range: " << range.first << " " << range.second << std::endl;
+
+            for (unsigned i = range.first; i < range.second; i++) {
+                std::pair<unsigned, unsigned> edge_ids;
+                edge_ids.first = edges_[sp][indices_id][source_to_target_id].dataset_at("range_to_edge_id", i, 0).value();
+                edge_ids.second = edges_[sp][indices_id][source_to_target_id].dataset_at("range_to_edge_id", i, 1).value();
+                std::cout << "\tsource edges: " << edge_ids.first << " " << edge_ids.second << std::endl;
+
+                for (unsigned j = edge_ids.first; j < edge_ids.second; j++) {
+                    auto type = edges_[sp].dataset_at("edge_type_id", j).value();
+                    std::cout << "\t\tedge: " << j << " is type: " << type << std::endl;
+                }
+            }
+        }
+
         return dummy_cell({}, {});
     }
 
@@ -125,23 +183,28 @@ void print(const std::shared_ptr<h5_file>& file) {
                         std::cout << "\t\t\t\t\t" << g4->name() << std::endl;
                     }
                     for (auto d4: g3->datasets_) {
-                        std::cout << "\t\t\t\t\t" << d4->name() << " " << d4->size() << std::endl;
+                        std::cout << "\t\t\t\t\t" << d4->name() << " " << d4->size() << " ";
+                        std::cout << d4->at(0, 0) << ", " << d4->at(0, 1) << std::endl;
                     }
                 }
                 for (auto d3: g2->datasets_) {
-                    std::cout << "\t\t\t\t" << d3->name() << " " << d3->size() << std::endl;
+                    std::cout << "\t\t\t\t" << d3->name() << " " << d3->size() << " ";
+                    std::cout << d3->at(0) << std::endl;
                 }
             }
             for (auto d2: g1->datasets_) {
-                std::cout << "\t\t\t" << d2->name() << " " << d2->size() << std::endl;
+                std::cout << "\t\t\t" << d2->name() << " " << d2->size() << " ";
+                std::cout << d2->at(0) << std::endl;
             }
         }
         for (auto d1: g0->datasets_) {
-            std::cout << "\t\t" << d1->name() << " " << d1->size() << std::endl;
+            std::cout << "\t\t" << d1->name() << " " << d1->size() << " ";
+            std::cout << d1->at(0) << std::endl;
         }
     }
     for (auto d0: file->top_group_->datasets_) {
-        std::cout << "\t" << d0->name() << " " << d0->size() << std::endl;
+        std::cout << "\t" << d0->name() << " " << d0->size() << " ";
+        std::cout << d0->at(0) << std::endl;
     }
 }
 

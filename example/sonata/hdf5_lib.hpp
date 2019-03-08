@@ -1,5 +1,5 @@
 #include <arbor/common_types.hpp>
-
+#include <arbor/util/optional.hpp>
 #include <string.h>
 #include <stdio.h>
 #include <hdf5.h>
@@ -68,6 +68,44 @@ public:
         H5Dclose(id_);
 
         return out[0];
+    }
+
+    auto at(const int i, const int j) {
+        const hsize_t idx[2] = {(hsize_t)i, (hsize_t)j};
+
+        // Output
+        int *out = new int[1];
+
+        // Output dimensions 1x1
+        hsize_t dims = 1;
+        hsize_t dim_sizes[] = {1};
+
+        // Output size
+        hsize_t num_elements = 1;
+
+        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        hid_t dspace = H5Dget_space(id_);
+
+        H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, idx);
+        hid_t out_mem = H5Screate_simple(dims, dim_sizes, NULL);
+
+        H5Dread(id_, H5T_NATIVE_INT, out_mem, dspace, H5P_DEFAULT, out);
+        H5Dclose(id_);
+
+        return out[0];
+    }
+
+    auto all() {
+        int out_a[size_];
+        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+
+        H5Dread(id_, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                out_a);
+        H5Dclose(id_);
+
+        std::vector<int> out(out_a, out_a + size_);
+
+        return out;
     }
 };
 
@@ -158,28 +196,55 @@ public:
         }
     }
 
-    unsigned find_group(std::string name) {
-        if(member_map.find(name) != member_map.end()) {
-            member_map[name];
+    int find_group(std::string name) {
+        if (member_map.find(name) != member_map.end()) {
+            return member_map[name];
         }
         return -1;
     }
 
-    unsigned find_dataset(std::string name) {
-        if(dset_map.find(name) != dset_map.end()) {
-            dset_map[name];
+    int find_dataset(std::string name) {
+        if (dset_map.find(name) != dset_map.end()) {
+            return dset_map[name];
         }
         return -1;
     }
 
-    auto dataset_at(std::string name, unsigned i) {
-        return ptr->datasets_[dset_map[name]]->at(i);
+    arb::util::optional<int> dataset_at(std::string name, unsigned i) {
+        if (find_dataset(name) != -1) {
+            return ptr->datasets_[dset_map[name]]->at(i);
+        }
+        return arb::util::nullopt;
     }
 
+    arb::util::optional<int> dataset_at(std::string name, unsigned i, unsigned j) {
+        if (find_dataset(name)!= -1) {
+            return ptr->datasets_[dset_map[name]]->at(i, j);
+        }
+        return arb::util::nullopt;
+    }
+
+    arb::util::optional<std::vector<int>> dataset(std::string name) {
+        if (find_dataset(name)!= -1) {
+            return ptr->datasets_[dset_map[name]]->all();
+        }
+        return arb::util::nullopt;
+    }
+
+    dataspace operator [](int i) const {
+        return members[i];
+    }
+
+    arb::util::optional<dataspace> operator [](std::string name) {
+        if (find_group(name) != -1) {
+            return members[find_group(name)];
+        }
+        return arb::util::nullopt;
+    }
 
 private:
     std::shared_ptr<h5_group> ptr;
-    std::vector<std::shared_ptr<h5_group>> members;
+    std::vector<dataspace> members;
     std::unordered_map<std::string, unsigned> dset_map;
     std::unordered_map<std::string, unsigned> member_map;
 };
