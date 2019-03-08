@@ -107,4 +107,9 @@ struct range_check_failure: arbor_exception {
     double value;
 };
 
+struct sonata_file_exception: std::runtime_error {
+    sonata_file_exception(const std::string& what_arg):
+            std::runtime_error(what_arg) {}
+};
+
 } // namespace arb
