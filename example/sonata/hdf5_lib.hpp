@@ -250,9 +250,9 @@ private:
 };
 
 
-class record {
+class hdf5_record {
 public:
-    record(const std::shared_ptr<h5_file>& file) {
+    hdf5_record(const std::shared_ptr<h5_file>& file) {
         if (file->top_group_->groups_.size() != 1) {
             throw arb::sonata_file_exception("file hierarchy wrong\n");
         }

@@ -24,6 +24,7 @@
 
 #include "parameters.hpp"
 #include "hdf5_lib.hpp"
+#include "csv_lib.hpp"
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
@@ -52,7 +53,8 @@ struct edge_info{
 
 class database {
 public:
-    database(record nodes, record edges): nodes_(nodes), edges_(edges) {
+    database(hdf5_record nodes, hdf5_record edges, csv_record edge_types):
+    nodes_(nodes), edges_(edges), edge_types_(edge_types) {
         edge_tables.reserve(edges.populations().size());
         for (unsigned i = 0; i < edges.populations().size(); i++) {
             edge_tables.emplace_back(edges.partitions()[i]);
@@ -64,11 +66,24 @@ public:
             gid_partition.push_back(sum+=n);
         }
 
-        arb::mechanism_desc expsyn("expsyn");
-        arb::mechanism_desc exp2syn("exp2syn");
-        type_to_conn_info[100] = conn_info(arb::segment_location{0, 0.1}, arb::segment_location{1, 0.2}, 0.5, expsyn);
-        type_to_conn_info[101] = conn_info(arb::segment_location{1, 0.1}, arb::segment_location{0, 0.1}, 0.1, expsyn);
-        type_to_conn_info[102] = conn_info(arb::segment_location{0, 0.5}, arb::segment_location{0, 0.5}, 0.3, exp2syn);
+        auto edge_data = edge_types_.data();
+        auto edge_map = edge_types_.map();
+
+        unsigned type_idx = edge_map["edge_type_id"];
+        unsigned syn_idx = edge_map["model_template"];
+        unsigned weight_idx = edge_map["syn_weight"];
+        unsigned src_branch_idx = edge_map["afferent_section_id"];
+        unsigned src_branch_pos = edge_map["afferent_section_pos"];
+        unsigned tgt_branch_idx = edge_map["efferent_section_id"];
+        unsigned tgt_branch_pos = edge_map["efferent_section_pos"];
+
+        for(unsigned i = 0; i < edge_data[type_idx].size(); i++) {
+            type_to_conn_info[std::atoi(edge_data[type_idx][i].c_str())] =
+                    conn_info(arb::segment_location{(unsigned)std::atoi(edge_data[src_branch_idx][i].c_str()), std::atof(edge_data[src_branch_pos][i].c_str())},
+                              arb::segment_location{(unsigned)std::atoi(edge_data[tgt_branch_idx][i].c_str()), std::atof(edge_data[tgt_branch_pos][i].c_str())},
+                              std::atof(edge_data[weight_idx][i].c_str()),
+                              arb::mechanism_desc(edge_data[syn_idx][i]));
+        }
     }
 
     cell_size_type num_cells() {
@@ -169,8 +184,9 @@ public:
 
 private:
 
-    record nodes_;
-    record edges_;
+    hdf5_record nodes_;
+    hdf5_record edges_;
+    csv_record edge_types_;
     std::vector<std::vector<edge_info>> edge_tables;
     std::vector<cell_size_type> gid_partition;
 
@@ -194,8 +210,8 @@ private:
 
 class sonata_recipe: public arb::recipe {
 public:
-    sonata_recipe(record nodes, record edges):
-            database_(nodes, edges),
+    sonata_recipe(hdf5_record nodes, hdf5_record edges, csv_record edge_types):
+            database_(nodes, edges, edge_types),
             num_cells_(database_.num_cells()) {}
 
     cell_size_type num_cells() const override {
@@ -278,6 +294,7 @@ int main(int argc, char **argv)
 
     h5_file_handle nodes = std::make_shared<h5_file>("nodes.h5");
     h5_file_handle edges = std::make_shared<h5_file>("edges.h5");
+    csv_file edge_def("edge_types.csv");
 
     print(nodes);
 
@@ -287,22 +304,13 @@ int main(int argc, char **argv)
 
     std::cout << std::endl;
 
-    record n(nodes);
-    std::cout << "Nodes\n" << n.partitions().size() << std::endl << "{ ";
-    for(auto p: n.partitions()) {
-        std::cout << p << " ";
-    }
-    std::cout << " }" << std::endl;
+    hdf5_record n(nodes);
+    hdf5_record e(edges);
+    csv_record e_t(edge_def);
 
-    record e(edges);
-    std::cout << "Edges\n" << e.partitions().size() << std::endl << "{ ";
-    for(auto p: e.partitions()) {
-        std::cout << p << " ";
-    }
-    std::cout << " }" << std::endl;
+    e_t.print();
 
-
-    sonata_recipe recipe(n, e);
+    sonata_recipe recipe(n, e, e_t);
 
     std::cout << std::endl << std::endl;
     std::cout << "***************" <<std::endl;
@@ -325,6 +333,7 @@ int main(int argc, char **argv)
     }
 
     recipe.print_tables();
+
 
     return 0;
 }
