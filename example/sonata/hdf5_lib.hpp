@@ -120,11 +120,11 @@ public:
         return out[0];
     }
 
-    auto int2_at(const int i, const int j) {
-        const hsize_t idx[2] = {(hsize_t)i, (hsize_t)j};
+    auto int2_at(const int i) {
+        const hsize_t idx_0[2] = {(hsize_t)i, (hsize_t)0};
 
         // Output
-        int *out = new int[1];
+        int out_0, out_1;
 
         // Output dimensions 1x1
         hsize_t dims = 1;
@@ -136,13 +136,21 @@ public:
         id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
         hid_t dspace = H5Dget_space(id_);
 
-        H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, idx);
-        hid_t out_mem = H5Screate_simple(dims, dim_sizes, NULL);
+        H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, idx_0);
+        hid_t out_mem_0 = H5Screate_simple(dims, dim_sizes, NULL);
 
-        H5Dread(id_, H5T_NATIVE_INT, out_mem, dspace, H5P_DEFAULT, out);
+        H5Dread(id_, H5T_NATIVE_INT, out_mem_0, dspace, H5P_DEFAULT, &out_0);
+
+        const hsize_t idx_1[2] = {(hsize_t)i, (hsize_t)1};
+
+        H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, idx_1);
+        hid_t out_mem_1 = H5Screate_simple(dims, dim_sizes, NULL);
+
+        H5Dread(id_, H5T_NATIVE_INT, out_mem_1, dspace, H5P_DEFAULT, &out_1);
+
         H5Dclose(id_);
 
-        return out[0];
+        return std::make_pair(out_0, out_1);
     }
 
     auto all_1d() {
@@ -303,9 +311,9 @@ public:
         return arb::util::nullopt;
     }
 
-    arb::util::optional<int> dataset_2i_at(std::string name, unsigned i, unsigned j) {
+    arb::util::optional<std::pair<int, int>> dataset_2i_at(std::string name, unsigned i) {
         if (find_dataset(name)!= -1) {
-            return ptr->datasets_[dset_map[name]]->int2_at(i, j);
+            return ptr->datasets_[dset_map[name]]->int2_at(i);
         }
         return arb::util::nullopt;
     }
@@ -375,7 +383,7 @@ public:
     }
 
     unsigned num_populations() {
-        return populations().size() - 1;
+        return populations().size();
     }
 
     std::vector<cell_size_type> partitions() {

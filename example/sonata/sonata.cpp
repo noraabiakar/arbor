@@ -70,32 +70,7 @@ public:
             std::string edge_pop = edges.name();
             unsigned edge_idx = edges_.map()[edge_pop];
 
-            // CSV read
-            unsigned csv_src = edge_types_.map()["source_pop_name"];
-            unsigned csv_tgt = edge_types_.map()["target_pop_name"];
-            unsigned csv_edge = edge_types_.map()["pop_name"];
-
-            /// Not needed yet
-
-            /*for (unsigned i = 0; i < edge_types_.data()[csv_edge].size(); i++) {
-                if (edge_types_.data()[csv_edge][i] == edge_pop) {
-                    auto source_pop = edge_types_.data()[csv_src][i];
-                    src_pop = nodes_.map()[source_pop];
-                    auto target_pop = edge_types_.data()[csv_tgt][i];
-                    tgt_pop = nodes_.map()[target_pop];
-                    break;
-                }
-            }*/
-
-            // Start navigating the edge population - first, read the source ranges
-            /*auto ind_id = edges.find_group("indicies");
-            auto s2t_id = edges[ind_id].find_group("source_to_target");
-
-            auto n2r = edges[ind_id][s2t_id].dataset_2d("node_id_to_ranges");
-            auto r2e = edges[ind_id][s2t_id].dataset_2d("range_to_edge_id");*/
-
             // First read edge_group_id and edge_group_index and edge_type
-
             auto edges_grp_id = edges.dataset_1d("edge_group_id");
             auto edges_grp_idx = edges.dataset_1d("edge_group_index");
             auto edges_type = edges.dataset_1d("edge_type_id");
@@ -117,6 +92,7 @@ public:
 
                 // if the edges are in groups, for each edge find the group, if it exists
                 if (edges.find_group(std::to_string(loc_grp_id)) != -1 ) {
+                    std::cout << "found_group!\n";
                     auto group = edges[std::to_string(loc_grp_id)].value();
                     auto loc_grp_idx = edges_grp_idx.value()[i];
 
@@ -204,7 +180,7 @@ public:
                 std::cout << "syn_delay of " << i  << ": " << syn_delay << std::endl;
 
                 synapse_[edge_idx].push_back(synapse);
-                std::cout << "synapse of " << i  << ": " << synapse << std::endl;
+                std::cout << "synapse of " << i  << ": " << synapse << std::endl << std::endl;
             }
         }
     }
@@ -221,124 +197,92 @@ public:
             std::vector<std::pair<arb::segment_location, double>>& src,
             std::vector<std::pair<arb::segment_location, arb::mechanism_desc>>& tgt) {
 
-        /*unsigned i = 0;
-        for (; i < gid_partition.size(); i++) {
-            if (gid < gid_partition[i]) {
+        unsigned i = 0;
+        for (; i < nodes_.partitions().size(); i++) {
+            if (gid < nodes_.partitions()[i]) {
                 break;
             }
         }
 
         unsigned node_pop = i-1;
-        unsigned pop_loc = gid - gid_partition[node_pop];
+        unsigned pop_id = gid - nodes_.partitions()[node_pop];
+        std::string pop_name = nodes_.populations()[node_pop].name();
 
-        std::vector<unsigned> target_pops;
-        std::vector<unsigned> source_pops;
+        std::vector<unsigned> source_edge_pops;
+        std::vector<unsigned> target_edge_pops;
 
-        // First, find the name of the population we belong to, from node_
-        auto node_pop_name = nodes_.populations()[node_pop].name();
+        // CSV read
+        unsigned csv_src = edge_types_.map()["source_pop_name"];
+        unsigned csv_tgt = edge_types_.map()["target_pop_name"];
+        unsigned csv_edge = edge_types_.map()["pop_name"];
 
-        // Second, search for that population name in the corresponding column in edge_types.csv
-        unsigned target_pop_idx = edge_types_.map()["target_pop_name"];
-        unsigned edge_pop_idx = edge_types_.map()["pop_name"];
-
-        for (unsigned i = 0; i < edge_types_.data()[target_pop_idx].size(); i++) {
-            if (edge_types_.data()[target_pop_idx][i] == node_pop_name) {
-                auto s = edge_types_.data()[edge_pop_idx][i];
-                target_pops.push_back(edges_.map()[s]);
+        for (unsigned i = 0; i < edge_types_.data()[csv_src].size(); i++) {
+            if (edge_types_.data()[csv_src][i] == pop_name) {
+                auto edge_pop = edge_types_.data()[csv_edge][i];
+                source_edge_pops.push_back(edges_.map()[edge_pop]);
+            }
+            if (edge_types_.data()[csv_tgt][i] == pop_name) {
+                auto edge_pop = edge_types_.data()[csv_edge][i];
+                target_edge_pops.push_back(edges_.map()[edge_pop]);
             }
         }
 
-        unsigned source_pop_idx = edge_types_.map()["source_pop_name"];
+        std::sort(source_edge_pops.begin(), source_edge_pops.end());
+        std::sort(target_edge_pops.begin(), target_edge_pops.end());
 
-        for (unsigned i = 0; i < edge_types_.data()[source_pop_idx].size(); i++) {
-            if (edge_types_.data()[source_pop_idx][i] == node_pop_name) {
-                auto s = edge_types_.data()[edge_pop_idx][i];
-                source_pops.push_back(edges_.map()[s]);
+        source_edge_pops.erase(std::unique(source_edge_pops.begin(), source_edge_pops.end()), source_edge_pops.end() );
+        target_edge_pops.erase(std::unique(target_edge_pops.begin(), target_edge_pops.end()), target_edge_pops.end() );
+
+        for (auto i: source_edge_pops) {
+            std::vector<std::pair<int, int>> source_edge_ranges;
+
+            auto ind_id = edges_[i].find_group("indicies");
+            auto s2t_id = edges_[i][ind_id].find_group("source_to_target");
+            auto n2r = edges_[i][ind_id][s2t_id].dataset_2i_at("node_id_to_ranges", pop_id);
+            for (auto j = n2r->first; j< n2r->second; j++) {
+                auto r2e = edges_[i][ind_id][s2t_id].dataset_2i_at("range_to_edge_id", j);
+                source_edge_ranges.push_back(r2e.value());
             }
-        }
-
-        std::sort(target_pops.begin(), target_pops.end());
-        target_pops.erase(unique( target_pops.begin(), target_pops.end() ), target_pops.end());
-
-        std::sort(source_pops.begin(), source_pops.end());
-        source_pops.erase(unique( source_pops.begin(), source_pops.end() ), source_pops.end());
-
-
-        for (auto tp: target_pops) {
-            auto indices_id = edges_[tp].find_group("indicies");
-            auto target_to_source_id = edges_[tp][indices_id].find_group("target_to_source");
-
-            std::pair<unsigned, unsigned> range;
-            range.first = edges_[tp][indices_id][target_to_source_id].dataset_at("node_id_to_ranges", pop_loc, 0).value();
-            range.second = edges_[tp][indices_id][target_to_source_id].dataset_at("node_id_to_ranges", pop_loc, 1).value();
-
-            for (unsigned i = range.first; i < range.second; i++) {
-                std::pair<unsigned, unsigned> edge_ids;
-                edge_ids.first = edges_[tp][indices_id][target_to_source_id].dataset_at("range_to_edge_id", i, 0).value();
-                edge_ids.second = edges_[tp][indices_id][target_to_source_id].dataset_at("range_to_edge_id", i, 1).value();
-
-                unsigned loc_idx = 0;
-                for (unsigned j = edge_ids.first; j < edge_ids.second; j++, loc_idx++) {
-                    auto type = edges_[tp].dataset_at("edge_type_id", j).value();
-                    edge_tables[tp][j].target = {gid, loc_idx};
-                    edge_tables[tp][j].type = type;
-                    auto conn_info = type_to_conn_info[type];
-                    tgt.push_back(std::make_pair(conn_info.tgt_, conn_info.syn_));
+            // for all edges in this edge population
+            for (auto r: source_edge_ranges) {
+                for (int j = r.first; j< r.second; j++) {
+                    src.emplace_back(source_[i][j], 10);
+                    source_order_[gid].push_back(std::make_pair(i, j));
                 }
             }
         }
 
+        for (auto i: target_edge_pops) {
+            std::vector<std::pair<int, int>> target_edge_ranges;
 
-        for (auto sp: source_pops) {
-            auto indices_id = edges_[sp].find_group("indicies");
-            auto source_to_target_id = edges_[sp][indices_id].find_group("source_to_target");
-
-            std::pair<unsigned, unsigned> range;
-            range.first = edges_[sp][indices_id][source_to_target_id].dataset_at("node_id_to_ranges", pop_loc, 0).value();
-            range.second = edges_[sp][indices_id][source_to_target_id].dataset_at("node_id_to_ranges", pop_loc, 1).value();
-
-            for (unsigned i = range.first; i < range.second; i++) {
-                std::pair<unsigned, unsigned> edge_ids;
-                edge_ids.first = edges_[sp][indices_id][source_to_target_id].dataset_at("range_to_edge_id", i, 0).value();
-                edge_ids.second = edges_[sp][indices_id][source_to_target_id].dataset_at("range_to_edge_id", i, 1).value();
-
-                unsigned loc_idx = 0;
-                for (unsigned j = edge_ids.first; j < edge_ids.second; j++, loc_idx++) {
-                    auto type = edges_[sp].dataset_at("edge_type_id", j).value();
-                    edge_tables[sp][j].source = {gid, loc_idx};
-                    edge_tables[sp][j].type = type;
-                    auto conn_info = type_to_conn_info[type];
-                    src.push_back(std::make_pair(conn_info.src_, conn_info.weight_));
+            auto ind_id = edges_[i].find_group("indicies");
+            auto t2s_id = edges_[i][ind_id].find_group("target_to_source");
+            auto n2r = edges_[i][ind_id][t2s_id].dataset_2i_at("node_id_to_ranges", pop_id);
+            for (auto j = n2r->first; j< n2r->second; j++) {
+                auto r2e = edges_[i][ind_id][t2s_id].dataset_2i_at("range_to_edge_id", j);
+                target_edge_ranges.push_back(r2e.value());
+            }
+            // for all edges in this edge population
+            for (auto r: target_edge_ranges) {
+                for (int j = r.first; j< r.second; j++) {
+                    tgt.emplace_back(target_[i][j], arb::mechanism_desc(synapse_[i][j]));
                 }
             }
-        }*/
+        }
     }
 
     void get_connections(cell_gid_type gid) {
-        /*unsigned i = 0;
-        for (; i < gid_partition.size(); i++) {
-            if (gid < gid_partition[i]) {
-                break;
-            }
-        }
 
-        unsigned node_pop = i-1;
-        unsigned pop_loc = gid - gid_partition[node_pop];
-
-        std::vector<arb::cell_connection> cons;
-
-        edge_tables[node_pop];*/
     }
 
     void print_tables() {
-        /*int n= 0;
-        for(auto e: edge_tables) {
-            std::cout << n++ << ":" << std::endl;
-            for(auto entry: e) {
-                std::cout << "\t{ [" << entry.source.first << ", " << entry.source.second << "], ["
-                          << entry.target.first << ", " << entry.target.second << "], " << entry.type << " }" <<std::endl;
+        std::cout << "here\n";
+        for (auto i: source_order_) {
+            std::cout << "cell " << i.first << ": " << std::endl;
+            for (auto j:i.second) {
+                std::cout << "\t" << j.first << " " << j.second << std::endl;
             }
-        }*/
+        }
     }
 
 private:
@@ -355,24 +299,7 @@ private:
     std::vector<std::vector<double>> syn_delay_;
     std::vector<std::vector<std::string>> synapse_;
 
-
-
-
-    /*struct conn_info {
-        conn_info() : src_(0,0), tgt_(0,0), weight_(0), syn_("expsyn") {};
-        conn_info (
-            arb::segment_location src,
-            arb::segment_location tgt,
-            double weight,
-            arb::mechanism_desc syn):
-            src_(src), tgt_(tgt), weight_(weight), syn_(syn) {};
-
-        arb::segment_location src_;
-        arb::segment_location tgt_;
-        double weight_;
-        arb::mechanism_desc syn_;
-    };
-    std::unordered_map<cell_size_type, conn_info> type_to_conn_info;*/
+    std::unordered_map<cell_gid_type, std::vector<std::pair<unsigned, unsigned>>> source_order_;
 
 };
 
@@ -436,7 +363,7 @@ void print(const std::shared_ptr<h5_file>& file) {
                     }
                     for (auto d4: g3->datasets_) {
                         std::cout << "\t\t\t\t\t" << d4->name() << " " << d4->size() << " ";
-                        std::cout << d4->int2_at(0, 0) << ", " << d4->int2_at(0, 1) << std::endl;
+                        std::cout << d4->int2_at(0).first << ", " << d4->int2_at(0).second << std::endl;
                     }
                 }
                 for (auto d3: g2->datasets_) {
@@ -507,7 +434,7 @@ int main(int argc, char **argv)
         }
     }
 
-    //recipe.print_tables();
+    recipe.print_tables();
 
 
     return 0;
