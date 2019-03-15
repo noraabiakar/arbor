@@ -241,6 +241,9 @@ public:
         }
         return arb::util::nullopt;
     }
+    std::string name() {
+        return ptr->name();
+    }
 
 private:
     std::shared_ptr<h5_group> ptr;
@@ -257,7 +260,9 @@ public:
             throw arb::sonata_file_exception("file hierarchy wrong\n");
         }
 
+        unsigned idx = 0;
         for (auto g: file->top_group_->groups_.front()->groups_) {
+            map_[g->name()] = idx++;
             populations_.emplace_back(g);
         }
 
@@ -287,8 +292,13 @@ public:
         return populations_[i];
     }
 
+    std::unordered_map<std::string, unsigned> map() {
+        return map_;
+    }
+
 private:
     int num_elements_ = 0;
     std::vector<cell_size_type> partition_;
     std::vector<dataspace> populations_;
+    std::unordered_map<std::string, unsigned> map_;
 };

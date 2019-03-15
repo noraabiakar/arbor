@@ -53,8 +53,8 @@ struct edge_info{
 
 class database {
 public:
-    database(hdf5_record nodes, hdf5_record edges, csv_record edge_types):
-    nodes_(nodes), edges_(edges), edge_types_(edge_types) {
+    database(hdf5_record nodes, hdf5_record edges, csv_record node_types, csv_record edge_types):
+    nodes_(nodes), edges_(edges), node_types_(node_types), edge_types_(edge_types) {
         edge_tables.reserve(edges.populations().size());
         for (unsigned i = 0; i < edges.populations().size(); i++) {
             edge_tables.emplace_back(edges.partitions()[i]);
@@ -97,6 +97,7 @@ public:
     void get_sources_and_targets(cell_gid_type gid,
             std::vector<std::pair<arb::segment_location, double>>& src,
             std::vector<std::pair<arb::segment_location, arb::mechanism_desc>>& tgt) {
+
         unsigned i = 0;
         for (; i < gid_partition.size(); i++) {
             if (gid < gid_partition[i]) {
@@ -107,13 +108,38 @@ public:
         unsigned node_pop = i-1;
         unsigned pop_loc = gid - gid_partition[node_pop];
 
-        // Replace with CSV read
         std::vector<unsigned> target_pops;
-        if (gid < 8){
-            target_pops.push_back(1);
-        } else {
-            target_pops.push_back(0);
+        std::vector<unsigned> source_pops;
+
+        // First, find the name of the population we belong to, from node_
+        auto node_pop_name = nodes_.populations()[node_pop].name();
+
+        // Second, search for that population name in the corresponding column in edge_types.csv
+        unsigned target_pop_idx = edge_types_.map()["target_pop_name"];
+        unsigned edge_pop_idx = edge_types_.map()["pop_name"];
+
+        for (unsigned i = 0; i < edge_types_.data()[target_pop_idx].size(); i++) {
+            if (edge_types_.data()[target_pop_idx][i] == node_pop_name) {
+                auto s = edge_types_.data()[edge_pop_idx][i];
+                target_pops.push_back(edges_.map()[s]);
+            }
         }
+
+        unsigned source_pop_idx = edge_types_.map()["source_pop_name"];
+
+        for (unsigned i = 0; i < edge_types_.data()[source_pop_idx].size(); i++) {
+            if (edge_types_.data()[source_pop_idx][i] == node_pop_name) {
+                auto s = edge_types_.data()[edge_pop_idx][i];
+                source_pops.push_back(edges_.map()[s]);
+            }
+        }
+
+        std::sort(target_pops.begin(), target_pops.end());
+        target_pops.erase(unique( target_pops.begin(), target_pops.end() ), target_pops.end());
+
+        std::sort(source_pops.begin(), source_pops.end());
+        source_pops.erase(unique( source_pops.begin(), source_pops.end() ), source_pops.end());
+
 
         for (auto tp: target_pops) {
             auto indices_id = edges_[tp].find_group("indicies");
@@ -139,12 +165,6 @@ public:
             }
         }
 
-        // Replace with CSV read
-        std::vector<unsigned> source_pops;
-        if (gid < 8) {
-            source_pops.push_back(0);
-            source_pops.push_back(1);
-        }
 
         for (auto sp: source_pops) {
             auto indices_id = edges_[sp].find_group("indicies");
@@ -171,6 +191,22 @@ public:
         }
     }
 
+    void get_connections(cell_gid_type gid) {
+        unsigned i = 0;
+        for (; i < gid_partition.size(); i++) {
+            if (gid < gid_partition[i]) {
+                break;
+            }
+        }
+
+        unsigned node_pop = i-1;
+        unsigned pop_loc = gid - gid_partition[node_pop];
+
+        std::vector<arb::cell_connection> cons;
+
+        edge_tables[node_pop];
+    }
+
     void print_tables() {
         int n= 0;
         for(auto e: edge_tables) {
@@ -186,6 +222,7 @@ private:
 
     hdf5_record nodes_;
     hdf5_record edges_;
+    csv_record node_types_;
     csv_record edge_types_;
     std::vector<std::vector<edge_info>> edge_tables;
     std::vector<cell_size_type> gid_partition;
@@ -210,8 +247,8 @@ private:
 
 class sonata_recipe: public arb::recipe {
 public:
-    sonata_recipe(hdf5_record nodes, hdf5_record edges, csv_record edge_types):
-            database_(nodes, edges, edge_types),
+    sonata_recipe(hdf5_record nodes, hdf5_record edges, csv_record node_types, csv_record edge_types):
+            database_(nodes, edges, node_types, edge_types),
             num_cells_(database_.num_cells()) {}
 
     cell_size_type num_cells() const override {
@@ -225,6 +262,8 @@ public:
 
         database_.get_sources_and_targets(gid, src_types, tgt_types);
 
+        database_.print_tables();
+
         return dummy_cell(src_types, tgt_types);
     }
 
@@ -237,7 +276,9 @@ public:
     cell_size_type num_targets(cell_gid_type gid) const override { return 0; }
 
     // Each cell has one incoming connection, from cell with gid-1.
-    std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override { return {}; }
+    std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
+        return {};
+    }
 
     void print_tables() {
         database_.print_tables();
@@ -295,6 +336,7 @@ int main(int argc, char **argv)
     h5_file_handle nodes = std::make_shared<h5_file>("nodes.h5");
     h5_file_handle edges = std::make_shared<h5_file>("edges.h5");
     csv_file edge_def("edge_types.csv");
+    csv_file node_def("node_types.csv");
 
     print(nodes);
 
@@ -307,10 +349,12 @@ int main(int argc, char **argv)
     hdf5_record n(nodes);
     hdf5_record e(edges);
     csv_record e_t(edge_def);
+    csv_record n_t(node_def);
 
     e_t.print();
+    n_t.print();
 
-    sonata_recipe recipe(n, e, e_t);
+    sonata_recipe recipe(n, e, n_t, e_t);
 
     std::cout << std::endl << std::endl;
     std::cout << "***************" <<std::endl;
