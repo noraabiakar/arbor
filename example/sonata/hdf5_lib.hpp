@@ -45,7 +45,7 @@ public:
         return size_;
     }
 
-    auto at(const int i) {
+    auto int_at(const int i) {
         const hsize_t idx = (hsize_t)i;
 
         // Output
@@ -70,7 +70,57 @@ public:
         return out[0];
     }
 
-    auto at(const int i, const int j) {
+    auto double_at(const int i) {
+        const hsize_t idx = (hsize_t)i;
+
+        // Output
+        double *out = new double[1];
+
+        // Output dimensions 1x1
+        hsize_t dims = 1;
+        hsize_t dim_sizes[] = {1};
+
+        // Output size
+        hsize_t num_elements = 1;
+
+        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        hid_t dspace = H5Dget_space(id_);
+
+        H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, &idx);
+        hid_t out_mem = H5Screate_simple(dims, dim_sizes, NULL);
+
+        H5Dread(id_, H5T_NATIVE_DOUBLE, out_mem, dspace, H5P_DEFAULT, out);
+        H5Dclose(id_);
+
+        return out[0];
+    }
+
+    auto string_at(const int i) {
+        const hsize_t idx = (hsize_t)i;
+
+        // Output
+        char *out = new char[1];
+
+        // Output dimensions 1x1
+        hsize_t dims = 1;
+        hsize_t dim_sizes[] = {1};
+
+        // Output size
+        hsize_t num_elements = 1;
+
+        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        hid_t dspace = H5Dget_space(id_);
+
+        H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, &idx);
+        hid_t out_mem = H5Screate_simple(dims, dim_sizes, NULL);
+
+        H5Dread(id_, H5T_NATIVE_CHAR, out_mem, dspace, H5P_DEFAULT, out);
+        H5Dclose(id_);
+
+        return out[0];
+    }
+
+    auto int2_at(const int i, const int j) {
         const hsize_t idx[2] = {(hsize_t)i, (hsize_t)j};
 
         // Output
@@ -95,7 +145,7 @@ public:
         return out[0];
     }
 
-    auto all() {
+    auto all_1d() {
         int out_a[size_];
         id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
 
@@ -104,6 +154,22 @@ public:
         H5Dclose(id_);
 
         std::vector<int> out(out_a, out_a + size_);
+
+        return out;
+    }
+
+    auto all_2d() {
+        int out_a[size_][2];
+        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+
+        H5Dread(id_, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                out_a);
+        H5Dclose(id_);
+
+        std::vector<std::pair<int, int>> out(size_);
+        for (unsigned i = 0; i < size_; i++) {
+            out[i] = std::make_pair(out_a[i][0], out_a[i][1]);
+        }
 
         return out;
     }
@@ -184,6 +250,8 @@ public:
 
 class dataspace {
 public:
+    dataspace() {}
+
     dataspace(const std::shared_ptr<h5_group>& g): ptr(g) {
         unsigned i = 0;
         for (auto d: ptr->datasets_) {
@@ -194,6 +262,10 @@ public:
             member_map[g->name()] = i++;
             members.emplace_back(g);
         }
+    }
+
+    int size() {
+        return members.size();
     }
 
     int find_group(std::string name) {
@@ -210,23 +282,44 @@ public:
         return -1;
     }
 
-    arb::util::optional<int> dataset_at(std::string name, unsigned i) {
+    arb::util::optional<int> dataset_i_at(std::string name, unsigned i) {
         if (find_dataset(name) != -1) {
-            return ptr->datasets_[dset_map[name]]->at(i);
+            return ptr->datasets_[dset_map[name]]->int_at(i);
         }
         return arb::util::nullopt;
     }
 
-    arb::util::optional<int> dataset_at(std::string name, unsigned i, unsigned j) {
-        if (find_dataset(name)!= -1) {
-            return ptr->datasets_[dset_map[name]]->at(i, j);
+    arb::util::optional<double> dataset_d_at(std::string name, unsigned i) {
+        if (find_dataset(name) != -1) {
+            return ptr->datasets_[dset_map[name]]->double_at(i);
         }
         return arb::util::nullopt;
     }
 
-    arb::util::optional<std::vector<int>> dataset(std::string name) {
+    arb::util::optional<std::string> dataset_s_at(std::string name, unsigned i) {
+        if (find_dataset(name) != -1) {
+            return std::to_string(ptr->datasets_[dset_map[name]]->string_at(i));
+        }
+        return arb::util::nullopt;
+    }
+
+    arb::util::optional<int> dataset_2i_at(std::string name, unsigned i, unsigned j) {
         if (find_dataset(name)!= -1) {
-            return ptr->datasets_[dset_map[name]]->all();
+            return ptr->datasets_[dset_map[name]]->int2_at(i, j);
+        }
+        return arb::util::nullopt;
+    }
+
+    arb::util::optional<std::vector<int>> dataset_1d(std::string name) {
+        if (find_dataset(name)!= -1) {
+            return ptr->datasets_[dset_map[name]]->all_1d();
+        }
+        return arb::util::nullopt;
+    }
+
+    arb::util::optional<std::vector<std::pair<int, int>>> dataset_2d(std::string name) {
+        if (find_dataset(name)!= -1) {
+            return ptr->datasets_[dset_map[name]]->all_2d();
         }
         return arb::util::nullopt;
     }
@@ -266,11 +359,12 @@ public:
             populations_.emplace_back(g);
         }
 
+        partition_.push_back(0);
         for (auto& p: file->top_group_->groups_.front()->groups_) {
             for(auto& d: p->datasets_) {
                 if(d->name().find("type_id") != std::string::npos) {
-                    partition_.push_back(d->size());
                     num_elements_ += d->size();
+                    partition_.push_back(num_elements_);
                 }
             }
         }
@@ -278,6 +372,10 @@ public:
 
     std::vector<dataspace> populations() {
         return populations_;
+    }
+
+    unsigned num_populations() {
+        return populations().size() - 1;
     }
 
     std::vector<cell_size_type> partitions() {
