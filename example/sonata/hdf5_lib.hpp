@@ -70,6 +70,30 @@ public:
         return out[0];
     }
 
+    auto int_range(const int i, const int j) {
+
+        hsize_t offset = i;
+        hsize_t count = j-i;
+        hsize_t stride = 1;
+        hsize_t  block = 1;
+        hsize_t dimsm = count;
+
+        int rdata[count];
+
+        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        hid_t dspace = H5Dget_space(id_);
+
+        hid_t out_mem = H5Screate_simple(1, &dimsm, NULL);
+
+        H5Sselect_hyperslab(dspace, H5S_SELECT_SET, &offset, &stride, &count, &block);
+        H5Dread(id_, H5T_NATIVE_INT, out_mem, dspace, H5P_DEFAULT, rdata);
+        H5Dclose(id_);
+
+        std::vector<int> out(rdata, rdata + count);
+
+        return out;
+    }
+
     auto double_at(const int i) {
         const hsize_t idx = (hsize_t)i;
 
@@ -93,6 +117,30 @@ public:
         H5Dclose(id_);
 
         return out[0];
+    }
+
+    auto double_range(const int i, const int j) {
+
+        hsize_t offset = i;
+        hsize_t count = j-i;
+        hsize_t stride = 1;
+        hsize_t  block = 1;
+        hsize_t dimsm = count;
+
+        double rdata[count];
+
+        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        hid_t dspace = H5Dget_space(id_);
+
+        hid_t out_mem = H5Screate_simple(1, &dimsm, NULL);
+
+        H5Sselect_hyperslab(dspace, H5S_SELECT_SET, &offset, &stride, &count, &block);
+        H5Dread(id_, H5T_NATIVE_DOUBLE, out_mem, dspace, H5P_DEFAULT, rdata);
+        H5Dclose(id_);
+
+        std::vector<double> out(rdata, rdata + count);
+
+        return out;
     }
 
     auto string_at(const int i) {
@@ -328,6 +376,20 @@ public:
     arb::util::optional<std::vector<std::pair<int, int>>> dataset_2d(std::string name) {
         if (find_dataset(name)!= -1) {
             return ptr->datasets_[dset_map[name]]->all_2d();
+        }
+        return arb::util::nullopt;
+    }
+
+    arb::util::optional<std::vector<int>> dataset_int_range(std::string name, unsigned i, unsigned j) {
+        if (find_dataset(name)!= -1) {
+            return ptr->datasets_[dset_map[name]]->int_range(i, j);
+        }
+        return arb::util::nullopt;
+    }
+
+    arb::util::optional<std::vector<double>> dataset_double_range(std::string name, unsigned i, unsigned j) {
+        if (find_dataset(name)!= -1) {
+            return ptr->datasets_[dset_map[name]]->double_range(i, j);
         }
         return arb::util::nullopt;
     }
