@@ -170,7 +170,7 @@ public:
                     }
                     if (!found) {
                         source_lists_[source_gid].push_back(sources_t[i]);
-                        sources.push_back({source_gid, (unsigned)(target_lists_[source_gid].size()-1)});
+                        sources.push_back({source_gid, (unsigned)(source_lists_[source_gid].size()-1)});
                     }
                     else {
                         sources.push_back({source_gid, j});
@@ -224,6 +224,7 @@ public:
         source_edge_pops.erase(std::unique(source_edge_pops.begin(), source_edge_pops.end()), source_edge_pops.end() );
         target_edge_pops.erase(std::unique(target_edge_pops.begin(), target_edge_pops.end()), target_edge_pops.end() );
 
+        std::vector<std::pair<arb::segment_location, double>> gather_src;
         for (auto i: source_edge_pops) {
             std::vector<std::pair<int, int>> source_edge_ranges;
 
@@ -235,10 +236,17 @@ public:
                 source_edge_ranges.push_back(r2e.value());
             }
             for (auto r: source_edge_ranges) {
-                get_sources_range(gid, i, r, src);
+                auto temp_srcs = get_afferent_range(i, r);
+
+                for (unsigned i = 0; i< temp_srcs.size(); i++) {
+                    gather_src.push_back(std::make_pair(temp_srcs[i], 10));
+                }
             }
         }
 
+        order_sources(gid, gather_src, src);
+
+        std::vector<std::pair<arb::segment_location, arb::mechanism_desc>> gather_tgt;
         for (auto i: target_edge_pops) {
             std::vector<std::pair<int, int>> target_edge_ranges;
 
@@ -249,87 +257,77 @@ public:
                 auto r2e = edges_[i][ind_id][t2s_id].dataset_2i_at("range_to_edge_id", j);
                 target_edge_ranges.push_back(r2e.value());
             }
-            // for all edges in this edge population
             for (auto r: target_edge_ranges) {
-                get_targets_range(gid, i, r, tgt);
+                auto temp_tgts = get_efferent_range(i, r);
+                auto temp_syn = get_synapses_range(i, r);
+
+                for (unsigned i = 0; i< temp_tgts.size(); i++) {
+                    gather_tgt.push_back(std::make_pair(temp_tgts[i], temp_syn[i]));
+                }
             }
         }
+
+        order_targets(gid, gather_tgt, tgt);
     }
 
 
 private:
 
-    void get_targets_range(
+    void order_targets(
             cell_gid_type gid,
-            unsigned edge_pop_id,
-            std::pair<unsigned, unsigned> edge_range,
+            std::vector<std::pair<arb::segment_location, arb::mechanism_desc>>& input,
             std::vector<std::pair<arb::segment_location, arb::mechanism_desc>>& tgt)
     {
 
-        auto temp_tgts = get_efferent_range(edge_pop_id, edge_range);
-        auto temp_synapses = get_synapses_range(edge_pop_id, edge_range);
-        std::vector<std::pair<arb::segment_location, arb::mechanism_desc>> temp;
-
-        for (unsigned i = 0; i< temp_tgts.size(); i++) {
-            temp.push_back(std::make_pair(temp_tgts[i], temp_synapses[i]));
-        }
-
-        std::sort(temp.begin(), temp.end(), [](const auto &a, const auto& b) -> bool
+        std::sort(input.begin(), input.end(), [](const auto &a, const auto& b) -> bool
         {
-            return std::tie(a.first.segment, a.first.position) > std::tie(b.first.segment, b.first.position);
+            return std::tie(a.first.segment, a.first.position) < std::tie(b.first.segment, b.first.position);
         });
 
         for (auto t : target_lists_[gid]) {
-            auto t_pos = std::lower_bound(temp.begin(), temp.end(), t,
-                    [](const std::pair<arb::segment_location, arb::mechanism_desc>& rhs, const arb::segment_location& lhs) -> bool
-                    { return std::tie(lhs.segment, lhs.position) > std::tie(rhs.first.segment, rhs.first.position); });
-            if (t_pos != temp.end()) {
+            auto t_pos = std::lower_bound(input.begin(), input.end(), t,
+                                          [](const std::pair<arb::segment_location, arb::mechanism_desc>& lhs, const arb::segment_location& rhs) -> bool
+                                          { return std::tie(lhs.first.segment, lhs.first.position) < std::tie(rhs.segment, rhs.position); });
+            if (t_pos != input.end()) {
                 if ((*t_pos).first == t) {
                     tgt.push_back(*t_pos);
-                    temp.erase(t_pos);
+                    input.erase(t_pos);
                 }
             }
         }
 
-        for (auto t : temp) {
+        for (auto t : input) {
             tgt.push_back(t);
             target_lists_[gid].push_back(t.first);
         }
     }
 
-    void get_sources_range(
+    void order_sources(
             cell_gid_type gid,
-            unsigned edge_pop_id,
-            std::pair<unsigned, unsigned> edge_range,
+            std::vector<std::pair<arb::segment_location, double>>& input,
             std::vector<std::pair<arb::segment_location, double>>& src)
     {
-        auto temp_srcs = get_afferent_range(edge_pop_id, edge_range);
-        std::vector<std::pair<arb::segment_location, double>> temp;
-
-        for (unsigned i = 0; i< temp_srcs.size(); i++) {
-            temp.push_back(std::make_pair(temp_srcs[i], 10));
-        }
-
-        std::sort(temp.begin(), temp.end(), [](const auto &a, const auto& b) -> bool
+        std::sort(input.begin(), input.end(), [](const auto &a, const auto& b) -> bool
         {
-            return std::tie(a.first.segment, a.first.position) > std::tie(b.first.segment, b.first.position);
+            return std::tie(a.first.segment, a.first.position) < std::tie(b.first.segment, b.first.position);
         });
 
-        for (auto t : source_lists_[gid]) {
-            auto t_pos = std::lower_bound(temp.begin(), temp.end(), t,
-                                          [](const std::pair<arb::segment_location, double>& rhs, const arb::segment_location& lhs) -> bool
-                                          { return std::tie(lhs.segment, lhs.position) > std::tie(rhs.first.segment, rhs.first.position); });
-            if (t_pos != temp.end()) {
-                if ((*t_pos).first == t) {
-                    src.push_back(*t_pos);
-                    temp.erase(t_pos);
+        std::cout << std::endl;
+        for (auto s : source_lists_[gid]) {
+            auto s_pos = std::lower_bound(input.begin(), input.end(), s,
+                                          [](const std::pair<arb::segment_location, double>& lhs, const arb::segment_location& rhs) -> bool
+                                          { return std::tie(lhs.first.segment, lhs.first.position) < std::tie(rhs.segment, rhs.position); });
+            if (s_pos != input.end()) {
+                if ((*s_pos).first == s) {
+                    src.push_back(*s_pos);
+                    input.erase(s_pos);
                 }
             }
         }
 
-        for (auto t : temp) {
-            src.push_back(t);
-            source_lists_[gid].push_back(t.first);
+        for (auto s : input) {
+            src.push_back(s);
+            source_lists_[gid].push_back(s.first);
         }
     }
 
@@ -472,8 +470,6 @@ private:
         for (unsigned i = 0; i < edges_grp_id.value().size(); i++) {
             auto loc_grp_id = edges_grp_id.value()[i];
 
-            int target_branch;
-            double target_pos;
             std::string synapse;
 
             bool found_synapse = false;
@@ -667,45 +663,6 @@ private:
     cell_size_type num_cells_;
 };
 
-void print(const std::shared_ptr<h5_file>& file) {
-    std::cout << file->top_group_->name() << std::endl;
-    for (auto g0: file->top_group_->groups_) {
-        std::cout << "\t" << g0->name() << std::endl;
-        for (auto g1: g0->groups_) {
-            std::cout << "\t\t" << g1->name() << std::endl;
-            for (auto g2: g1->groups_) {
-                std::cout << "\t\t\t" << g2->name() << std::endl;
-                for (auto g3: g2->groups_) {
-                    std::cout << "\t\t\t\t" << g3->name() << std::endl;
-                    for (auto g4: g3->groups_) {
-                        std::cout << "\t\t\t\t\t" << g4->name() << std::endl;
-                    }
-                    for (auto d4: g3->datasets_) {
-                        std::cout << "\t\t\t\t\t" << d4->name() << " " << d4->size() << " ";
-                        std::cout << d4->int2_at(0).first << ", " << d4->int2_at(0).second << std::endl;
-                    }
-                }
-                for (auto d3: g2->datasets_) {
-                    std::cout << "\t\t\t\t" << d3->name() << " " << d3->size() << " ";
-                    std::cout << d3->int_at(0) << std::endl;
-                }
-            }
-            for (auto d2: g1->datasets_) {
-                std::cout << "\t\t\t" << d2->name() << " " << d2->size() << " ";
-                std::cout << d2->int_at(0) << std::endl;
-            }
-        }
-        for (auto d1: g0->datasets_) {
-            std::cout << "\t\t" << d1->name() << " " << d1->size() << " ";
-            std::cout << d1->int_at(0) << std::endl;
-        }
-    }
-    for (auto d0: file->top_group_->datasets_) {
-        std::cout << "\t" << d0->name() << " " << d0->size() << " ";
-        std::cout << d0->int_at(0) << std::endl;
-    }
-}
-
 int main(int argc, char **argv)
 {
     using h5_file_handle = std::shared_ptr<h5_file>;
@@ -715,11 +672,11 @@ int main(int argc, char **argv)
     csv_file edge_def("edge_types.csv");
     csv_file node_def("node_types.csv");
 
-    print(nodes);
+    nodes->print();
 
     std::cout << std::endl;
 
-    print(edges);
+    edges->print();
 
     std::cout << std::endl;
 
@@ -727,9 +684,6 @@ int main(int argc, char **argv)
     hdf5_record e(edges);
     csv_record e_t(edge_def);
     csv_record n_t(node_def);
-
-    e_t.print();
-    n_t.print();
 
     sonata_recipe recipe(n, e, n_t, e_t);
 
@@ -745,18 +699,20 @@ int main(int argc, char **argv)
         auto cell = arb::util::any_cast<arb::cable_cell>(recipe.get_cell_description(i));
         std::cout << "Synapses: " << std::endl;
         for (auto s: cell.synapses()) {
-            std::cout << "\t" << s.location.segment << ", " << s.location.position << ": " << s.mechanism.name() <<std::endl;
+            std::cout << "\t" << s.location.segment << ", " << s.location.position << ": " << s.mechanism.name()
+                      << std::endl;
         }
         std::cout << "Detectors: " << std::endl;
         for (auto d: cell.detectors()) {
-            std::cout << "\t" << d.location.segment << ", " << d.location.position << ": " << d.threshold <<std::endl;
+            std::cout << "\t" << d.location.segment << ", " << d.location.position << ": " << d.threshold << std::endl;
         }
+    }
+    for(unsigned i =0; i < 12; i++) {
         auto conns = recipe.connections_on(i);
         for (auto j: conns) {
             std::cout << "(" << j.source.gid << ", "<< j.source.index << "); (" << j.dest.gid << ", " << j.dest.index << ")" << std::endl;
         }
     }
-
     return 0;
 }
 

@@ -22,9 +22,6 @@ public:
         hid_t dspace = H5Dget_space(id_);
 
         const int ndims = H5Sget_simple_extent_ndims(dspace);
-        if (ndims > 1) {
-            std::cout << "Dataset: " << name_ << " is multidimensional\n";
-        }
 
         hsize_t dims[ndims];
         H5Sget_simple_extent_dims(dspace, dims, NULL);
@@ -32,9 +29,6 @@ public:
         size_ = dims[0];
 
         H5Dclose(id_);
-    }
-
-    ~h5_dataset() {
     }
 
     std::string name() {
@@ -291,6 +285,45 @@ private:
     file_handle file_h_;
 
 public:
+    void print() {
+        std::cout << top_group_->name() << std::endl;
+        for (auto g0: top_group_->groups_) {
+            std::cout << "\t" << g0->name() << std::endl;
+            for (auto g1: g0->groups_) {
+                std::cout << "\t\t" << g1->name() << std::endl;
+                for (auto g2: g1->groups_) {
+                    std::cout << "\t\t\t" << g2->name() << std::endl;
+                    for (auto g3: g2->groups_) {
+                        std::cout << "\t\t\t\t" << g3->name() << std::endl;
+                        for (auto g4: g3->groups_) {
+                            std::cout << "\t\t\t\t\t" << g4->name() << std::endl;
+                        }
+                        for (auto d4: g3->datasets_) {
+                            std::cout << "\t\t\t\t\t" << d4->name() << " " << d4->size() << " ";
+                            std::cout << d4->int2_at(0).first << ", " << d4->int2_at(0).second << std::endl;
+                        }
+                    }
+                    for (auto d3: g2->datasets_) {
+                        std::cout << "\t\t\t\t" << d3->name() << " " << d3->size() << " ";
+                        std::cout << d3->int_at(0) << std::endl;
+                    }
+                }
+                for (auto d2: g1->datasets_) {
+                    std::cout << "\t\t\t" << d2->name() << " " << d2->size() << " ";
+                    std::cout << d2->int_at(0) << std::endl;
+                }
+            }
+            for (auto d1: g0->datasets_) {
+                std::cout << "\t\t" << d1->name() << " " << d1->size() << " ";
+                std::cout << d1->int_at(0) << std::endl;
+            }
+        }
+        for (auto d0: top_group_->datasets_) {
+            std::cout << "\t" << d0->name() << " " << d0->size() << " ";
+            std::cout << d0->int_at(0) << std::endl;
+        }
+    }
+
     std::shared_ptr<h5_group> top_group_;
     h5_file(std::string name):
             file_(name),
