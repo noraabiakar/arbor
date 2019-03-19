@@ -273,7 +273,7 @@ public:
 class h5_file {
 private:
     struct file_handle {
-        file_handle(std::string file): id(H5Fopen(file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT)), name(file) {}
+        file_handle(std::string file): id(H5Fopen(file.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT)), name(file) {}
         ~file_handle() {
             H5Fclose(id);
         }

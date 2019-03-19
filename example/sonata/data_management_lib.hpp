@@ -35,6 +35,100 @@ public:
                                  std::vector<std::pair<arb::segment_location, double>>& src,
                                  std::vector<std::pair<arb::segment_location, arb::mechanism_desc>>& tgt);
 
+    unsigned num_sources(cell_gid_type gid) {
+
+        unsigned i = 0;
+        for (; i < nodes_.partitions().size(); i++) {
+            if (gid < nodes_.partitions()[i]) {
+                break;
+            }
+        }
+
+        unsigned node_pop = i-1;
+        unsigned pop_id = gid - nodes_.partitions()[node_pop];
+        std::string pop_name = nodes_.populations()[node_pop].name();
+
+        std::vector<unsigned> source_edge_pops;
+
+        // CSV read
+        unsigned src_vec_id = edge_types_.map()["source_pop_name"];
+        unsigned edge_vec_id = edge_types_.map()["pop_name"];
+
+        for (unsigned i = 0; i < edge_types_.data()[src_vec_id].size(); i++) {
+            if (edge_types_.data()[src_vec_id][i] == pop_name) {
+                auto edge_pop = edge_types_.data()[edge_vec_id][i];
+                source_edge_pops.push_back(edges_.map()[edge_pop]);
+            }
+        }
+
+        std::sort(source_edge_pops.begin(), source_edge_pops.end());
+        source_edge_pops.erase(std::unique(source_edge_pops.begin(), source_edge_pops.end()), source_edge_pops.end() );
+
+        unsigned sum = 0;
+        for (auto i: source_edge_pops) {
+            std::vector<std::pair<int, int>> source_edge_ranges;
+
+            auto ind_id = edges_[i].find_group("indicies");
+            auto s2t_id = edges_[i][ind_id].find_group("source_to_target");
+            auto n2r_range = edges_[i][ind_id][s2t_id].dataset_2i_at("node_id_to_ranges", pop_id);
+            for (auto j = n2r_range->first; j< n2r_range->second; j++) {
+                auto r2e = edges_[i][ind_id][s2t_id].dataset_2i_at("range_to_edge_id", j);
+                source_edge_ranges.push_back(r2e.value());
+            }
+            for (auto r: source_edge_ranges) {
+                sum += (r.second - r.first);
+            }
+        }
+        return sum;
+    }
+
+    unsigned num_targets(cell_gid_type gid) {
+
+        unsigned i = 0;
+        for (; i < nodes_.partitions().size(); i++) {
+            if (gid < nodes_.partitions()[i]) {
+                break;
+            }
+        }
+
+        unsigned node_pop = i-1;
+        unsigned pop_id = gid - nodes_.partitions()[node_pop];
+        std::string pop_name = nodes_.populations()[node_pop].name();
+
+        std::vector<unsigned> target_edge_pops;
+
+        // CSV read
+        unsigned tgt_vec_id = edge_types_.map()["target_pop_name"];
+        unsigned edge_vec_id = edge_types_.map()["pop_name"];
+
+        for (unsigned i = 0; i < edge_types_.data()[tgt_vec_id].size(); i++) {
+            if (edge_types_.data()[tgt_vec_id][i] == pop_name) {
+                auto edge_pop = edge_types_.data()[edge_vec_id][i];
+                target_edge_pops.push_back(edges_.map()[edge_pop]);
+            }
+        }
+
+        std::sort(target_edge_pops.begin(), target_edge_pops.end());
+        target_edge_pops.erase(std::unique(target_edge_pops.begin(), target_edge_pops.end()), target_edge_pops.end() );
+
+        unsigned sum = 0;
+        for (auto i: target_edge_pops) {
+            std::vector<std::pair<int, int>> target_edge_ranges;
+
+            auto ind_id = edges_[i].find_group("indicies");
+            auto s2t_id = edges_[i][ind_id].find_group("target_to_source");
+            auto n2r_range = edges_[i][ind_id][s2t_id].dataset_2i_at("node_id_to_ranges", pop_id);
+            for (auto j = n2r_range->first; j< n2r_range->second; j++) {
+                auto r2e = edges_[i][ind_id][s2t_id].dataset_2i_at("range_to_edge_id", j);
+                target_edge_ranges.push_back(r2e.value());
+            }
+            for (auto r: target_edge_ranges) {
+                sum += (r.second - r.first);
+            }
+        }
+        return sum;
+    }
+
 
 private:
 
@@ -110,8 +204,8 @@ void database::get_connections(cell_gid_type gid,
         }
 
         for (unsigned i = 0; i< source_edge_ranges.size(); i++) {
-            auto targets_t = get_efferent_range(edge_pop, source_edge_ranges[i]);
-            auto sources_t = get_afferent_range(edge_pop, source_edge_ranges[i]);
+            auto targets_t = get_afferent_range(edge_pop, source_edge_ranges[i]);
+            auto sources_t = get_efferent_range(edge_pop, source_edge_ranges[i]);
             auto weights = get_weight_range(edge_pop, source_edge_ranges[i]);
             auto delays = get_delay_range(edge_pop, source_edge_ranges[i]);
 
@@ -211,6 +305,7 @@ void database::get_sources_and_targets(cell_gid_type gid,
     target_edge_pops.erase(std::unique(target_edge_pops.begin(), target_edge_pops.end()), target_edge_pops.end() );
 
     std::vector<std::pair<arb::segment_location, double>> gather_src;
+
     for (auto i: source_edge_pops) {
         std::vector<std::pair<int, int>> source_edge_ranges;
 
@@ -222,7 +317,7 @@ void database::get_sources_and_targets(cell_gid_type gid,
             source_edge_ranges.push_back(r2e.value());
         }
         for (auto r: source_edge_ranges) {
-            auto temp_srcs = get_afferent_range(i, r);
+            auto temp_srcs = get_efferent_range(i, r);
 
             for (unsigned i = 0; i< temp_srcs.size(); i++) {
                 gather_src.push_back(std::make_pair(temp_srcs[i], 10));
@@ -237,7 +332,6 @@ void database::get_sources_and_targets(cell_gid_type gid,
         return std::tie(a.first.segment, a.first.position) < std::tie(b.first.segment, b.first.position);
     });
 
-    std::cout << std::endl;
     for (auto s : source_lists_[gid]) {
         auto s_pos = std::lower_bound(gather_src.begin(), gather_src.end(), s,
                                       [](const std::pair<arb::segment_location, double>& lhs, const arb::segment_location& rhs) -> bool
@@ -267,7 +361,7 @@ void database::get_sources_and_targets(cell_gid_type gid,
             target_edge_ranges.push_back(r2e.value());
         }
         for (auto r: target_edge_ranges) {
-            auto temp_tgts = get_efferent_range(i, r);
+            auto temp_tgts = get_afferent_range(i, r);
             auto temp_syn = get_synapses_range(i, r);
 
             for (unsigned i = 0; i< temp_tgts.size(); i++) {
@@ -301,67 +395,6 @@ void database::get_sources_and_targets(cell_gid_type gid,
     }
 }
 
-std::vector<arb::segment_location> database::get_afferent_range(
-        unsigned edge_pop_id,
-        std::pair<unsigned, unsigned> edge_range)
-{
-    std::vector<arb::segment_location> out;
-
-    // First read edge_group_id and edge_group_index and edge_type
-    auto edges_grp_id = edges_[edge_pop_id].dataset_int_range("edge_group_id", edge_range.first, edge_range.second);
-    auto edges_grp_idx = edges_[edge_pop_id].dataset_int_range("edge_group_index", edge_range.first, edge_range.second);
-    auto edges_type = edges_[edge_pop_id].dataset_int_range("edge_type_id", edge_range.first, edge_range.second);
-
-    for (unsigned i = 0; i < edges_grp_id.value().size(); i++) {
-        auto loc_grp_id = edges_grp_id.value()[i];
-
-        int source_branch;
-        double source_pos;
-
-        bool found_source_branch = false;
-        bool found_source_pos = false;
-
-        // if the edges are in groups, for each edge find the group, if it exists
-        if (edges_[edge_pop_id].find_group(std::to_string(loc_grp_id)) != -1) {
-            auto group = edges_[edge_pop_id][std::to_string(loc_grp_id)].value();
-            auto loc_grp_idx = edges_grp_idx.value()[i];
-
-            if (group.find_dataset("afferent_section_id") != -1) {
-                source_branch = group.dataset_i_at("afferent_section_id", loc_grp_idx).value();
-                found_source_branch = true;
-            }
-            if (group.find_dataset("afferent_section_pos") != -1) {
-                source_pos = group.dataset_d_at("afferent_section_pos", loc_grp_idx).value();
-                found_source_pos = true;
-            }
-        }
-
-        // name and index of edge_type_id
-        auto e_type = edges_type.value()[i];
-        unsigned type_idx = edge_types_.map()["edge_type_id"];
-
-        // find specific index of edge_type in type_idx
-        unsigned loc_type_idx;
-        for (loc_type_idx = 0; loc_type_idx < edge_types_.data()[type_idx].size(); loc_type_idx++) {
-            if (e_type == std::atoi(edge_types_.data()[type_idx][loc_type_idx].c_str())) {
-                break;
-            }
-        }
-
-        if (!found_source_branch) {
-            unsigned source_branch_idx = edge_types_.map()["afferent_section_id"];
-            source_branch = std::atoi(edge_types_.data()[source_branch_idx][loc_type_idx].c_str());
-        }
-        if (!found_source_pos) {
-            unsigned source_pos_idx = edge_types_.map()["afferent_section_pos"];
-            source_pos = std::atof(edge_types_.data()[source_pos_idx][loc_type_idx].c_str());
-        }
-
-        out.emplace_back(arb::segment_location((unsigned)source_branch, source_pos));
-    }
-    return out;
-}
-
 std::vector<arb::segment_location> database::get_efferent_range(
         unsigned edge_pop_id,
         std::pair<unsigned, unsigned> edge_range)
@@ -372,7 +405,6 @@ std::vector<arb::segment_location> database::get_efferent_range(
     auto edges_grp_id = edges_[edge_pop_id].dataset_int_range("edge_group_id", edge_range.first, edge_range.second);
     auto edges_grp_idx = edges_[edge_pop_id].dataset_int_range("edge_group_index", edge_range.first, edge_range.second);
     auto edges_type = edges_[edge_pop_id].dataset_int_range("edge_type_id", edge_range.first, edge_range.second);
-
 
     for (unsigned i = 0; i < edges_grp_id.value().size(); i++) {
         auto loc_grp_id = edges_grp_id.value()[i];
@@ -416,6 +448,68 @@ std::vector<arb::segment_location> database::get_efferent_range(
         }
         if (!found_source_pos) {
             unsigned source_pos_idx = edge_types_.map()["efferent_section_pos"];
+            source_pos = std::atof(edge_types_.data()[source_pos_idx][loc_type_idx].c_str());
+        }
+
+        out.emplace_back(arb::segment_location((unsigned)source_branch, source_pos));
+    }
+    return out;
+}
+
+std::vector<arb::segment_location> database::get_afferent_range(
+        unsigned edge_pop_id,
+        std::pair<unsigned, unsigned> edge_range)
+{
+    std::vector<arb::segment_location> out;
+
+    // First read edge_group_id and edge_group_index and edge_type
+    auto edges_grp_id = edges_[edge_pop_id].dataset_int_range("edge_group_id", edge_range.first, edge_range.second);
+    auto edges_grp_idx = edges_[edge_pop_id].dataset_int_range("edge_group_index", edge_range.first, edge_range.second);
+    auto edges_type = edges_[edge_pop_id].dataset_int_range("edge_type_id", edge_range.first, edge_range.second);
+
+
+    for (unsigned i = 0; i < edges_grp_id.value().size(); i++) {
+        auto loc_grp_id = edges_grp_id.value()[i];
+
+        int source_branch;
+        double source_pos;
+
+        bool found_source_branch = false;
+        bool found_source_pos = false;
+
+        // if the edges are in groups, for each edge find the group, if it exists
+        if (edges_[edge_pop_id].find_group(std::to_string(loc_grp_id)) != -1) {
+            auto group = edges_[edge_pop_id][std::to_string(loc_grp_id)].value();
+            auto loc_grp_idx = edges_grp_idx.value()[i];
+
+            if (group.find_dataset("afferent_section_id") != -1) {
+                source_branch = group.dataset_i_at("afferent_section_id", loc_grp_idx).value();
+                found_source_branch = true;
+            }
+            if (group.find_dataset("afferent_section_pos") != -1) {
+                source_pos = group.dataset_d_at("afferent_section_pos", loc_grp_idx).value();
+                found_source_pos = true;
+            }
+        }
+
+        // name and index of edge_type_id
+        auto e_type = edges_type.value()[i];
+        unsigned type_idx = edge_types_.map()["edge_type_id"];
+
+        // find specific index of edge_type in type_idx
+        unsigned loc_type_idx;
+        for (loc_type_idx = 0; loc_type_idx < edge_types_.data()[type_idx].size(); loc_type_idx++) {
+            if (e_type == std::atoi(edge_types_.data()[type_idx][loc_type_idx].c_str())) {
+                break;
+            }
+        }
+
+        if (!found_source_branch) {
+            unsigned source_branch_idx = edge_types_.map()["afferent_section_id"];
+            source_branch = std::atoi(edge_types_.data()[source_branch_idx][loc_type_idx].c_str());
+        }
+        if (!found_source_pos) {
+            unsigned source_pos_idx = edge_types_.map()["afferent_section_pos"];
             source_pos = std::atof(edge_types_.data()[source_pos_idx][loc_type_idx].c_str());
         }
 
