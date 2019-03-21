@@ -1,0 +1,3 @@
+node_type_id,pop_name,model_type,model_template,morphology,dynamics_params
+100,pop_e,biophysical,,soma_branch.swc,pas.json
+101,pop_i,biophysical,,soma_3_branch.swc,pas_hh.json
