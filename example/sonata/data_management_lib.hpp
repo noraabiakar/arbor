@@ -185,7 +185,7 @@ void database::get_connections(cell_gid_type gid,
         if (edge_types_.data()[tgt_vec_id][i] == pop_name) {
             auto edge_pop = edge_types_.data()[edge_vec_id][i];
             auto source_pop = edge_types_.data()[src_vec_id][i];
-            edge_to_source[edges_.map()[edge_pop]] = edges_.map()[source_pop];
+            edge_to_source[edges_.map()[edge_pop]] = nodes_.map()[source_pop];
         }
     }
 
