@@ -64,6 +64,9 @@ public:
 
         std::lock_guard<std::mutex> l(mtx_);
         database_.get_sources_and_targets(gid, src_types, tgt_types);
+        /*src_types.emplace_back(arb::segment_location(0,0.9), 10);
+        tgt_types.emplace_back(arb::segment_location(0,0.5), arb::mechanism_desc("expsyn"));*/
+
         return dummy_cell(src_types, tgt_types);
     }
 
@@ -72,17 +75,37 @@ public:
     cell_size_type num_sources(cell_gid_type gid) const override {
         std::lock_guard<std::mutex> l(mtx_);
         return database_.num_sources(gid);
+        //return 25;
     }
 
     cell_size_type num_targets(cell_gid_type gid) const override {
         std::lock_guard<std::mutex> l(mtx_);
         return database_.num_targets(gid);
+        //return 25;
     }
 
     // Each cell has one incoming connection, from cell with gid-1.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
         std::vector<arb::cell_connection> conns;
 
+        /*if (gid < 400) {
+            for (unsigned i = 0; i < 20; i++) {
+                conns.push_back(arb::cell_connection({(gid+i+1)%400, 0}, {gid, 0}, 0.01, 0.1));
+            }
+            for (unsigned i = 0; i < 5; i++) {
+                conns.push_back(arb::cell_connection({(gid+i)%100 + 400, 0}, {gid, 0}, -0.01, 0.1));
+            }
+        }
+        else {
+            for (unsigned i = 0; i < 5; i++) {
+                conns.push_back(arb::cell_connection({((gid - 400)+i+1)%100 + 400, 0}, {gid, 0}, -0.01, 0.1));
+            }
+            for (unsigned i = 0; i < 5; i++) {
+                for (unsigned j = 0; j < 4; j++) {
+                    conns.push_back(arb::cell_connection({((gid - 400)*4 + j)%400, 0}, {gid, 0}, 0.01, 0.1));
+                }
+            }
+        }*/
         std::lock_guard<std::mutex> l(mtx_);
         database_.get_connections(gid, conns);
         return conns;
@@ -238,14 +261,14 @@ int main(int argc, char **argv)
         auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;
 
-        /*std::cout << std::endl << std::endl;
+        std::cout << std::endl << std::endl;
         std::cout << "***************" <<std::endl;
         std::cout << " QUERY RECIPE" <<std::endl;
         std::cout << "***************" <<std::endl;
 
         std::cout << "Number of cells = " << recipe.num_cells() << std::endl;
 
-        for(unsigned i =0; i < 500; i++) {
+        /*for(unsigned i =0; i < 500; i++) {
             std::cout << "Cell " << i << std::endl;
             auto cell = arb::util::any_cast<arb::cable_cell>(recipe.get_cell_description(i));
             std::cout << "Synapses: " << std::endl;
@@ -257,14 +280,15 @@ int main(int argc, char **argv)
             for (auto d: cell.detectors()) {
                 std::cout << "\t" << d.location.segment << ", " << d.location.position << ": " << d.threshold << std::endl;
             }
-        }
+        }*/
         for(unsigned i =0; i < 500; i++) {
+            std::cout << "Cell " << i << std::endl;
             auto conns = recipe.connections_on(i);
             for (auto j: conns) {
                 std::cout << "(" << j.source.gid << ", "<< j.source.index << "); (" << j.dest.gid << ", " << j.dest.index << ")" <<
                 ", " << j.delay << ", " << j.weight << std::endl;
             }
-        }*/
+        }
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in SONATA miniapp: " << e.what() << "\n";
