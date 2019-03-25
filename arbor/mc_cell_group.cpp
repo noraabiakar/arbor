@@ -53,7 +53,8 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {
-        for (cell_lid_type lid = 0; lid<rec.num_sources(source_gid); ++lid) {
+        auto ns = rec.num_sources(source_gid);
+        for (cell_lid_type lid = 0; lid<ns; ++lid) {
             spike_sources_.push_back({source_gid, lid});
         }
     }

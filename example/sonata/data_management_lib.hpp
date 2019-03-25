@@ -35,99 +35,9 @@ public:
                                  std::vector<std::pair<arb::segment_location, double>>& src,
                                  std::vector<std::pair<arb::segment_location, arb::mechanism_desc>>& tgt);
 
-    unsigned num_sources(cell_gid_type gid) {
+    unsigned num_sources(cell_gid_type gid);
 
-        unsigned i = 0;
-        for (; i < nodes_.partitions().size(); i++) {
-            if (gid < nodes_.partitions()[i]) {
-                break;
-            }
-        }
-
-        unsigned node_pop = i-1;
-        unsigned pop_id = gid - nodes_.partitions()[node_pop];
-        std::string pop_name = nodes_.populations()[node_pop].name();
-
-        std::vector<unsigned> source_edge_pops;
-
-        // CSV read
-        unsigned src_vec_id = edge_types_.map()["source_pop_name"];
-        unsigned edge_vec_id = edge_types_.map()["pop_name"];
-
-        for (unsigned i = 0; i < edge_types_.data()[src_vec_id].size(); i++) {
-            if (edge_types_.data()[src_vec_id][i] == pop_name) {
-                auto edge_pop = edge_types_.data()[edge_vec_id][i];
-                source_edge_pops.push_back(edges_.map()[edge_pop]);
-            }
-        }
-
-        std::sort(source_edge_pops.begin(), source_edge_pops.end());
-        source_edge_pops.erase(std::unique(source_edge_pops.begin(), source_edge_pops.end()), source_edge_pops.end() );
-
-        unsigned sum = 0;
-        for (auto i: source_edge_pops) {
-            std::vector<std::pair<int, int>> source_edge_ranges;
-
-            auto ind_id = edges_[i].find_group("indicies");
-            auto s2t_id = edges_[i][ind_id].find_group("source_to_target");
-            auto n2r_range = edges_[i][ind_id][s2t_id].dataset_2i_at("node_id_to_ranges", pop_id);
-            for (auto j = n2r_range->first; j< n2r_range->second; j++) {
-                auto r2e = edges_[i][ind_id][s2t_id].dataset_2i_at("range_to_edge_id", j);
-                source_edge_ranges.push_back(r2e.value());
-            }
-            for (auto r: source_edge_ranges) {
-                sum += (r.second - r.first);
-            }
-        }
-        return sum;
-    }
-
-    unsigned num_targets(cell_gid_type gid) {
-
-        unsigned i = 0;
-        for (; i < nodes_.partitions().size(); i++) {
-            if (gid < nodes_.partitions()[i]) {
-                break;
-            }
-        }
-
-        unsigned node_pop = i-1;
-        unsigned pop_id = gid - nodes_.partitions()[node_pop];
-        std::string pop_name = nodes_.populations()[node_pop].name();
-
-        std::vector<unsigned> target_edge_pops;
-
-        // CSV read
-        unsigned tgt_vec_id = edge_types_.map()["target_pop_name"];
-        unsigned edge_vec_id = edge_types_.map()["pop_name"];
-
-        for (unsigned i = 0; i < edge_types_.data()[tgt_vec_id].size(); i++) {
-            if (edge_types_.data()[tgt_vec_id][i] == pop_name) {
-                auto edge_pop = edge_types_.data()[edge_vec_id][i];
-                target_edge_pops.push_back(edges_.map()[edge_pop]);
-            }
-        }
-
-        std::sort(target_edge_pops.begin(), target_edge_pops.end());
-        target_edge_pops.erase(std::unique(target_edge_pops.begin(), target_edge_pops.end()), target_edge_pops.end() );
-
-        unsigned sum = 0;
-        for (auto i: target_edge_pops) {
-            std::vector<std::pair<int, int>> target_edge_ranges;
-
-            auto ind_id = edges_[i].find_group("indicies");
-            auto s2t_id = edges_[i][ind_id].find_group("target_to_source");
-            auto n2r_range = edges_[i][ind_id][s2t_id].dataset_2i_at("node_id_to_ranges", pop_id);
-            for (auto j = n2r_range->first; j< n2r_range->second; j++) {
-                auto r2e = edges_[i][ind_id][s2t_id].dataset_2i_at("range_to_edge_id", j);
-                target_edge_ranges.push_back(r2e.value());
-            }
-            for (auto r: target_edge_ranges) {
-                sum += (r.second - r.first);
-            }
-        }
-        return sum;
-    }
+    unsigned num_targets(cell_gid_type gid);
 
 
 private:
@@ -675,4 +585,98 @@ std::vector<double> database::get_delay_range(
     }
 
     return out;
+}
+
+unsigned database::num_sources(cell_gid_type gid) {
+
+    unsigned i = 0;
+    for (; i < nodes_.partitions().size(); i++) {
+        if (gid < nodes_.partitions()[i]) {
+            break;
+        }
+    }
+
+    unsigned node_pop = i-1;
+    unsigned pop_id = gid - nodes_.partitions()[node_pop];
+    std::string pop_name = nodes_.populations()[node_pop].name();
+
+    std::vector<unsigned> source_edge_pops;
+
+    // CSV read
+    unsigned src_vec_id = edge_types_.map()["source_pop_name"];
+    unsigned edge_vec_id = edge_types_.map()["pop_name"];
+
+    for (unsigned i = 0; i < edge_types_.data()[src_vec_id].size(); i++) {
+        if (edge_types_.data()[src_vec_id][i] == pop_name) {
+            auto edge_pop = edge_types_.data()[edge_vec_id][i];
+            source_edge_pops.push_back(edges_.map()[edge_pop]);
+        }
+    }
+
+    std::sort(source_edge_pops.begin(), source_edge_pops.end());
+    source_edge_pops.erase(std::unique(source_edge_pops.begin(), source_edge_pops.end()), source_edge_pops.end() );
+
+    unsigned sum = 0;
+    for (auto i: source_edge_pops) {
+        std::vector<std::pair<int, int>> source_edge_ranges;
+
+        auto ind_id = edges_[i].find_group("indicies");
+        auto s2t_id = edges_[i][ind_id].find_group("source_to_target");
+        auto n2r_range = edges_[i][ind_id][s2t_id].dataset_2i_at("node_id_to_ranges", pop_id);
+        for (auto j = n2r_range->first; j< n2r_range->second; j++) {
+            auto r2e = edges_[i][ind_id][s2t_id].dataset_2i_at("range_to_edge_id", j);
+            source_edge_ranges.push_back(r2e.value());
+        }
+        for (auto r: source_edge_ranges) {
+            sum += (r.second - r.first);
+        }
+    }
+    return sum;
+}
+
+unsigned database::num_targets(cell_gid_type gid) {
+
+    unsigned i = 0;
+    for (; i < nodes_.partitions().size(); i++) {
+        if (gid < nodes_.partitions()[i]) {
+            break;
+        }
+    }
+
+    unsigned node_pop = i-1;
+    unsigned pop_id = gid - nodes_.partitions()[node_pop];
+    std::string pop_name = nodes_.populations()[node_pop].name();
+
+    std::vector<unsigned> target_edge_pops;
+
+    // CSV read
+    unsigned tgt_vec_id = edge_types_.map()["target_pop_name"];
+    unsigned edge_vec_id = edge_types_.map()["pop_name"];
+
+    for (unsigned i = 0; i < edge_types_.data()[tgt_vec_id].size(); i++) {
+        if (edge_types_.data()[tgt_vec_id][i] == pop_name) {
+            auto edge_pop = edge_types_.data()[edge_vec_id][i];
+            target_edge_pops.push_back(edges_.map()[edge_pop]);
+        }
+    }
+
+    std::sort(target_edge_pops.begin(), target_edge_pops.end());
+    target_edge_pops.erase(std::unique(target_edge_pops.begin(), target_edge_pops.end()), target_edge_pops.end() );
+
+    unsigned sum = 0;
+    for (auto i: target_edge_pops) {
+        std::vector<std::pair<int, int>> target_edge_ranges;
+
+        auto ind_id = edges_[i].find_group("indicies");
+        auto s2t_id = edges_[i][ind_id].find_group("target_to_source");
+        auto n2r_range = edges_[i][ind_id][s2t_id].dataset_2i_at("node_id_to_ranges", pop_id);
+        for (auto j = n2r_range->first; j< n2r_range->second; j++) {
+            auto r2e = edges_[i][ind_id][s2t_id].dataset_2i_at("range_to_edge_id", j);
+            target_edge_ranges.push_back(r2e.value());
+        }
+        for (auto r: target_edge_ranges) {
+            sum += (r.second - r.first);
+        }
+    }
+    return sum;
 }
