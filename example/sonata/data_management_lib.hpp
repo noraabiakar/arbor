@@ -253,7 +253,7 @@ void database::get_sources_and_targets(cell_gid_type gid,
             }
         }
     }
-    src.resize(source_maps_[gid].size());
+    src.resize(source_maps_[gid].size(), std::make_pair(arb::segment_location(0, 0.0), 0.0));
     for (auto s: source_maps_[gid]) {
         src[s.second] = std::make_pair(s.first, 10.0);
     }
@@ -289,7 +289,7 @@ void database::get_sources_and_targets(cell_gid_type gid,
             };
         }
     }
-    tgt.resize(target_maps_[gid].size());
+    tgt.resize(target_maps_[gid].size(), std::make_pair(arb::segment_location(0, 0.0), arb::mechanism_desc("")));
     for (auto t: target_maps_[gid]) {
         tgt[t.second] = std::make_pair(t.first, syn_map[t.second]);
     }
