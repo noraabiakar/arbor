@@ -155,9 +155,10 @@ void database::get_connections(cell_gid_type gid, std::vector<arb::cell_connecti
 
         auto ind_id = edges_[edge_pop].find_group("indicies");
         auto s2t_id = edges_[edge_pop][ind_id].find_group("target_to_source");
-        auto n2r_range = edges_[edge_pop][ind_id][s2t_id].int2_at("node_id_to_ranges", loc_node.node_id);
+        auto n2r_range = edges_[edge_pop][ind_id][s2t_id].int_pair_at("node_id_to_ranges", loc_node.node_id);
+
         for (auto j = n2r_range.first; j< n2r_range.second; j++) {
-            auto r2e = edges_[edge_pop][ind_id][s2t_id].int2_at("range_to_edge_id", j);
+            auto r2e = edges_[edge_pop][ind_id][s2t_id].int_pair_at("range_to_edge_id", j);
             source_edge_ranges.push_back(r2e);
         }
 
@@ -233,11 +234,13 @@ void database::get_sources_and_targets(cell_gid_type gid,
 
         auto ind_id = edges_[i].find_group("indicies");
         auto s2t_id = edges_[i][ind_id].find_group("source_to_target");
-        auto n2r_range = edges_[i][ind_id][s2t_id].int2_at("node_id_to_ranges", loc_node.node_id);
+        auto n2r_range = edges_[i][ind_id][s2t_id].int_pair_at("node_id_to_ranges", loc_node.node_id);
+
         for (auto j = n2r_range.first; j< n2r_range.second; j++) {
-            auto r2e = edges_[i][ind_id][s2t_id].int2_at("range_to_edge_id", j);
+            auto r2e = edges_[i][ind_id][s2t_id].int_pair_at("range_to_edge_id", j);
             source_edge_ranges.push_back(r2e);
         }
+        
         for (auto r: source_edge_ranges) {
             std::vector<arb::segment_location> sources;
             fill_source_range(i, r, sources);
@@ -277,9 +280,9 @@ void database::get_sources_and_targets(cell_gid_type gid,
 
         auto ind_id = edges_[i].find_group("indicies");
         auto t2s_id = edges_[i][ind_id].find_group("target_to_source");
-        auto n2r = edges_[i][ind_id][t2s_id].int2_at("node_id_to_ranges", loc_node.node_id);
+        auto n2r = edges_[i][ind_id][t2s_id].int_pair_at("node_id_to_ranges", loc_node.node_id);
         for (auto j = n2r.first; j< n2r.second; j++) {
-            auto r2e = edges_[i][ind_id][t2s_id].int2_at("range_to_edge_id", j);
+            auto r2e = edges_[i][ind_id][t2s_id].int_pair_at("range_to_edge_id", j);
             target_edge_ranges.push_back(r2e);
         }
         for (auto r: target_edge_ranges) {
@@ -626,9 +629,9 @@ unsigned database::num_sources(cell_gid_type gid) {
 
         auto ind_id = edges_[i].find_group("indicies");
         auto s2t_id = edges_[i][ind_id].find_group("source_to_target");
-        auto n2r_range = edges_[i][ind_id][s2t_id].int2_at("node_id_to_ranges", loc_node.node_id);
+        auto n2r_range = edges_[i][ind_id][s2t_id].int_pair_at("node_id_to_ranges", loc_node.node_id);
         for (auto j = n2r_range.first; j< n2r_range.second; j++) {
-            auto r2e = edges_[i][ind_id][s2t_id].int2_at("range_to_edge_id", j);
+            auto r2e = edges_[i][ind_id][s2t_id].int_pair_at("range_to_edge_id", j);
             source_edge_ranges.push_back(r2e);
         }
         for (auto r: source_edge_ranges) {
@@ -648,9 +651,9 @@ unsigned database::num_targets(cell_gid_type gid) {
 
         auto ind_id = edges_[i].find_group("indicies");
         auto s2t_id = edges_[i][ind_id].find_group("target_to_source");
-        auto n2r_range = edges_[i][ind_id][s2t_id].int2_at("node_id_to_ranges", loc_node.node_id);
+        auto n2r_range = edges_[i][ind_id][s2t_id].int_pair_at("node_id_to_ranges", loc_node.node_id);
         for (auto j = n2r_range.first; j< n2r_range.second; j++) {
-            auto r2e = edges_[i][ind_id][s2t_id].int2_at("range_to_edge_id", j);
+            auto r2e = edges_[i][ind_id][s2t_id].int_pair_at("range_to_edge_id", j);
             target_edge_ranges.push_back(r2e);
         }
         for (auto r: target_edge_ranges) {
