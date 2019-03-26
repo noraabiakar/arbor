@@ -104,6 +104,7 @@ private:
         return source_edge_pops;
     }
 
+    enum datatype { string_t, int_t, double_t };
     // list of targets
     std::vector<arb::segment_location> get_afferent_range(
             unsigned edge_pop_id,
@@ -125,6 +126,12 @@ private:
     std::vector<double> get_delay_range(
             unsigned edge_pop_id,
             std::pair<unsigned, unsigned> edge_range);
+
+    std::vector<arb::util::any> get_range_1d(
+            std::string field,
+            unsigned edge_pop_id,
+            std::pair<unsigned, unsigned> edge_range,
+            datatype t);
 
     hdf5_record nodes_;
     hdf5_record edges_;
@@ -283,10 +290,10 @@ void database::get_sources_and_targets(cell_gid_type gid,
         }
         for (auto r: target_edge_ranges) {
             auto temp_tgts = get_afferent_range(i, r);
-            auto temp_syn = get_synapses_range(i, r);
+            auto temp_syn = get_range_1d("model_template", i, r, datatype::string_t);
 
             for (unsigned i = 0; i< temp_tgts.size(); i++) {
-                gather_tgt.push_back(std::make_pair(temp_tgts[i], temp_syn[i]));
+                gather_tgt.push_back(std::make_pair(temp_tgts[i], arb::mechanism_desc(arb::util::any_cast<std::string>(temp_syn[i]))));
             }
         }
     }
@@ -438,6 +445,84 @@ std::vector<arb::segment_location> database::get_afferent_range(
     }
     return out;
 }
+
+
+std::vector<arb::util::any> database::get_range_1d(
+        std::string field,
+        unsigned edge_pop_id,
+        std::pair<unsigned, unsigned> edge_range,
+        datatype type)
+{
+    std::vector<arb::util::any> out;
+
+    // First read edge_group_id and edge_group_index and edge_type
+    auto edges_grp_id = edges_[edge_pop_id].int_range("edge_group_id", edge_range.first, edge_range.second);
+    auto edges_grp_idx = edges_[edge_pop_id].int_range("edge_group_index", edge_range.first, edge_range.second);
+    auto edges_type = edges_[edge_pop_id].int_range("edge_type_id", edge_range.first, edge_range.second);
+
+    std::vector<std::pair<arb::segment_location, arb::mechanism_desc>> temp;
+
+    for (unsigned i = 0; i < edges_grp_id.size(); i++) {
+        auto loc_grp_id = edges_grp_id[i];
+
+        arb::util::any data;
+        bool found_field = false;
+
+        // if the edges are in groups, for each edge find the group, if it exists
+        if (edges_[edge_pop_id].find_group(std::to_string(loc_grp_id)) != -1) {
+            auto group = edges_[edge_pop_id][std::to_string(loc_grp_id)];
+            auto loc_grp_idx = edges_grp_idx[i];
+            if (group.find_dataset(field) != -1) {
+                switch (type) {
+                case string_t:
+                    data = group.string_at(field, loc_grp_idx);
+                    break;
+                case int_t:
+                    data = group.int_at(field, loc_grp_id);
+                    break;
+                case double_t:
+                    data = group.double_at(field, loc_grp_id);
+                    break;
+                    default: break;
+                }
+                found_field = true;
+            }
+        }
+
+        // name and index of edge_type_id
+        auto e_type = edges_type[i];
+        unsigned type_idx = edge_types_.map()["edge_type_id"];
+
+        // find specific index of edge_type in type_idx
+        unsigned loc_type_idx;
+        for (loc_type_idx = 0; loc_type_idx < edge_types_.data()[type_idx].size(); loc_type_idx++) {
+            if (e_type == std::atoi(edge_types_.data()[type_idx][loc_type_idx].c_str())) {
+                break;
+            }
+        }
+
+        if (!found_field) {
+            unsigned synapse_idx = edge_types_.map()[field];
+            switch (type) {
+                case string_t:
+                    data = edge_types_.data()[synapse_idx][loc_type_idx];
+                    break;
+                case int_t:
+                    data = std::atoi(edge_types_.data()[synapse_idx][loc_type_idx].c_str());
+                    break;
+                case double_t:
+                    data = std::atof(edge_types_.data()[synapse_idx][loc_type_idx].c_str());
+                    break;
+                default: break;
+            }
+        }
+
+        out.emplace_back(data);
+    }
+
+    return out;
+}
+
 
 std::vector<arb::mechanism_desc> database::get_synapses_range(
         unsigned edge_pop_id,
@@ -598,7 +683,6 @@ std::vector<double> database::get_delay_range(
 }
 
 unsigned database::num_sources(cell_gid_type gid) {
-
     auto loc_node = localize(gid);
     auto source_edge_pops = edges_of_source(loc_node.pop_name);
 
@@ -621,7 +705,6 @@ unsigned database::num_sources(cell_gid_type gid) {
 }
 
 unsigned database::num_targets(cell_gid_type gid) {
-
     auto loc_node = localize(gid);
     auto target_edge_pops = edges_of_target(loc_node.pop_name);
 
