@@ -107,9 +107,18 @@ struct range_check_failure: arbor_exception {
     double value;
 };
 
-struct sonata_file_exception: std::runtime_error {
-    sonata_file_exception(const std::string& what_arg):
+struct sonata_exception: std::runtime_error {
+    sonata_exception(const std::string& what_arg):
             std::runtime_error(what_arg) {}
+};
+
+struct sonata_dataset_exception: sonata_exception {
+    sonata_dataset_exception(const std::string& name);
+    sonata_dataset_exception(const std::string& name, unsigned index);
+    sonata_dataset_exception(const std::string& name, unsigned i, unsigned j);
+
+    std::string name;
+    unsigned index;
 };
 
 } // namespace arb

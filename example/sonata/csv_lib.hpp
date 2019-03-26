@@ -15,11 +15,10 @@ public:
     csv_file(std::string filename, char delm = ',') :
             fileName(filename), delimeter(delm) { }
 
-    std::vector<std::vector<std::string> > get_data() {
+    std::vector<std::vector<std::string>> get_data() {
         std::ifstream file(fileName);
 
-        std::vector<std::vector<std::string> > data;
-
+        std::vector<std::vector<std::string>> data;
         std::string line;
 
         while (getline(file, line)) {
@@ -27,26 +26,13 @@ public:
             std::stringstream ss(line);
             std::string value;
 
-            while(getline(ss, value, delimeter))
-            {
+            while(getline(ss, value, delimeter)) {
                 vec.push_back(value);
             }
-
             data.push_back(vec);
         }
-
         file.close();
-
         return data;
-    }
-
-    void print() {
-        for(std::vector<std::string> vec : get_data()) {
-            for(std::string data : vec) {
-                std::cout<<data << ", ";
-            }
-            std::cout<<std::endl;
-        }
     }
 };
 
@@ -78,20 +64,6 @@ public:
 
     std::vector<std::vector<std::string>> data() {
         return data_;
-    }
-
-    void print() {
-        for (auto i: field_map_) {
-            std::cout << i.first << " " << i.second << std::endl;
-        }
-        std::cout << std::endl;
-        for (auto d: data_) {
-            for (auto m: d) {
-                std::cout << m << "\t";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << std::endl;
     }
 
 private:

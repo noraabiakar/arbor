@@ -82,5 +82,19 @@ range_check_failure::range_check_failure(const std::string& whatstr, double valu
     value(value)
 {}
 
+sonata_dataset_exception::sonata_dataset_exception(const std::string& name):
+    sonata_exception(pprintf("Dataset \"{}\" can not be opened/read", name)),
+    name(name)
+{}
+
+sonata_dataset_exception::sonata_dataset_exception(const std::string& name, unsigned index):
+        sonata_exception(pprintf("Dataset \"{}\" accessed out of bounds at: {}", name, index)),
+        name(name), index(index)
+{}
+
+sonata_dataset_exception::sonata_dataset_exception(const std::string& name, unsigned i, unsigned j):
+        sonata_exception(pprintf("Dataset \"{}\" accessed out of bounds between: {} and {}", name, i, j)),
+        name(name), index(i)
+{}
 } // namespace arb
 

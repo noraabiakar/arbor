@@ -56,16 +56,20 @@ public:
         hid_t dspace = H5Dget_space(id_);
 
         H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, &idx);
+
         hid_t out_mem = H5Screate_simple(dims, dim_sizes, NULL);
 
-        H5Dread(id_, H5T_NATIVE_INT, out_mem, dspace, H5P_DEFAULT, out);
+        auto status = H5Dread(id_, H5T_NATIVE_INT, out_mem, dspace, H5P_DEFAULT, out);
         H5Dclose(id_);
+
+        if (status < 0) {
+            throw arb::sonata_dataset_exception(name_, (unsigned)i);
+        }
 
         return out[0];
     }
 
     auto int_range(const int i, const int j) {
-
         hsize_t offset = i;
         hsize_t count = j-i;
         hsize_t stride = 1;
@@ -80,8 +84,12 @@ public:
         hid_t out_mem = H5Screate_simple(1, &dimsm, NULL);
 
         H5Sselect_hyperslab(dspace, H5S_SELECT_SET, &offset, &stride, &count, &block);
-        H5Dread(id_, H5T_NATIVE_INT, out_mem, dspace, H5P_DEFAULT, rdata);
+        auto status = H5Dread(id_, H5T_NATIVE_INT, out_mem, dspace, H5P_DEFAULT, rdata);
         H5Dclose(id_);
+
+        if (status < 0) {
+            throw arb::sonata_dataset_exception(name_, (unsigned)i, (unsigned)j);
+        }
 
         std::vector<int> out(rdata, rdata + count);
 
@@ -107,14 +115,17 @@ public:
         H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, &idx);
         hid_t out_mem = H5Screate_simple(dims, dim_sizes, NULL);
 
-        H5Dread(id_, H5T_NATIVE_DOUBLE, out_mem, dspace, H5P_DEFAULT, out);
+        auto status = H5Dread(id_, H5T_NATIVE_DOUBLE, out_mem, dspace, H5P_DEFAULT, out);
         H5Dclose(id_);
+
+        if (status < 0) {
+            throw arb::sonata_dataset_exception(name_, (unsigned)i);
+        }
 
         return out[0];
     }
 
     auto double_range(const int i, const int j) {
-
         hsize_t offset = i;
         hsize_t count = j-i;
         hsize_t stride = 1;
@@ -129,8 +140,13 @@ public:
         hid_t out_mem = H5Screate_simple(1, &dimsm, NULL);
 
         H5Sselect_hyperslab(dspace, H5S_SELECT_SET, &offset, &stride, &count, &block);
-        H5Dread(id_, H5T_NATIVE_DOUBLE, out_mem, dspace, H5P_DEFAULT, rdata);
+
+        auto status = H5Dread(id_, H5T_NATIVE_DOUBLE, out_mem, dspace, H5P_DEFAULT, rdata);
         H5Dclose(id_);
+
+        if (status < 0) {
+            throw arb::sonata_dataset_exception(name_, (unsigned)i, (unsigned)j);
+        }
 
         std::vector<double> out(rdata, rdata + count);
 
@@ -156,8 +172,12 @@ public:
         H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, &idx);
         hid_t out_mem = H5Screate_simple(dims, dim_sizes, NULL);
 
-        H5Dread(id_, H5T_NATIVE_CHAR, out_mem, dspace, H5P_DEFAULT, out);
+        auto status = H5Dread(id_, H5T_NATIVE_CHAR, out_mem, dspace, H5P_DEFAULT, out);
         H5Dclose(id_);
+
+        if (status < 0) {
+            throw arb::sonata_dataset_exception(name_, (unsigned)i);
+        }
 
         return out[0];
     }
@@ -181,40 +201,52 @@ public:
         H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, idx_0);
         hid_t out_mem_0 = H5Screate_simple(dims, dim_sizes, NULL);
 
-        H5Dread(id_, H5T_NATIVE_INT, out_mem_0, dspace, H5P_DEFAULT, &out_0);
+        auto status0 = H5Dread(id_, H5T_NATIVE_INT, out_mem_0, dspace, H5P_DEFAULT, &out_0);
 
         const hsize_t idx_1[2] = {(hsize_t)i, (hsize_t)1};
 
         H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, idx_1);
         hid_t out_mem_1 = H5Screate_simple(dims, dim_sizes, NULL);
 
-        H5Dread(id_, H5T_NATIVE_INT, out_mem_1, dspace, H5P_DEFAULT, &out_1);
+        auto status1 = H5Dread(id_, H5T_NATIVE_INT, out_mem_1, dspace, H5P_DEFAULT, &out_1);
 
         H5Dclose(id_);
+
+        if (status0 < 0 || status1 < 0) {
+            throw arb::sonata_dataset_exception(name_, (unsigned)i);
+        }
 
         return std::make_pair(out_0, out_1);
     }
 
-    auto all_1d() {
+    auto all_int_1d() {
         int out_a[size_];
         id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
 
-        H5Dread(id_, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+        auto status = H5Dread(id_, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
                 out_a);
         H5Dclose(id_);
+
+        if (status < 0) {
+            throw arb::sonata_dataset_exception(name_);
+        }
 
         std::vector<int> out(out_a, out_a + size_);
 
         return out;
     }
 
-    auto all_2d() {
+    auto all_int_2d() {
         int out_a[size_][2];
         id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
 
-        H5Dread(id_, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+        auto status = H5Dread(id_, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
                 out_a);
         H5Dclose(id_);
+
+        if (status < 0) {
+            throw arb::sonata_dataset_exception(name_);
+        }
 
         std::vector<std::pair<int, int>> out(size_);
         for (unsigned i = 0; i < size_; i++) {
@@ -299,28 +331,23 @@ public:
                             std::cout << "\t\t\t\t\t" << g4->name() << std::endl;
                         }
                         for (auto d4: g3->datasets_) {
-                            std::cout << "\t\t\t\t\t" << d4->name() << " " << d4->size() << " ";
-                            std::cout << d4->int2_at(0).first << ", " << d4->int2_at(0).second << std::endl;
+                            std::cout << "\t\t\t\t\t" << d4->name() << " " << d4->size() << std::endl;
                         }
                     }
                     for (auto d3: g2->datasets_) {
-                        std::cout << "\t\t\t\t" << d3->name() << " " << d3->size() << " ";
-                        std::cout << d3->int_at(0) << std::endl;
+                        std::cout << "\t\t\t\t" << d3->name() << " " << d3->size() << std::endl;
                     }
                 }
                 for (auto d2: g1->datasets_) {
-                    std::cout << "\t\t\t" << d2->name() << " " << d2->size() << " ";
-                    std::cout << d2->int_at(0) << std::endl;
+                    std::cout << "\t\t\t" << d2->name() << " " << d2->size() << std::endl;
                 }
             }
             for (auto d1: g0->datasets_) {
-                std::cout << "\t\t" << d1->name() << " " << d1->size() << " ";
-                std::cout << d1->int_at(0) << std::endl;
+                std::cout << "\t\t" << d1->name() << " " << d1->size() << std::endl;
             }
         }
         for (auto d0: top_group_->datasets_) {
-            std::cout << "\t" << d0->name() << " " << d0->size() << " ";
-            std::cout << d0->int_at(0) << std::endl;
+            std::cout << "\t" << d0->name() << " " << d0->size() << std::endl;
         }
     }
 
@@ -337,11 +364,11 @@ public:
 
 ///////////////////////////////////////////////////////////
 
-class dataspace {
+class h5_wrapper {
 public:
-    dataspace() {}
+    h5_wrapper() {}
 
-    dataspace(const std::shared_ptr<h5_group>& g): ptr(g) {
+    h5_wrapper(const std::shared_ptr<h5_group>& g): ptr(g) {
         unsigned i = 0;
         for (auto d: ptr->datasets_) {
             dset_map[d->name()] = i++;
@@ -371,71 +398,74 @@ public:
         return -1;
     }
 
-    arb::util::optional<int> dataset_i_at(std::string name, unsigned i) {
+    int int_at(std::string name, unsigned i) {
         if (find_dataset(name) != -1) {
             return ptr->datasets_[dset_map[name]]->int_at(i);
         }
-        return arb::util::nullopt;
+        throw arb::sonata_dataset_exception(name);
     }
 
-    arb::util::optional<double> dataset_d_at(std::string name, unsigned i) {
+    double double_at(std::string name, unsigned i) {
         if (find_dataset(name) != -1) {
             return ptr->datasets_[dset_map[name]]->double_at(i);
         }
-        return arb::util::nullopt;
+        throw arb::sonata_dataset_exception(name);
     }
 
-    arb::util::optional<std::string> dataset_s_at(std::string name, unsigned i) {
+    std::string string_at(std::string name, unsigned i) {
         if (find_dataset(name) != -1) {
             return std::to_string(ptr->datasets_[dset_map[name]]->string_at(i));
         }
-        return arb::util::nullopt;
+        throw arb::sonata_dataset_exception(name);
     }
 
-    arb::util::optional<std::pair<int, int>> dataset_2i_at(std::string name, unsigned i) {
+    std::pair<int, int> int2_at(std::string name, unsigned i) {
         if (find_dataset(name)!= -1) {
             return ptr->datasets_[dset_map[name]]->int2_at(i);
         }
-        return arb::util::nullopt;
+        throw arb::sonata_dataset_exception(name);
     }
 
-    arb::util::optional<std::vector<int>> dataset_1d(std::string name) {
+    std::vector<int> int_1d(std::string name) {
         if (find_dataset(name)!= -1) {
-            return ptr->datasets_[dset_map[name]]->all_1d();
+            return ptr->datasets_[dset_map[name]]->all_int_1d();
         }
-        return arb::util::nullopt;
+        throw arb::sonata_dataset_exception(name);
     }
 
-    arb::util::optional<std::vector<std::pair<int, int>>> dataset_2d(std::string name) {
+    std::vector<std::pair<int, int>> double_2d(std::string name) {
         if (find_dataset(name)!= -1) {
-            return ptr->datasets_[dset_map[name]]->all_2d();
+            return ptr->datasets_[dset_map[name]]->all_int_2d();
         }
-        return arb::util::nullopt;
+        throw arb::sonata_dataset_exception(name);
     }
 
-    arb::util::optional<std::vector<int>> dataset_int_range(std::string name, unsigned i, unsigned j) {
+    std::vector<int> int_range(std::string name, unsigned i, unsigned j) {
         if (find_dataset(name)!= -1) {
             return ptr->datasets_[dset_map[name]]->int_range(i, j);
         }
-        return arb::util::nullopt;
+        throw arb::sonata_dataset_exception(name);
     }
 
-    arb::util::optional<std::vector<double>> dataset_double_range(std::string name, unsigned i, unsigned j) {
+    std::vector<double> double_range(std::string name, unsigned i, unsigned j) {
         if (find_dataset(name)!= -1) {
             return ptr->datasets_[dset_map[name]]->double_range(i, j);
         }
-        return arb::util::nullopt;
+        throw arb::sonata_dataset_exception(name);
     }
 
-    dataspace operator [](int i) const {
-        return members[i];
+    h5_wrapper operator [](unsigned i) const {
+        if (i < members.size()) {
+            return members[i];
+        }
+        throw arb::sonata_exception("h5_wrapper index out of range");
     }
 
-    arb::util::optional<dataspace> operator [](std::string name) {
+    h5_wrapper operator [](std::string name) {
         if (find_group(name) != -1) {
             return members[find_group(name)];
         }
-        return arb::util::nullopt;
+        throw arb::sonata_dataset_exception(name);
     }
     std::string name() {
         return ptr->name();
@@ -443,7 +473,7 @@ public:
 
 private:
     std::shared_ptr<h5_group> ptr;
-    std::vector<dataspace> members;
+    std::vector<h5_wrapper> members;
     std::unordered_map<std::string, unsigned> dset_map;
     std::unordered_map<std::string, unsigned> member_map;
 };
@@ -453,7 +483,7 @@ class hdf5_record {
 public:
     hdf5_record(const std::shared_ptr<h5_file>& file) {
         if (file->top_group_->groups_.size() != 1) {
-            throw arb::sonata_file_exception("file hierarchy wrong\n");
+            throw arb::sonata_exception("file hierarchy wrong\n");
         }
 
         unsigned idx = 0;
@@ -473,7 +503,7 @@ public:
         }
     }
 
-    std::vector<dataspace> populations() {
+    std::vector<h5_wrapper> populations() {
         return populations_;
     }
 
@@ -489,7 +519,7 @@ public:
         return num_elements_;
     }
 
-    dataspace operator [](int i) const {
+    h5_wrapper operator [](int i) const {
         return populations_[i];
     }
 
@@ -500,6 +530,6 @@ public:
 private:
     int num_elements_ = 0;
     std::vector<cell_size_type> partition_;
-    std::vector<dataspace> populations_;
+    std::vector<h5_wrapper> populations_;
     std::unordered_map<std::string, unsigned> map_;
 };
