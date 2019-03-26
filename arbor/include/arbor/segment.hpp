@@ -36,6 +36,8 @@ struct mechanism_desc {
         }
     };
 
+    mechanism_desc(): name_("") {}
+
     // implicit
     mechanism_desc(std::string name): name_(std::move(name)) {}
     mechanism_desc(const char* name): name_(name) {}

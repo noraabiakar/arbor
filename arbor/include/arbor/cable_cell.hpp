@@ -25,6 +25,7 @@ struct cable_cell_error: arbor_exception {
 // Location specification for point processes.
 
 struct segment_location {
+    segment_location() : segment(0), position(0.0) {}
     segment_location(cell_lid_type s, double l):
         segment(s), position(l)
     {

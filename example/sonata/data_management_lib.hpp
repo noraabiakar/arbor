@@ -16,6 +16,18 @@ using arb::cell_kind;
 using arb::time_type;
 using arb::cell_probe_address;
 
+template<> struct std::hash<arb::segment_location>
+{
+    typedef arb::segment_location argument_type;
+    typedef std::size_t result_type;
+    result_type operator()(argument_type const& s) const noexcept
+    {
+        result_type const h1 ( std::hash<unsigned>{}(s.segment) );
+        result_type const h2 ( std::hash<double>{}(s.position) );
+        return h1 ^ (h2 << 1); // or use boost::hash_combine (see Discussion)
+    }
+};
+
 class database {
 public:
     database(hdf5_record nodes, hdf5_record edges, csv_record node_types, csv_record edge_types):
@@ -137,8 +149,8 @@ private:
     csv_record node_types_;
     csv_record edge_types_;
 
-    std::unordered_map<cell_gid_type , std::vector<arb::segment_location>> source_lists_;
-    std::unordered_map<cell_gid_type , std::vector<arb::segment_location>> target_lists_;
+    std::unordered_map<cell_gid_type, std::unordered_map<arb::segment_location, unsigned>> source_maps_;
+    std::unordered_map<cell_gid_type, std::unordered_map<arb::segment_location, unsigned>> target_maps_;
 };
 
 void database::get_connections(cell_gid_type gid, std::vector<arb::cell_connection>& conns) {
@@ -173,41 +185,29 @@ void database::get_connections(cell_gid_type gid, std::vector<arb::cell_connecti
 
             for(unsigned t = 0; t < targets_t.size(); t++) {
                 // if we can't find the target in target_lists, its cell hasn't been constructed yet
-                bool found = false;
-                unsigned loc = 0;
-                for (; loc < target_lists_[gid].size(); loc++) {
-                    if (targets_t[t] == target_lists_[gid][loc]) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    target_lists_[gid].push_back(targets_t[t]);
-                    targets.push_back({gid, (unsigned)(target_lists_[gid].size()-1)});
+                auto loc = target_maps_[gid].find(targets_t[t]);
+                if (loc == target_maps_[gid].end()) {
+                    auto p = target_maps_[gid].size();
+                    target_maps_[gid][targets_t[t]] = p;
+                    targets.push_back({gid, (unsigned)p});
                 }
                 else {
-                    targets.push_back({gid, loc});
+                    targets.push_back({gid, loc->second});
                 }
             }
 
             for(unsigned s = 0; s < sources_t.size(); s++) {
                 auto source_gid = src_id[s] + nodes_.partitions()[source_pop];
 
-                // if we can't find the source in sources_lists, its cell hasn't been constructed yet
-                bool found = false;
-                unsigned loc = 0;
-                for (; loc < source_lists_[source_gid].size(); loc++) {
-                    if (sources_t[s] == source_lists_[source_gid][loc]) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    source_lists_[source_gid].push_back(sources_t[s]);
-                    sources.push_back({source_gid, (unsigned)(source_lists_[source_gid].size()-1)});
+                // if we can't find the target in target_lists, its cell hasn't been constructed yet
+                auto loc = source_maps_[gid].find(sources_t[s]);
+                if (loc == source_maps_[gid].end()) {
+                    auto p = source_maps_[gid].size();
+                    source_maps_[gid][sources_t[s]] = p;
+                    sources.push_back({source_gid, (unsigned)p});
                 }
                 else {
-                    sources.push_back({source_gid, loc});
+                    sources.push_back({source_gid, loc->second});
                 }
             }
 
@@ -240,41 +240,25 @@ void database::get_sources_and_targets(cell_gid_type gid,
             auto r2e = edges_[i][ind_id][s2t_id].int_pair_at("range_to_edge_id", j);
             source_edge_ranges.push_back(r2e);
         }
-        
+
         for (auto r: source_edge_ranges) {
             std::vector<arb::segment_location> sources;
             fill_source_range(i, r, sources);
 
             for (unsigned j = 0; j< sources.size(); j++) {
-                gather_src.push_back(std::make_pair(sources[j], 10));
+                auto loc = source_maps_[gid].find(sources[j]);
+                if (loc == source_maps_[gid].end()) {
+                    source_maps_[gid][sources[j]] = source_maps_[gid].size();
+                }
             }
         }
     }
-
-    // Order sources
-    std::sort(gather_src.begin(), gather_src.end(), [](const auto &a, const auto& b) -> bool
-    {
-        return std::tie(a.first.segment, a.first.position) < std::tie(b.first.segment, b.first.position);
-    });
-
-    for (auto s : source_lists_[gid]) {
-        auto s_pos = std::lower_bound(gather_src.begin(), gather_src.end(), s,
-                                      [](const std::pair<arb::segment_location, double>& lhs, const arb::segment_location& rhs) -> bool
-                                      { return std::tie(lhs.first.segment, lhs.first.position) < std::tie(rhs.segment, rhs.position); });
-        if (s_pos != gather_src.end()) {
-            if ((*s_pos).first == s) {
-                src.push_back(*s_pos);
-                gather_src.erase(s_pos);
-            }
-        }
+    src.resize(source_maps_[gid].size());
+    for (auto s: source_maps_[gid]) {
+        src[s.second] = std::make_pair(s.first, 10.0);
     }
 
-    for (auto s : gather_src) {
-        src.push_back(s);
-        source_lists_[gid].push_back(s.first);
-    }
-
-    std::vector<std::pair<arb::segment_location, arb::mechanism_desc>> gather_tgt;
+    std::unordered_map<unsigned, std::string> syn_map;
     for (auto i: target_edge_pops) {
         std::vector<std::pair<int, int>> target_edge_ranges;
 
@@ -293,33 +277,21 @@ void database::get_sources_and_targets(cell_gid_type gid,
             fill_range_of("model_template", i, r, datatype::string_t, syns);
 
             for (unsigned j = 0; j< targets.size(); j++) {
-                gather_tgt.push_back(std::make_pair(targets[j], arb::mechanism_desc(arb::util::any_cast<std::string>(syns[i]))));
-            }
+                auto loc = target_maps_[gid].find(targets[j]);
+                if (loc == target_maps_[gid].end()) {
+                    auto p = target_maps_[gid].size();
+                    target_maps_[gid][targets[j]] = p;
+                    syn_map[p] = arb::util::any_cast<std::string>(syns[j]);
+                }
+                else {
+                    syn_map[loc->second] = arb::util::any_cast<std::string>(syns[j]);
+                }
+            };
         }
     }
-
-    // Order targets
-
-    std::sort(gather_tgt.begin(), gather_tgt.end(), [](const auto &a, const auto& b) -> bool
-    {
-        return std::tie(a.first.segment, a.first.position) < std::tie(b.first.segment, b.first.position);
-    });
-
-    for (auto t : target_lists_[gid]) {
-        auto t_pos = std::lower_bound(gather_tgt.begin(), gather_tgt.end(), t,
-                                      [](const std::pair<arb::segment_location, arb::mechanism_desc>& lhs, const arb::segment_location& rhs) -> bool
-                                      { return std::tie(lhs.first.segment, lhs.first.position) < std::tie(rhs.segment, rhs.position); });
-        if (t_pos != gather_tgt.end()) {
-            if ((*t_pos).first == t) {
-                tgt.push_back(*t_pos);
-                gather_tgt.erase(t_pos);
-            }
-        }
-    }
-
-    for (auto t : gather_tgt) {
-        tgt.push_back(t);
-        target_lists_[gid].push_back(t.first);
+    tgt.resize(target_maps_[gid].size());
+    for (auto t: target_maps_[gid]) {
+        tgt[t.second] = std::make_pair(t.first, syn_map[t.second]);
     }
 }
 
