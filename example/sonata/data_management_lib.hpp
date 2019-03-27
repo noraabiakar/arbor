@@ -16,13 +16,29 @@ using arb::cell_kind;
 using arb::time_type;
 using arb::cell_probe_address;
 
-template<> struct std::hash<arb::segment_location>
+using source_type = std::pair<arb::segment_location,double>;
+template<> struct std::hash<source_type>
 {
-    std::size_t operator()(arb::segment_location const& s) const noexcept
+    std::size_t operator()(const source_type& s) const noexcept
     {
-        std::size_t const h1(std::hash<unsigned>{}(s.segment));
-        std::size_t const h2(std::hash<double>{}(s.position));
-        return h1 ^ (h2 << 1);
+        std::size_t const h1(std::hash<unsigned>{}(s.first.segment));
+        std::size_t const h2(std::hash<double>{}(s.first.position));
+        std::size_t const h3(std::hash<double>{}(s.second));
+        auto h1_2 = h1 ^ (h2 << 1);
+        return (h1_2 >> 1) ^ (h3 << 1);
+    }
+};
+
+using target_type = std::pair<arb::segment_location,std::string>;
+template<> struct std::hash<target_type>
+{
+    std::size_t operator()(const target_type& s) const noexcept
+    {
+        std::size_t const h1(std::hash<unsigned>{}(s.first.segment));
+        std::size_t const h2(std::hash<double>{}(s.first.position));
+        std::size_t const h3(std::hash<std::string>{}(s.second));
+        auto h1_2 = h1 ^ (h2 << 1);
+        return (h1_2 >> 1) ^ (h3 << 1);
     }
 };
 
@@ -146,8 +162,8 @@ private:
     csv_record node_types_;
     csv_record edge_types_;
 
-    std::unordered_map<cell_gid_type, std::unordered_map<arb::segment_location, unsigned>> source_maps_;
-    std::unordered_map<cell_gid_type, std::unordered_map<arb::segment_location, unsigned>> target_maps_;
+    std::unordered_map<cell_gid_type, std::unordered_map<source_type, unsigned>> source_maps_;
+    std::unordered_map<cell_gid_type, std::unordered_map<target_type, unsigned>> target_maps_;
 };
 
 void database::get_connections(cell_gid_type gid, std::vector<arb::cell_connection>& conns) {
@@ -160,51 +176,54 @@ void database::get_connections(cell_gid_type gid, std::vector<arb::cell_connecti
         auto edge_pop = i.first;
         auto source_pop = i.second;
 
-        std::vector<std::pair<int, int>> source_edge_ranges;
-
         auto ind_id = edges_[edge_pop].find_group("indicies");
         auto s2t_id = edges_[edge_pop][ind_id].find_group("target_to_source");
         auto n2r_range = edges_[edge_pop][ind_id][s2t_id].int_pair_at("node_id_to_ranges", loc_node.node_id);
 
         for (auto j = n2r_range.first; j< n2r_range.second; j++) {
             auto r2e = edges_[edge_pop][ind_id][s2t_id].int_pair_at("range_to_edge_id", j);
-            source_edge_ranges.push_back(r2e);
-        }
 
-        for (unsigned j = 0; j< source_edge_ranges.size(); j++) {
             std::vector<arb::segment_location> targets_t, sources_t;
             std::vector<double> weights, delays;
-            fill_conn_range(edge_pop, source_edge_ranges[j], sources_t, targets_t, weights, delays);
+            fill_conn_range(edge_pop, r2e, sources_t, targets_t, weights, delays);
 
-            auto src_id = edges_[edge_pop].int_range("source_node_id", source_edge_ranges[j].first, source_edge_ranges[j].second);
+            std::vector<arb::util::any> thresholds;
+            fill_range_of("threshold", edge_pop, r2e, datatype::double_t, thresholds);
+
+            std::vector<arb::util::any> syns;
+            fill_range_of("model_template", edge_pop, r2e, datatype::string_t, syns);
+
+            auto src_id = edges_[edge_pop].int_range("source_node_id", r2e.first, r2e.second);
 
             std::vector<cell_member_type> sources, targets;
-
-            for(unsigned t = 0; t < targets_t.size(); t++) {
-                // if we can't find the target in target_lists, its cell hasn't been constructed yet
-                auto loc = target_maps_[gid].find(targets_t[t]);
-                if (loc == target_maps_[gid].end()) {
-                    auto p = target_maps_[gid].size();
-                    target_maps_[gid][targets_t[t]] = p;
-                    targets.push_back({gid, (unsigned)p});
-                }
-                else {
-                    targets.push_back({gid, loc->second});
-                }
-            }
 
             for(unsigned s = 0; s < sources_t.size(); s++) {
                 auto source_gid = globalize({source_pop, (cell_gid_type)src_id[s]});
 
                 // if we can't find the target in target_lists, its cell hasn't been constructed yet
-                auto loc = source_maps_[gid].find(sources_t[s]);
+                source_type source_pair = std::make_pair(sources_t[s], arb::util::any_cast<double>(thresholds[s]));
+                auto loc = source_maps_[gid].find(source_pair);
                 if (loc == source_maps_[gid].end()) {
                     auto p = source_maps_[gid].size();
-                    source_maps_[gid][sources_t[s]] = p;
+                    source_maps_[gid][source_pair] = p;
                     sources.push_back({source_gid, (unsigned)p});
                 }
                 else {
                     sources.push_back({source_gid, loc->second});
+                }
+            }
+
+            for(unsigned t = 0; t < targets_t.size(); t++) {
+                // if we can't find the target in target_lists, its cell hasn't been constructed yet
+                target_type target_pair = std::make_pair(targets_t[t], arb::util::any_cast<std::string>(syns[t]));
+                auto loc = target_maps_[gid].find(target_pair);
+                if (loc == target_maps_[gid].end()) {
+                    auto p = target_maps_[gid].size();
+                    target_maps_[gid][target_pair] = p;
+                    targets.push_back({gid, (unsigned)p});
+                }
+                else {
+                    targets.push_back({gid, loc->second});
                 }
             }
 
@@ -223,71 +242,57 @@ void database::get_sources_and_targets(cell_gid_type gid,
     auto source_edge_pops = edges_of_source(loc_node.pop_id);
     auto target_edge_pops = edges_of_target(loc_node.pop_id);
 
-    std::vector<std::pair<arb::segment_location, double>> gather_src;
-
     for (auto i: source_edge_pops) {
-        std::vector<std::pair<int, int>> source_edge_ranges;
-
         auto ind_id = edges_[i].find_group("indicies");
         auto s2t_id = edges_[i][ind_id].find_group("source_to_target");
         auto n2r_range = edges_[i][ind_id][s2t_id].int_pair_at("node_id_to_ranges", loc_node.node_id);
 
         for (auto j = n2r_range.first; j< n2r_range.second; j++) {
             auto r2e = edges_[i][ind_id][s2t_id].int_pair_at("range_to_edge_id", j);
-            source_edge_ranges.push_back(r2e);
-        }
-
-        for (auto r: source_edge_ranges) {
             std::vector<arb::segment_location> sources;
-            fill_source_range(i, r, sources);
+            fill_source_range(i, r2e, sources);
+
+            std::vector<arb::util::any> thresholds;
+            fill_range_of("threshold", i, r2e, datatype::double_t, thresholds);
 
             for (unsigned j = 0; j< sources.size(); j++) {
-                auto loc = source_maps_[gid].find(sources[j]);
+                source_type source_pair = std::make_pair(sources[j], arb::util::any_cast<double>(thresholds[j]));
+                auto loc = source_maps_[gid].find(source_pair);
                 if (loc == source_maps_[gid].end()) {
-                    source_maps_[gid][sources[j]] = source_maps_[gid].size();
+                    source_maps_[gid][source_pair] = source_maps_[gid].size();
                 }
             }
         }
     }
     src.resize(source_maps_[gid].size(), std::make_pair(arb::segment_location(0, 0.0), 0.0));
     for (auto s: source_maps_[gid]) {
-        src[s.second] = std::make_pair(s.first, 10.0);
+        src[s.second] = s.first;
     }
 
-    std::unordered_map<unsigned, std::string> syn_map;
     for (auto i: target_edge_pops) {
-        std::vector<std::pair<int, int>> target_edge_ranges;
-
         auto ind_id = edges_[i].find_group("indicies");
         auto t2s_id = edges_[i][ind_id].find_group("target_to_source");
         auto n2r = edges_[i][ind_id][t2s_id].int_pair_at("node_id_to_ranges", loc_node.node_id);
         for (auto j = n2r.first; j< n2r.second; j++) {
             auto r2e = edges_[i][ind_id][t2s_id].int_pair_at("range_to_edge_id", j);
-            target_edge_ranges.push_back(r2e);
-        }
-        for (auto r: target_edge_ranges) {
             std::vector<arb::segment_location> targets;
-            fill_target_range(i, r, targets);
+            fill_target_range(i, r2e, targets);
 
             std::vector<arb::util::any> syns;
-            fill_range_of("model_template", i, r, datatype::string_t, syns);
+            fill_range_of("model_template", i, r2e, datatype::string_t, syns);
 
             for (unsigned j = 0; j< targets.size(); j++) {
-                auto loc = target_maps_[gid].find(targets[j]);
+                target_type target_pair = std::make_pair(targets[j], arb::util::any_cast<std::string>(syns[j]));
+                auto loc = target_maps_[gid].find(target_pair);
                 if (loc == target_maps_[gid].end()) {
-                    auto p = target_maps_[gid].size();
-                    target_maps_[gid][targets[j]] = p;
-                    syn_map[p] = arb::util::any_cast<std::string>(syns[j]);
-                }
-                else {
-                    syn_map[loc->second] = arb::util::any_cast<std::string>(syns[j]);
+                    target_maps_[gid][target_pair] = target_maps_[gid].size();
                 }
             };
         }
     }
     tgt.resize(target_maps_[gid].size(), std::make_pair(arb::segment_location(0, 0.0), arb::mechanism_desc("")));
     for (auto t: target_maps_[gid]) {
-        tgt[t.second] = std::make_pair(t.first, syn_map[t.second]);
+        tgt[t.second] = std::make_pair(t.first.first, arb::mechanism_desc(t.first.second));
     }
 }
 
