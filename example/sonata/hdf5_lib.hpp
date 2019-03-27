@@ -219,7 +219,7 @@ public:
         return std::make_pair(out_0, out_1);
     }
 
-    auto all_int_1d() {
+    auto int_1d() {
         int out_a[size_];
         id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
 
@@ -232,11 +232,10 @@ public:
         }
 
         std::vector<int> out(out_a, out_a + size_);
-
         return out;
     }
 
-    auto all_int_2d() {
+    auto int_2d() {
         int out_a[size_][2];
         id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
 
@@ -442,18 +441,17 @@ public:
 
     std::vector<int> int_1d(std::string name) {
         if (find_dataset(name)!= -1) {
-            return ptr->datasets_[dset_map[name]]->all_int_1d();
+            return ptr->datasets_[dset_map[name]]->int_1d();
         }
         throw arb::sonata_dataset_exception(name);
     }
 
     std::vector<std::pair<int, int>> int_2d(std::string name) {
         if (find_dataset(name)!= -1) {
-            return ptr->datasets_[dset_map[name]]->all_int_2d();
+            return ptr->datasets_[dset_map[name]]->int_2d();
         }
         throw arb::sonata_dataset_exception(name);
     }
-
 
     h5_wrapper operator [](unsigned i) const {
         if (i < members.size() && i >= 0) {
@@ -462,12 +460,6 @@ public:
         throw arb::sonata_exception("h5_wrapper index out of range");
     }
 
-    h5_wrapper operator [](std::string name) {
-        if (find_group(name) != -1) {
-            return members[find_group(name)];
-        }
-        throw arb::sonata_dataset_exception(name);
-    }
     std::string name() {
         return ptr->name();
     }
@@ -496,7 +488,7 @@ public:
         partition_.push_back(0);
         for (auto& p: file->top_group_->groups_.front()->groups_) {
             for(auto& d: p->datasets_) {
-                if(d->name().find("type_id") != std::string::npos) {
+                if (d->name().find("type_id") != std::string::npos) {
                     num_elements_ += d->size();
                     partition_.push_back(num_elements_);
                 }
@@ -504,16 +496,31 @@ public:
         }
     }
 
-    std::vector<h5_wrapper> populations() {
-        return populations_;
+    void verify_edges() {
+        for (auto& p: populations()) {
+            if (p.find_group("indicies") == -1) {
+                throw arb::sonata_exception("indicies group must be available in all edge population groups ");
+            }
+            if (p.find_dataset("edge_type_id") == -1) {
+                throw arb::sonata_exception("edge_type_id dataset not provided in edge populations");
+            }
+            if (p.find_dataset("edge_id") != -1) {
+                throw arb::sonata_exception("edge_id datasets not supported; "
+                                            "ids are automatically assigned contiguously starting from 0");
+            }
+        }
     }
 
-    unsigned num_populations() {
-        return populations().size();
-    }
-
-    std::vector<cell_size_type> partitions() {
-        return partition_;
+    void verify_nodes() {
+        for (auto& p: populations()) {
+            if (p.find_dataset("node_type_id") == -1) {
+                throw arb::sonata_exception("node_type_id dataset not provided in node populations");
+            }
+            if (p.find_dataset("node_id") != -1) {
+                throw arb::sonata_exception("node_id datasets not supported; "
+                                            "ids are automatically assigned contiguously starting from 0");
+            }
+        }
     }
 
     int num_elements() {
@@ -522,6 +529,14 @@ public:
 
     h5_wrapper operator [](int i) const {
         return populations_[i];
+    }
+
+    std::vector<h5_wrapper> populations() {
+        return populations_;
+    }
+
+    std::vector<cell_size_type> partitions() {
+        return partition_;
     }
 
     std::unordered_map<std::string, unsigned> map() {

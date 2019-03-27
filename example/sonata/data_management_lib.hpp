@@ -18,13 +18,11 @@ using arb::cell_probe_address;
 
 template<> struct std::hash<arb::segment_location>
 {
-    typedef arb::segment_location argument_type;
-    typedef std::size_t result_type;
-    result_type operator()(argument_type const& s) const noexcept
+    std::size_t operator()(arb::segment_location const& s) const noexcept
     {
-        result_type const h1 ( std::hash<unsigned>{}(s.segment) );
-        result_type const h2 ( std::hash<double>{}(s.position) );
-        return h1 ^ (h2 << 1); // or use boost::hash_combine (see Discussion)
+        std::size_t const h1(std::hash<unsigned>{}(s.segment));
+        std::size_t const h2(std::hash<double>{}(s.position));
+        return h1 ^ (h2 << 1);
     }
 };
 
@@ -49,33 +47,32 @@ public:
 private:
 
     struct local_node{
-        std::string pop_name;
-        unsigned pop_id;
+        cell_gid_type pop_id;
         cell_gid_type node_id;
-
-        local_node(std::string p_name, unsigned p_id, cell_gid_type n_id):
-                   pop_name(p_name), pop_id(p_id), node_id(n_id) {};
-        local_node(): pop_name(""), pop_id(-1), node_id(-1) {};
     };
 
     local_node localize(cell_gid_type gid) {
         unsigned i = 0;
         for (; i < nodes_.partitions().size(); i++) {
             if (gid < nodes_.partitions()[i]) {
-                return {nodes_.populations()[i-1].name(), i-1, gid - nodes_.partitions()[i-1]};
+                return {i-1, gid - nodes_.partitions()[i-1]};
             }
         }
         return local_node();
     }
 
-    std::unordered_map <unsigned, unsigned> edge_to_source_of_target(std::string target_pop) {
+    cell_gid_type globalize(local_node n) {
+        return n.node_id + nodes_.partitions()[n.pop_id];
+    }
+
+    std::unordered_map <unsigned, unsigned> edge_to_source_of_target(unsigned target_pop) {
         std::unordered_map <unsigned, unsigned> edge_to_source;
         unsigned src_vec_id = edge_types_.map()["source_pop_name"];
         unsigned tgt_vec_id = edge_types_.map()["target_pop_name"];
         unsigned edge_vec_id = edge_types_.map()["pop_name"];
 
         for (unsigned i = 0; i < edge_types_.data()[src_vec_id].size(); i++) {
-            if (edge_types_.data()[tgt_vec_id][i] == target_pop) {
+            if (edge_types_.data()[tgt_vec_id][i] == nodes_[target_pop].name()) {
                 auto edge_pop = edge_types_.data()[edge_vec_id][i];
                 auto source_pop = edge_types_.data()[src_vec_id][i];
                 edge_to_source[edges_.map()[edge_pop]] = nodes_.map()[source_pop];
@@ -84,13 +81,13 @@ private:
         return edge_to_source;
     }
 
-    std::vector<unsigned> edges_of_target(std::string target_pop) {
+    std::vector<unsigned> edges_of_target(unsigned target_pop) {
         std::vector<unsigned> target_edge_pops;
         unsigned tgt_vec_id = edge_types_.map()["target_pop_name"];
         unsigned edge_vec_id = edge_types_.map()["pop_name"];
 
         for (unsigned i = 0; i < edge_types_.data()[tgt_vec_id].size(); i++) {
-            if (edge_types_.data()[tgt_vec_id][i] == target_pop) {
+            if (edge_types_.data()[tgt_vec_id][i] == nodes_[target_pop].name()) {
                 auto e_pop = edge_types_.data()[edge_vec_id][i];
                 target_edge_pops.push_back(edges_.map()[e_pop]);
             }
@@ -100,13 +97,13 @@ private:
         return target_edge_pops;
     }
 
-    std::vector<unsigned> edges_of_source(std::string source_pop) {
+    std::vector<unsigned> edges_of_source(unsigned source_pop) {
         std::vector<unsigned> source_edge_pops;
         unsigned src_vec_id = edge_types_.map()["source_pop_name"];
         unsigned edge_vec_id = edge_types_.map()["pop_name"];
 
         for (unsigned i = 0; i < edge_types_.data()[src_vec_id].size(); i++) {
-            if (edge_types_.data()[src_vec_id][i] == source_pop) {
+            if (edge_types_.data()[src_vec_id][i] == nodes_[source_pop].name()) {
                 auto e_pop = edge_types_.data()[edge_vec_id][i];
                 source_edge_pops.push_back(edges_.map()[e_pop]);
             }
@@ -157,7 +154,7 @@ void database::get_connections(cell_gid_type gid, std::vector<arb::cell_connecti
 
     // Find cell local index in population
     auto loc_node = localize(gid);
-    auto edge_to_source = edge_to_source_of_target(loc_node.pop_name);
+    auto edge_to_source = edge_to_source_of_target(loc_node.pop_id);
 
     for (auto i: edge_to_source) {
         auto edge_pop = i.first;
@@ -197,7 +194,7 @@ void database::get_connections(cell_gid_type gid, std::vector<arb::cell_connecti
             }
 
             for(unsigned s = 0; s < sources_t.size(); s++) {
-                auto source_gid = src_id[s] + nodes_.partitions()[source_pop];
+                auto source_gid = globalize({source_pop, (cell_gid_type)src_id[s]});
 
                 // if we can't find the target in target_lists, its cell hasn't been constructed yet
                 auto loc = source_maps_[gid].find(sources_t[s]);
@@ -223,9 +220,8 @@ void database::get_sources_and_targets(cell_gid_type gid,
                              std::vector<std::pair<arb::segment_location, arb::mechanism_desc>>& tgt) {
 
     auto loc_node = localize(gid);
-
-    auto source_edge_pops = edges_of_source(loc_node.pop_name);
-    auto target_edge_pops = edges_of_target(loc_node.pop_name);
+    auto source_edge_pops = edges_of_source(loc_node.pop_id);
+    auto target_edge_pops = edges_of_target(loc_node.pop_id);
 
     std::vector<std::pair<arb::segment_location, double>> gather_src;
 
@@ -316,7 +312,8 @@ void database::fill_source_range(
 
         // if the edges are in groups, for each edge find the group, if it exists
         if (edges_[edge_pop_id].find_group(std::to_string(loc_grp_id)) != -1) {
-            auto group = edges_[edge_pop_id][std::to_string(loc_grp_id)];
+            auto lgi = edges_[edge_pop_id].find_group(std::to_string(loc_grp_id));
+            auto group = edges_[edge_pop_id][lgi];
             auto loc_grp_idx = edges_grp_idx[i];
 
             if (group.find_dataset("efferent_section_id") != -1) {
@@ -376,7 +373,8 @@ void database::fill_target_range(
 
         // if the edges are in groups, for each edge find the group, if it exists
         if (edges_[edge_pop_id].find_group(std::to_string(loc_grp_id)) != -1) {
-            auto group = edges_[edge_pop_id][std::to_string(loc_grp_id)];
+            auto lgi = edges_[edge_pop_id].find_group(std::to_string(loc_grp_id));
+            auto group = edges_[edge_pop_id][lgi];
             auto loc_grp_idx = edges_grp_idx[i];
 
             if (group.find_dataset("afferent_section_id") != -1) {
@@ -444,7 +442,8 @@ void database::fill_conn_range(
 
         // if the edges are in groups, for each edge find the group, if it exists
         if (edges_[edge_pop_id].find_group(std::to_string(loc_grp_id)) != -1) {
-            auto group = edges_[edge_pop_id][std::to_string(loc_grp_id)];
+            auto lgi = edges_[edge_pop_id].find_group(std::to_string(loc_grp_id));
+            auto group = edges_[edge_pop_id][lgi];
             auto loc_grp_idx = edges_grp_idx[i];
 
             if (group.find_dataset("afferent_section_id") != -1) {
@@ -540,7 +539,8 @@ void database::fill_range_of(
 
         // if the edges are in groups, for each edge find the group, if it exists
         if (edges_[edge_pop_id].find_group(std::to_string(loc_grp_id)) != -1) {
-            auto group = edges_[edge_pop_id][std::to_string(loc_grp_id)];
+            auto lgi = edges_[edge_pop_id].find_group(std::to_string(loc_grp_id));
+            auto group = edges_[edge_pop_id][lgi];
             auto loc_grp_idx = edges_grp_idx[i];
             if (group.find_dataset(field) != -1) {
                 switch (type) {
@@ -593,7 +593,7 @@ void database::fill_range_of(
 
 unsigned database::num_sources(cell_gid_type gid) {
     auto loc_node = localize(gid);
-    auto source_edge_pops = edges_of_source(loc_node.pop_name);
+    auto source_edge_pops = edges_of_source(loc_node.pop_id);
 
     unsigned sum = 0;
     for (auto i: source_edge_pops) {
@@ -615,7 +615,7 @@ unsigned database::num_sources(cell_gid_type gid) {
 
 unsigned database::num_targets(cell_gid_type gid) {
     auto loc_node = localize(gid);
-    auto target_edge_pops = edges_of_target(loc_node.pop_name);
+    auto target_edge_pops = edges_of_target(loc_node.pop_id);
 
     unsigned sum = 0;
     for (auto i: target_edge_pops) {

@@ -185,16 +185,12 @@ int main(int argc, char **argv)
         csv_file edge_def("edge_types.csv");
         csv_file node_def("node_types.csv");
 
-       /* nodes->print();
-
-        std::cout << std::endl;
-
-        edges->print();
-
-        std::cout << std::endl;*/
-
         hdf5_record n(nodes);
+        n.verify_nodes();
+
         hdf5_record e(edges);
+        e.verify_edges();
+
         csv_record e_t(edge_def);
         csv_record n_t(node_def);
 
