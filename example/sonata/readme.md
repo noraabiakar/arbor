@@ -1,3 +1,3 @@
-# Ring Example
+# SONATA Example
 
-A miniapp that demonstrates how to describe how to build a simple ring network.
+A miniapp that demonstrates how to read a network configuration using the SONATA format

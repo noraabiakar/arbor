@@ -25,10 +25,6 @@ edge_group_index = pop_e_e.create_dataset("edge_group_index", (nedges,), dtype="
 for i in range(0,nedges):
     edge_group_index[i] = i
 
-edge_id = pop_e_e.create_dataset("edge_id", (nedges,), dtype="i")
-for i in range(0,nedges):
-    edge_id[i] = i
-
 edge_type_id = pop_e_e.create_dataset("edge_type_id", (nedges,), dtype="i")
 for i in range(0,nedges):
     edge_type_id[i] = 100
@@ -96,10 +92,6 @@ for i in range(0,nedges):
 edge_group_index = pop_i_e.create_dataset("edge_group_index", (nedges,), dtype="i")
 for i in range(0,nedges):
     edge_group_index[i] = i
-
-edge_id = pop_i_e.create_dataset("edge_id", (nedges,), dtype="i")
-for i in range(0,nedges):
-    edge_id[i] = i
 
 edge_type_id = pop_i_e.create_dataset("edge_type_id", (nedges,), dtype="i")
 for i in range(0,nedges):
@@ -172,10 +164,6 @@ edge_group_index = pop_i_i.create_dataset("edge_group_index", (nedges,), dtype="
 for i in range(0,nedges):
     edge_group_index[i] = i
 
-edge_id = pop_i_i.create_dataset("edge_id", (nedges,), dtype="i")
-for i in range(0,nedges):
-    edge_id[i] = i
-
 edge_type_id = pop_i_i.create_dataset("edge_type_id", (nedges,), dtype="i")
 for i in range(0,nedges):
     edge_type_id[i] = 102
@@ -243,10 +231,6 @@ for i in range(0,nedges):
 edge_group_index = pop_e_i.create_dataset("edge_group_index", (nedges,), dtype="i")
 for i in range(0,nedges):
     edge_group_index[i] = i
-
-edge_id = pop_e_i.create_dataset("edge_id", (nedges,), dtype="i")
-for i in range(0,nedges):
-    edge_id[i] = i
 
 edge_type_id = pop_e_i.create_dataset("edge_type_id", (nedges,), dtype="i")
 for i in range(0,nedges):
