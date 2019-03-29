@@ -420,7 +420,11 @@ public:
 
     std::vector<int> int_range(std::string name, unsigned i, unsigned j) {
         if (find_dataset(name)!= -1) {
-            return ptr->datasets_[dset_map[name]]->int_range(i, j);
+            if (j - i > 1) {
+                return ptr->datasets_[dset_map[name]]->int_range(i, j);
+            } else {
+                return {ptr->datasets_[dset_map[name]]->int_at(i)};
+            }
         }
         throw arb::sonata_dataset_exception(name);
     }

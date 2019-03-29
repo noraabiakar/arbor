@@ -13,11 +13,11 @@ using arb::cell_gid_type;
 using arb::cell_lid_type;
 using arb::cell_size_type;
 using arb::cell_member_type;
-using arb::cell_kind;
-using arb::time_type;
-using arb::cell_probe_address;
+using arb::segment_location;
 
-using source_type = std::pair<arb::segment_location,double>;
+using source_type = std::pair<segment_location,double>;
+using target_type = std::pair<segment_location,std::string>;
+
 template<> struct std::hash<source_type>
 {
     std::size_t operator()(const source_type& s) const noexcept
@@ -30,7 +30,6 @@ template<> struct std::hash<source_type>
     }
 };
 
-using target_type = std::pair<arb::segment_location,std::string>;
 template<> struct std::hash<target_type>
 {
     std::size_t operator()(const target_type& s) const noexcept
@@ -56,8 +55,8 @@ public:
     }
     void get_connections(cell_gid_type gid, std::vector<arb::cell_connection>& conns);
     void get_sources_and_targets(cell_gid_type gid,
-                                 std::vector<std::pair<arb::segment_location, double>>& src,
-                                 std::vector<std::pair<arb::segment_location, arb::mechanism_desc>>& tgt);
+                                 std::vector<std::pair<segment_location, double>>& src,
+                                 std::vector<std::pair<segment_location, arb::mechanism_desc>>& tgt);
     unsigned num_sources(cell_gid_type gid);
     unsigned num_targets(cell_gid_type gid);
 
@@ -67,20 +66,20 @@ private:
     void fill_target_range(
             unsigned edge_pop_id,
             std::pair<unsigned, unsigned> edge_range,
-            std::vector<arb::segment_location>& targets,
+            std::vector<segment_location>& targets,
             std::vector<std::string>& synapses);
 
     void fill_source_range(
             unsigned edge_pop_id,
             std::pair<unsigned, unsigned> edge_range,
-            std::vector<arb::segment_location>& sources,
+            std::vector<segment_location>& sources,
             std::vector<double>& thresholds);
 
     void fill_conn_range(
             unsigned edge_pop_id,
             std::pair<unsigned, unsigned> edge_range,
-            std::vector<arb::segment_location>& sources,
-            std::vector<arb::segment_location>& targets,
+            std::vector<segment_location>& sources,
+            std::vector<segment_location>& targets,
             std::vector<double>& weights,
             std::vector<double>& delays,
             std::vector<std::string>& synapses,
@@ -177,7 +176,7 @@ void database::get_connections(cell_gid_type gid, std::vector<arb::cell_connecti
         for (auto j = n2r_range.first; j< n2r_range.second; j++) {
             auto r2e = edges_[edge_pop][ind_id][s2t_id].int_pair_at("range_to_edge_id", j);
 
-            std::vector<arb::segment_location> targets_t, sources_t;
+            std::vector<segment_location> targets_t, sources_t;
             std::vector<double> weights, delays, thresholds;
             std::vector<std::string> synapses;
 
@@ -225,8 +224,8 @@ void database::get_connections(cell_gid_type gid, std::vector<arb::cell_connecti
 }
 
 void database::get_sources_and_targets(cell_gid_type gid,
-                             std::vector<std::pair<arb::segment_location, double>>& src,
-                             std::vector<std::pair<arb::segment_location, arb::mechanism_desc>>& tgt) {
+                             std::vector<std::pair<segment_location, double>>& src,
+                             std::vector<std::pair<segment_location, arb::mechanism_desc>>& tgt) {
 
     auto loc_node = localize(gid);
     auto source_edge_pops = edges_of_source(loc_node.pop_id);
@@ -239,7 +238,7 @@ void database::get_sources_and_targets(cell_gid_type gid,
 
         for (auto j = n2r_range.first; j< n2r_range.second; j++) {
             auto r2e = edges_[i][ind_id][s2t_id].int_pair_at("range_to_edge_id", j);
-            std::vector<arb::segment_location> sources;
+            std::vector<segment_location> sources;
             std::vector<double> thresholds;
 
             fill_source_range(i, r2e, sources, thresholds);
@@ -253,7 +252,7 @@ void database::get_sources_and_targets(cell_gid_type gid,
             }
         }
     }
-    src.resize(source_maps_[gid].size(), std::make_pair(arb::segment_location(0, 0.0), 0.0));
+    src.resize(source_maps_[gid].size(), std::make_pair(segment_location(0, 0.0), 0.0));
     for (auto s: source_maps_[gid]) {
         src[s.second] = s.first;
     }
@@ -264,7 +263,7 @@ void database::get_sources_and_targets(cell_gid_type gid,
         auto n2r = edges_[i][ind_id][t2s_id].int_pair_at("node_id_to_ranges", loc_node.node_id);
         for (auto j = n2r.first; j< n2r.second; j++) {
             auto r2e = edges_[i][ind_id][t2s_id].int_pair_at("range_to_edge_id", j);
-            std::vector<arb::segment_location> targets;
+            std::vector<segment_location> targets;
             std::vector<std::string> syns;
 
             fill_target_range(i, r2e, targets, syns);
@@ -278,7 +277,7 @@ void database::get_sources_and_targets(cell_gid_type gid,
             };
         }
     }
-    tgt.resize(target_maps_[gid].size(), std::make_pair(arb::segment_location(0, 0.0), arb::mechanism_desc("")));
+    tgt.resize(target_maps_[gid].size(), std::make_pair(segment_location(0, 0.0), arb::mechanism_desc("")));
     for (auto t: target_maps_[gid]) {
         tgt[t.second] = std::make_pair(t.first.first, arb::mechanism_desc(t.first.second));
     }
@@ -336,7 +335,7 @@ unsigned database::num_targets(cell_gid_type gid) {
 void database::fill_source_range(
         unsigned edge_pop_id,
         std::pair<unsigned, unsigned> edge_range,
-        std::vector<arb::segment_location>& srcs,
+        std::vector<segment_location>& srcs,
         std::vector<double>& thresholds)
 {
     // First read edge_group_id and edge_group_index and edge_type
@@ -399,7 +398,7 @@ void database::fill_source_range(
             threshold = std::atof(edge_types_.data()[synapse_idx][loc_type_idx].c_str());
         }
 
-        srcs.emplace_back(arb::segment_location((unsigned)source_branch, source_pos));
+        srcs.emplace_back(segment_location((unsigned)source_branch, source_pos));
         thresholds.emplace_back(threshold);
     }
 }
@@ -407,7 +406,7 @@ void database::fill_source_range(
 void database::fill_target_range(
         unsigned edge_pop_id,
         std::pair<unsigned, unsigned> edge_range,
-        std::vector<arb::segment_location>& tgts,
+        std::vector<segment_location>& tgts,
         std::vector<std::string>& syns)
 {
     // First read edge_group_id and edge_group_index and edge_type
@@ -472,7 +471,7 @@ void database::fill_target_range(
             synapse = edge_types_.data()[synapse_idx][loc_type_idx];
         }
 
-        tgts.emplace_back(arb::segment_location((unsigned)target_branch, target_pos));
+        tgts.emplace_back(segment_location((unsigned)target_branch, target_pos));
         syns.emplace_back(synapse);
     }
 }
@@ -480,8 +479,8 @@ void database::fill_target_range(
 void database::fill_conn_range(
         unsigned edge_pop_id,
         std::pair<unsigned, unsigned> edge_range,
-        std::vector<arb::segment_location>& sources,
-        std::vector<arb::segment_location>& targets,
+        std::vector<segment_location>& sources,
+        std::vector<segment_location>& targets,
         std::vector<double>& weights,
         std::vector<double>& delays,
         std::vector<std::string>& synapses,
@@ -596,8 +595,8 @@ void database::fill_conn_range(
             threshold = std::atof(edge_types_.data()[thresh_idx][loc_type_idx].c_str());
         }
 
-        sources.emplace_back(arb::segment_location((unsigned)source_branch, source_pos));
-        targets.emplace_back(arb::segment_location((unsigned)target_branch, target_pos));
+        sources.emplace_back(segment_location((unsigned)source_branch, source_pos));
+        targets.emplace_back(segment_location((unsigned)target_branch, target_pos));
         weights.emplace_back(weight);
         delays.emplace_back(delay);
         synapses.emplace_back(synapse);
