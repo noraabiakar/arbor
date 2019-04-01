@@ -5,6 +5,7 @@
 #include <hdf5.h>
 #include <assert.h>
 #include <unordered_set>
+#include <malloc.h>
 
 #include "hdf5_lib.hpp"
 #include "csv_lib.hpp"
@@ -63,17 +64,15 @@ public:
 private:
 
     /* Read relevant information from HDF5 or CSV */
-    void fill_target_range(
+    void update_target_map(
+            cell_gid_type gid,
             unsigned edge_pop_id,
-            std::pair<unsigned, unsigned> edge_range,
-            std::vector<segment_location>& targets,
-            std::vector<std::string>& synapses);
+            std::pair<unsigned, unsigned> edge_range);
 
-    void fill_source_range(
+    void update_source_map(
+            cell_gid_type gid,
             unsigned edge_pop_id,
-            std::pair<unsigned, unsigned> edge_range,
-            std::vector<segment_location>& sources,
-            std::vector<double>& thresholds);
+            std::pair<unsigned, unsigned> edge_range);
 
     void fill_conn_range(
             unsigned edge_pop_id,
@@ -160,7 +159,6 @@ private:
 };
 
 void database::get_connections(cell_gid_type gid, std::vector<arb::cell_connection>& conns) {
-
     // Find cell local index in population
     auto loc_node = localize(gid);
     auto edge_to_source = edge_to_source_of_target(loc_node.pop_id);
@@ -238,18 +236,7 @@ void database::get_sources_and_targets(cell_gid_type gid,
 
         for (auto j = n2r_range.first; j< n2r_range.second; j++) {
             auto r2e = edges_[i][ind_id][s2t_id].int_pair_at("range_to_edge_id", j);
-            std::vector<segment_location> sources;
-            std::vector<double> thresholds;
-
-            fill_source_range(i, r2e, sources, thresholds);
-
-            for (unsigned j = 0; j< sources.size(); j++) {
-                source_type source_pair = std::make_pair(sources[j], thresholds[j]);
-                auto loc = source_maps_[gid].find(source_pair);
-                if (loc == source_maps_[gid].end()) {
-                    source_maps_[gid][source_pair] = source_maps_[gid].size();
-                }
-            }
+            update_source_map(gid, i, r2e);
         }
     }
     src.resize(source_maps_[gid].size(), std::make_pair(segment_location(0, 0.0), 0.0));
@@ -263,18 +250,7 @@ void database::get_sources_and_targets(cell_gid_type gid,
         auto n2r = edges_[i][ind_id][t2s_id].int_pair_at("node_id_to_ranges", loc_node.node_id);
         for (auto j = n2r.first; j< n2r.second; j++) {
             auto r2e = edges_[i][ind_id][t2s_id].int_pair_at("range_to_edge_id", j);
-            std::vector<segment_location> targets;
-            std::vector<std::string> syns;
-
-            fill_target_range(i, r2e, targets, syns);
-
-            for (unsigned j = 0; j< targets.size(); j++) {
-                target_type target_pair = std::make_pair(targets[j], syns[j]);
-                auto loc = target_maps_[gid].find(target_pair);
-                if (loc == target_maps_[gid].end()) {
-                    target_maps_[gid][target_pair] = target_maps_[gid].size();
-                }
-            };
+            update_target_map(gid, i, r2e);
         }
     }
     tgt.resize(target_maps_[gid].size(), std::make_pair(segment_location(0, 0.0), arb::mechanism_desc("")));
@@ -332,11 +308,10 @@ unsigned database::num_targets(cell_gid_type gid) {
 // Private helper functions
 
 // Read from HDF5 file/ CSV file depending on where the information is available
-void database::fill_source_range(
+void database::update_source_map(
+        cell_gid_type gid,
         unsigned edge_pop_id,
-        std::pair<unsigned, unsigned> edge_range,
-        std::vector<segment_location>& srcs,
-        std::vector<double>& thresholds)
+        std::pair<unsigned, unsigned> edge_range)
 {
     // First read edge_group_id and edge_group_index and edge_type
     auto edges_grp_id = edges_[edge_pop_id].int_range("edge_group_id", edge_range.first, edge_range.second);
@@ -398,16 +373,18 @@ void database::fill_source_range(
             threshold = std::atof(edge_types_.data()[synapse_idx][loc_type_idx].c_str());
         }
 
-        srcs.emplace_back(segment_location((unsigned)source_branch, source_pos));
-        thresholds.emplace_back(threshold);
+        source_type source_pair = std::make_pair(segment_location((unsigned)source_branch, source_pos), threshold);
+        auto loc = source_maps_[gid].find(source_pair);
+        if (loc == source_maps_[gid].end()) {
+            source_maps_[gid][source_pair] = source_maps_[gid].size();
+        }
     }
 }
 
-void database::fill_target_range(
+void database::update_target_map(
+        cell_gid_type gid,
         unsigned edge_pop_id,
-        std::pair<unsigned, unsigned> edge_range,
-        std::vector<segment_location>& tgts,
-        std::vector<std::string>& syns)
+        std::pair<unsigned, unsigned> edge_range)
 {
     // First read edge_group_id and edge_group_index and edge_type
     auto edges_grp_id = edges_[edge_pop_id].int_range("edge_group_id", edge_range.first, edge_range.second);
@@ -471,8 +448,11 @@ void database::fill_target_range(
             synapse = edge_types_.data()[synapse_idx][loc_type_idx];
         }
 
-        tgts.emplace_back(segment_location((unsigned)target_branch, target_pos));
-        syns.emplace_back(synapse);
+        target_type target_pair = std::make_pair(segment_location((unsigned)target_branch, target_pos), synapse);
+        auto loc = target_maps_[gid].find(target_pair);
+        if (loc == target_maps_[gid].end()) {
+            target_maps_[gid][target_pair] = target_maps_[gid].size();
+        }
     }
 }
 
@@ -601,6 +581,5 @@ void database::fill_conn_range(
         delays.emplace_back(delay);
         synapses.emplace_back(synapse);
         thresholds.emplace_back(threshold);
-
     }
 }

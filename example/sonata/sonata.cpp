@@ -56,7 +56,6 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-
         std::vector<std::pair<arb::segment_location,double>> src_types;
         std::vector<std::pair<arb::segment_location,arb::mechanism_desc>> tgt_types;
 
@@ -175,6 +174,28 @@ int main(int argc, char **argv)
         //sonata_recipe recipe;
 
         auto decomp = arb::partition_load_balance(recipe, context);
+
+        /*meters.checkpoint("model-init", context);
+        for(unsigned i =0; i < 500; i++) {
+            auto conns = recipe.connections_on(i%500);
+        }
+        meters.checkpoint("model-conns", context);
+        for(unsigned i =0; i < 500; i++) {
+            auto cell = arb::util::any_cast<arb::cable_cell>(recipe.get_cell_description(i%500));
+        }
+        meters.checkpoint("model-cells", context);
+        for(unsigned i =0; i < 500; i++) {
+            auto conns = recipe.num_sources(i);
+        }
+        meters.checkpoint("model-srcs", context);
+        for(unsigned i =0; i < 500; i++) {
+            auto conns = recipe.num_targets(i);
+
+        }
+        meters.checkpoint("model-tgts", context);
+
+        auto report = arb::profile::make_meter_report(meters, context);
+        std::cout << report;*/
 
         // Construct the model.
         arb::simulation sim(recipe, decomp, context);
