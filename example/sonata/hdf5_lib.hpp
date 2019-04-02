@@ -12,13 +12,12 @@ using arb::cell_size_type;
 class h5_dataset {
 private:
     hid_t parent_id_;
-    hid_t id_;
     std::string name_;
     size_t size_;
 
 public:
     h5_dataset(hid_t parent, std::string name): parent_id_(parent), name_(name) {
-        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        auto id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
         hid_t dspace = H5Dget_space(id_);
 
         const int ndims = H5Sget_simple_extent_ndims(dspace);
@@ -52,7 +51,7 @@ public:
         // Output size
         hsize_t num_elements = 1;
 
-        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        auto id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
         hid_t dspace = H5Dget_space(id_);
 
         H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, &idx);
@@ -60,13 +59,19 @@ public:
         hid_t out_mem = H5Screate_simple(dims, dim_sizes, NULL);
 
         auto status = H5Dread(id_, H5T_NATIVE_INT, out_mem, dspace, H5P_DEFAULT, out);
+
+        H5Sclose(dspace);
+        H5Sclose(out_mem);
         H5Dclose(id_);
 
-        if (status < 0) {
+        if (status < 0 ) {
             throw arb::sonata_dataset_exception(name_, (unsigned)i);
         }
 
-        return out[0];
+        int r = out[0];
+        delete [] out;
+
+        return r;
     }
 
     auto double_at(const int i) {
@@ -82,20 +87,26 @@ public:
         // Output size
         hsize_t num_elements = 1;
 
-        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        auto id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
         hid_t dspace = H5Dget_space(id_);
 
         H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, &idx);
         hid_t out_mem = H5Screate_simple(dims, dim_sizes, NULL);
 
         auto status = H5Dread(id_, H5T_NATIVE_DOUBLE, out_mem, dspace, H5P_DEFAULT, out);
+
+        H5Sclose(dspace);
+        H5Sclose(out_mem);
         H5Dclose(id_);
 
         if (status < 0) {
             throw arb::sonata_dataset_exception(name_, (unsigned)i);
         }
 
-        return out[0];
+        int r = out[0];
+        delete [] out;
+
+        return r;
     }
 
     auto string_at(const int i) {
@@ -111,20 +122,26 @@ public:
         // Output size
         hsize_t num_elements = 1;
 
-        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        auto id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
         hid_t dspace = H5Dget_space(id_);
 
         H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, &idx);
         hid_t out_mem = H5Screate_simple(dims, dim_sizes, NULL);
 
         auto status = H5Dread(id_, H5T_NATIVE_CHAR, out_mem, dspace, H5P_DEFAULT, out);
+
+        H5Sclose(dspace);
+        H5Sclose(out_mem);
         H5Dclose(id_);
 
         if (status < 0) {
             throw arb::sonata_dataset_exception(name_, (unsigned)i);
         }
 
-        return out[0];
+        int r = out[0];
+        delete [] out;
+
+        return r;
     }
 
     auto int_range(const int i, const int j) {
@@ -136,13 +153,16 @@ public:
 
         int rdata[count];
 
-        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        auto id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
         hid_t dspace = H5Dget_space(id_);
 
         hid_t out_mem = H5Screate_simple(1, &dimsm, NULL);
 
         H5Sselect_hyperslab(dspace, H5S_SELECT_SET, &offset, &stride, &count, &block);
         auto status = H5Dread(id_, H5T_NATIVE_INT, out_mem, dspace, H5P_DEFAULT, rdata);
+
+        H5Sclose(dspace);
+        H5Sclose(out_mem);
         H5Dclose(id_);
 
         if (status < 0) {
@@ -163,7 +183,7 @@ public:
 
         double rdata[count];
 
-        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        auto id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
         hid_t dspace = H5Dget_space(id_);
 
         hid_t out_mem = H5Screate_simple(1, &dimsm, NULL);
@@ -171,6 +191,9 @@ public:
         H5Sselect_hyperslab(dspace, H5S_SELECT_SET, &offset, &stride, &count, &block);
 
         auto status = H5Dread(id_, H5T_NATIVE_DOUBLE, out_mem, dspace, H5P_DEFAULT, rdata);
+
+        H5Sclose(dspace);
+        H5Sclose(out_mem);
         H5Dclose(id_);
 
         if (status < 0) {
@@ -195,7 +218,7 @@ public:
         // Output size
         hsize_t num_elements = 1;
 
-        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        auto id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
         hid_t dspace = H5Dget_space(id_);
 
         H5Sselect_elements(dspace, H5S_SELECT_SET, num_elements, idx_0);
@@ -210,6 +233,9 @@ public:
 
         auto status1 = H5Dread(id_, H5T_NATIVE_INT, out_mem_1, dspace, H5P_DEFAULT, &out_1);
 
+        H5Sclose(dspace);
+        H5Sclose(out_mem_0);
+        H5Sclose(out_mem_1);
         H5Dclose(id_);
 
         if (status0 < 0 || status1 < 0) {
@@ -221,7 +247,7 @@ public:
 
     auto int_1d() {
         int out_a[size_];
-        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        auto id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
 
         auto status = H5Dread(id_, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
                 out_a);
@@ -232,15 +258,16 @@ public:
         }
 
         std::vector<int> out(out_a, out_a + size_);
+
         return out;
     }
 
     auto int_2d() {
         int out_a[size_][2];
-        id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
+        auto id_ = H5Dopen(parent_id_, name_.c_str(), H5P_DEFAULT);
 
-        auto status = H5Dread(id_, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-                out_a);
+        auto status = H5Dread(id_, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, out_a);
+
         H5Dclose(id_);
 
         if (status < 0) {
