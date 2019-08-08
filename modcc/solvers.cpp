@@ -175,6 +175,7 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
     // lhs; can't really trust 'STATE' block.
 
     for (auto& stmt: e->statements()) {
+        std::cout << "visiting: "<< stmt->to_string() << std::endl;
         if (stmt && stmt->is_assignment() && stmt->is_assignment()->lhs()->is_derivative()) {
             auto id = stmt->is_assignment()->lhs()->is_derivative();
             dvars_.push_back(id->name());
@@ -185,6 +186,8 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
 }
 
 void SparseSolverVisitor::visit(AssignmentExpression *e) {
+    std::cout << "revisit: " << e->to_string() << std::endl;
+
     if (conserve_ && !A_[deq_index_].empty()) {
         deq_index_++;
         return;
