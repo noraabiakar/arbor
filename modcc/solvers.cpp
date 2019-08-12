@@ -282,7 +282,6 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
 
     conserve_ = true;
 
-    auto loc = e->location();
     scope_ptr scope = e->scope();
 
     int row_idx = -1;
