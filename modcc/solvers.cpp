@@ -296,7 +296,6 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
          error({"ICE: coefficient in state variable is not an identifier", loc});
     }
 
-    std:: cout << row_idx << std::endl;
     if (row_idx != -1) {
         A_[row_idx].clear();
 
