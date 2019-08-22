@@ -145,4 +145,6 @@ private:
     // Perform semantic analysis on functions and procedures.
     // Returns the number of errors that were encountered.
     int semantic_func_proc();
+
+    expr_list_type transform_if_statement(expression_ptr e);
 };

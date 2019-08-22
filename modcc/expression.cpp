@@ -906,6 +906,38 @@ expression_ptr IfExpression::clone() const {
 }
 
 /*******************************************************************************
+  MaskedExpression
+*******************************************************************************/
+
+std::string MaskedExpression::to_string() const {
+    std::string s = blue("ME") + " {";
+    s +=  condition_->to_string();
+    s += ", " + rhs_->to_string() + "}";
+    return s;
+}
+
+void MaskedExpression::semantic(scope_ptr scp) {
+    std::cout << this->to_string() << std::endl;
+    scope_ = scp;
+
+    condition_->semantic(scp);
+
+    auto cond = condition_->is_conditional();
+    if(!cond) {
+        error("not a valid conditional expression");
+    }
+
+    rhs_->semantic(scp);
+}
+
+expression_ptr MaskedExpression::clone() const {
+    return make_expression<MaskedExpression>(
+            location_,
+            condition_->clone(),
+            rhs_->clone());
+}
+
+/*******************************************************************************
   PDiffExpression
 *******************************************************************************/
 
@@ -952,6 +984,9 @@ void InitialBlock::accept(Visitor *v) {
     v->visit(this);
 }
 void IfExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void MaskedExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void SolveExpression::accept(Visitor *v) {

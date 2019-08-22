@@ -20,6 +20,7 @@ class Expression;
 class CallExpression;
 class BlockExpression;
 class IfExpression;
+class MaskedExpression;
 class LocalDeclaration;
 class ArgumentExpression;
 class FunctionExpression;
@@ -159,6 +160,7 @@ public:
     virtual CallExpression*        is_procedure_call()    {return nullptr;}
     virtual BlockExpression*       is_block()             {return nullptr;}
     virtual IfExpression*          is_if()                {return nullptr;}
+    virtual MaskedExpression*      is_masked()            {return nullptr;}
     virtual LocalDeclaration*      is_local_declaration() {return nullptr;}
     virtual ArgumentExpression*    is_argument()          {return nullptr;}
     virtual FunctionExpression*    is_function()          {return nullptr;}
@@ -793,6 +795,33 @@ private:
     expression_ptr condition_;
     expression_ptr true_branch_;
     expression_ptr false_branch_;
+};
+
+class MaskedExpression : public Expression {
+public:
+    MaskedExpression(Location loc, expression_ptr&& con, expression_ptr&& rhs)
+            :   Expression(loc), condition_(std::move(con)), rhs_(std::move(rhs))
+    {}
+
+    MaskedExpression* is_masked() override {
+        return this;
+    }
+    Expression* condition() {
+        return condition_.get();
+    }
+    Expression* rhs() {
+        return rhs_.get();
+    }
+
+    expression_ptr clone() const override;
+
+    std::string to_string() const override;
+    void semantic(scope_ptr scp) override;
+
+    void accept(Visitor* v) override;
+private:
+    expression_ptr condition_;
+    expression_ptr rhs_;
 };
 
 // a proceduce prototype

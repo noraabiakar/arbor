@@ -497,7 +497,7 @@ bool Module::semantic() {
     check_revpot_mechanism();
 
     // Perform semantic analysis and inlining on function and procedure bodies
-    // in order to inline calls inside the newly crated API methods.
+    // in order to inline calls inside the newly created API methods.
     semantic_func_proc();
 
     return !has_error();
@@ -698,7 +698,109 @@ void Module::add_variables_to_symbols() {
     }
 }
 
+expr_list_type Module::transform_if_statement(expression_ptr e) {
+    expr_list_type body;
+    if (!e->is_if()) {
+        return {};
+    }
+    auto cond = e->is_if()->condition()->clone();
+
+    for (auto &t: e->is_if()->true_branch()->is_block()->statements()) {
+        if (t->is_if()) {
+            auto true_branch = transform_if_statement(t->clone());
+            for (auto &tb: true_branch) {
+                auto mask = make_expression<MaskedExpression>(tb->location(), cond->clone(),
+                                                              tb->is_assignment()->rhs()->clone());
+                auto assign = make_expression<AssignmentExpression>(t->location(),
+                                                                    tb->is_assignment()->lhs()->clone(),
+                                                                    std::move(mask));
+                body.push_back(std::move(assign));
+            }
+        } else if (t->is_assignment()) {
+            auto mask = make_expression<MaskedExpression>(t->location(), cond->clone(),
+                                                          t->is_assignment()->rhs()->clone());
+            auto assign = make_expression<AssignmentExpression>(t->location(), t->is_assignment()->lhs()->clone(),
+                                                                std::move(mask));
+            body.push_back(std::move(assign));
+        } else {
+            return {};
+        }
+    }
+
+    if (e->is_if()->false_branch()) {
+        tok not_tok;
+        switch (cond->is_conditional()->op()) {
+            case tok::lnot:
+                not_tok = tok::reserved;
+                break;
+            case tok::lt:
+                not_tok = tok::gte;
+                break;
+            case tok::lte:
+                not_tok = tok::gt;
+                break;
+            case tok::gt:
+                not_tok = tok::lte;
+                break;
+            case tok::gte:
+                not_tok = tok::lt;
+                break;
+            case tok::equality:
+                not_tok = tok::ne;
+                break;
+            case tok::ne:
+                not_tok = tok::equality;
+                break;
+            default:
+                not_tok = tok::reserved;
+                break;
+        }
+        
+        auto not_cond = make_expression<ConditionalExpression>(cond->location(), not_tok,
+                                                               cond->is_conditional()->lhs()->clone(),
+                                                               cond->is_conditional()->rhs()->clone());
+        if (e->is_if()->false_branch()->is_if()) {
+            auto false_branch = transform_if_statement(e->is_if()->false_branch()->clone());
+            for (auto &tb: false_branch) {
+                auto mask = make_expression<MaskedExpression>(tb->location(), not_cond->clone(),
+                                                              tb->is_assignment()->rhs()->clone());
+                auto assign = make_expression<AssignmentExpression>(e->is_if()->false_branch()->location(),
+                                                                    tb->is_assignment()->lhs()->clone(),
+                                                                    std::move(mask));
+                body.push_back(std::move(assign));
+            }
+        } else {
+            for (auto &t: e->is_if()->false_branch()->is_block()->statements()) {
+                if (t->is_if()) {
+                    auto false_branch = transform_if_statement(t->clone());
+                    for (auto &tb: false_branch) {
+                        auto mask = make_expression<MaskedExpression>(tb->location(), not_cond->clone(),
+                                                                      tb->is_assignment()->rhs()->clone());
+                        auto assign = make_expression<AssignmentExpression>(t->location(),
+                                                                            tb->is_assignment()->lhs()->clone(),
+                                                                            std::move(mask));
+                        body.push_back(std::move(assign));
+                    }
+                } else if (t->is_assignment()) {
+                    auto mask = make_expression<MaskedExpression>(t->location(), not_cond->clone(),
+                                                                  t->is_assignment()->rhs()->clone());
+                    auto assign = make_expression<AssignmentExpression>(t->location(),
+                                                                        t->is_assignment()->lhs()->clone(),
+                                                                        std::move(mask));
+                    body.push_back(std::move(assign));
+                } else {
+                    return {};
+                }
+            }
+        }
+    }
+
+    return body;
+}
+
+
 int Module::semantic_func_proc() {
+    std::cout << std::endl;
     ////////////////////////////////////////////////////////////////////////////
     // now iterate over the functions and procedures and perform semantic
     // analysis on each. This includes
@@ -726,7 +828,7 @@ int Module::semantic_func_proc() {
             // first perform semantic analysis
             s->semantic(symbols_);
 
-            // then use an error visitor to print out all the semantic errors
+            // then use an error visitor to print out all the semantic errorsIfExpressio
             ErrorVisitor v(source_name());
             s->accept(&v);
             errors += v.num_errors();
@@ -737,6 +839,15 @@ int Module::semantic_func_proc() {
                 auto &b = s->kind()==symbolKind::function ?
                     s->is_function()->body()->statements() :
                     s->is_procedure()->body()->statements();
+
+                for (auto& e: b) {
+                    if (e->is_if()) {
+                        auto t = transform_if_statement(e->clone());
+                        for (auto& e: t) {
+                            std::cout << e->to_string() << std::endl;
+                        }
+                    }
+                }
 
                 // lower function call sites so that all function calls are of
                 // the form : variable = call(<args>)
