@@ -61,6 +61,7 @@ public:
     void visit(VariableExpression*) override;
     void visit(LocalVariable*) override;
     void visit(AssignmentExpression*) override;
+    void visit(IfExpression*) override;
 
     void visit(NumberExpression* e) override { cexpr_emit(e, out_, this); }
     void visit(UnaryExpression* e) override { cexpr_emit(e, out_, this); }
@@ -69,4 +70,6 @@ public:
 private:
     std::ostream& out_;
     bool is_indirect_index_;
+
+    expr_list_type transform_if_statement(expression_ptr e);
 };

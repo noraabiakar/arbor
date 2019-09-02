@@ -525,6 +525,107 @@ static std::string index_i_name(const std::string& index_var) {
     return index_var+"i_";
 }
 
+expr_list_type SimdPrinter::transform_if_statement(expression_ptr e) {
+    expr_list_type body;
+    if (!e->is_if()) {
+        return {};
+    }
+    auto cond = e->is_if()->condition()->clone();
+
+    for (auto &t: e->is_if()->true_branch()->is_block()->statements()) {
+        if (t->is_if()) {
+            auto true_branch = transform_if_statement(t->clone());
+            for (auto &tb: true_branch) {
+                auto mask = make_expression<MaskedExpression>(tb->location(), cond->clone(),
+                                                              tb->is_assignment()->rhs()->clone());
+                auto assign = make_expression<AssignmentExpression>(t->location(),
+                                                                    tb->is_assignment()->lhs()->clone(),
+                                                                    std::move(mask));
+                body.push_back(std::move(assign));
+            }
+        } else if (t->is_assignment()) {
+            auto mask = make_expression<MaskedExpression>(t->location(), cond->clone(),
+                                                          t->is_assignment()->rhs()->clone());
+            auto assign = make_expression<AssignmentExpression>(t->location(), t->is_assignment()->lhs()->clone(),
+                                                                std::move(mask));
+            body.push_back(std::move(assign));
+        } else {
+            return {};
+        }
+    }
+
+    if (e->is_if()->false_branch()) {
+        tok not_tok;
+        switch (cond->is_conditional()->op()) {
+            case tok::lnot:
+                not_tok = tok::reserved;
+                break;
+            case tok::lt:
+                not_tok = tok::gte;
+                break;
+            case tok::lte:
+                not_tok = tok::gt;
+                break;
+            case tok::gt:
+                not_tok = tok::lte;
+                break;
+            case tok::gte:
+                not_tok = tok::lt;
+                break;
+            case tok::equality:
+                not_tok = tok::ne;
+                break;
+            case tok::ne:
+                not_tok = tok::equality;
+                break;
+            default:
+                not_tok = tok::reserved;
+                break;
+        }
+
+        auto not_cond = make_expression<ConditionalExpression>(cond->location(), not_tok,
+                                                               cond->is_conditional()->lhs()->clone(),
+                                                               cond->is_conditional()->rhs()->clone());
+        if (e->is_if()->false_branch()->is_if()) {
+            auto false_branch = transform_if_statement(e->is_if()->false_branch()->clone());
+            for (auto &tb: false_branch) {
+                auto mask = make_expression<MaskedExpression>(tb->location(), not_cond->clone(),
+                                                              tb->is_assignment()->rhs()->clone());
+                auto assign = make_expression<AssignmentExpression>(e->is_if()->false_branch()->location(),
+                                                                    tb->is_assignment()->lhs()->clone(),
+                                                                    std::move(mask));
+                body.push_back(std::move(assign));
+            }
+        } else {
+            for (auto &t: e->is_if()->false_branch()->is_block()->statements()) {
+                if (t->is_if()) {
+                    auto false_branch = transform_if_statement(t->clone());
+                    for (auto &tb: false_branch) {
+                        auto mask = make_expression<MaskedExpression>(tb->location(), not_cond->clone(),
+                                                                      tb->is_assignment()->rhs()->clone());
+                        auto assign = make_expression<AssignmentExpression>(t->location(),
+                                                                            tb->is_assignment()->lhs()->clone(),
+                                                                            std::move(mask));
+                        body.push_back(std::move(assign));
+                    }
+                } else if (t->is_assignment()) {
+                    auto mask = make_expression<MaskedExpression>(t->location(), not_cond->clone(),
+                                                                  t->is_assignment()->rhs()->clone());
+                    auto assign = make_expression<AssignmentExpression>(t->location(),
+                                                                        t->is_assignment()->lhs()->clone(),
+                                                                        std::move(mask));
+                    body.push_back(std::move(assign));
+                } else {
+                    return {};
+                }
+            }
+        }
+    }
+
+    return body;
+}
+
+
 void SimdPrinter::visit(IdentifierExpression *e) {
     e->symbol()->accept(this);
 }
@@ -566,6 +667,13 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     }
 }
 
+void SimdPrinter::visit(IfExpression* e) {
+    auto t = transform_if_statement(e->clone());
+    for (auto& e: t) {
+        std::cout << e->to_string() << std::endl;
+    }
+}
+
 void SimdPrinter::visit(CallExpression* e) {
     if(is_indirect_index_)
         out_ << e->name() << "(index_";
@@ -593,9 +701,9 @@ void SimdPrinter::visit(BlockExpression* block) {
     }
 
     for (auto& stmt: block->statements()) {
-        if (stmt->is_if()) {
+        /*if (stmt->is_if()) {
             throw compiler_exception("Conditionals not yet supported in SIMD printer: "+stmt->to_string());
-        }
+        }*/
         if (!stmt->is_local_declaration()) {
             stmt->accept(this);
             out_ << ";\n";

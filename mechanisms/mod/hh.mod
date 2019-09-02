@@ -62,17 +62,17 @@ DERIVATIVE states {
 
 PROCEDURE rates(v, celsius)
 {
-    LOCAL  alpha, beta, sum, q10, x, y, z
+    LOCAL  alpha, beta, sum, q10, x, y, z, w
 
     q10 = 3^((celsius - 6.3)/10)
 
     if (v > 3) {
         x = 2
-        if (v > 9) {
+        if (w < v) {
             x = 1
             y = 3
         }
-    } else if (v == 2) {
+    } else if (v == 1) {
         z = 2
         x = 7
         y = 12
