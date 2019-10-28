@@ -461,8 +461,7 @@ TEST(Parser, parse_reaction_expression) {
         "~ <-> C + D + 7 E (k1, f(a,b)-2)",
         "~ <-> C + D + 7E+F (k1, f(a,b)-2)",
         "~ <-> (f,g)",
-        "~ A + 3B + C<-> (f,g)",
-        "~ A <-> (0, g)"
+        "~ A + 3B + C<-> (f,g)"
     };
 
     for (auto& text: good_expr) {

@@ -11,14 +11,14 @@ BREAKPOINT {
 }
 
 KINETIC state {
-    LOCAL alpha, beta, gamma, delta
-    alpha = 2
-    beta = 0.6
-    gamma = 3
-    delta = 0.7
+    LOCAL alpha1, alpha2, beta1, beta2
+    alpha1 = 2
+    beta1 = 0.6
+    alpha2 = 3
+    beta2 = 0.7
 
-    ~ a <-> b (alpha, beta)
-    ~ x <-> y (gamma, delta)
+    ~ a <-> b (alpha1, beta1)
+    ~ x <-> y (alpha2, beta2)
 }
 
 INITIAL {

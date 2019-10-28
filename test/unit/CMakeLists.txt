@@ -10,9 +10,9 @@ set(test_mechanisms
     test0_kin_conserve
     test0_kin_compartment
     test0_kin_steadystate
+    test0_kin_dual_compartment
     test1_kin_diff
     test1_kin_conserve
-    test1_kin_compartment
     test2_kin_diff
     test3_kin_diff
     test4_kin_compartment

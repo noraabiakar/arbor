@@ -1,5 +1,5 @@
 NEURON {
-    SUFFIX test1_kin_compartment
+    SUFFIX test0_kin_dual_compartment
 }
 
 STATE {

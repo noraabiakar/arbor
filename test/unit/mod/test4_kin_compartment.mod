@@ -29,7 +29,6 @@ INITIAL {
     C = 0.28
     d = 2
     e = 0
-
 }
 
 KINETIC state {
@@ -37,5 +36,5 @@ KINETIC state {
     COMPARTMENT s1 {d e}
 
     ~ A + B <-> C   ( x, y )
-	~ A + d <-> e   ( z, w )
+    ~ A + d <-> e   ( z, w )
 }

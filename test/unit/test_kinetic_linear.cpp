@@ -97,7 +97,7 @@ TEST(mech_kinetic, kintetic_linear_scaled) {
     std::vector<fvm_value_type> t1_1_values = {0.329897, 0.537371, 0.132732};
 
     run_test<multicore::backend>("test0_kin_compartment", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<multicore::backend>("test1_kin_compartment", state_variables, {}, t0_values, t1_1_values, 0.5);
+    run_test<multicore::backend>("test0_kin_dual_compartment", state_variables, {}, t0_values, t1_1_values, 0.5);
 
 }
 
@@ -164,7 +164,7 @@ TEST(mech_kinetic_gpu, kintetic_linear_scaled) {
     std::vector<fvm_value_type> t1_1_values = {0.329897, 0.537371, 0.132732};
 
     run_test<gpu::backend>("test0_kin_compartment", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<gpu::backend>("test1_kin_compartment", state_variables, {}, t0_values, t1_1_values, 0.5);
+    run_test<gpu::backend>("test0_kin_dual_compartment", state_variables, {}, t0_values, t1_1_values, 0.5);
 }
 
 TEST(mech_kinetic_gpu, kintetic_linear_1_conserve) {
