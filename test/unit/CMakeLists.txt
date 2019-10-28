@@ -13,10 +13,11 @@ set(test_mechanisms
     test0_kin_dual_compartment
     test1_kin_diff
     test1_kin_conserve
+    test1_kin_steadystate
     test2_kin_diff
     test3_kin_diff
     test4_kin_compartment
-    test1_kin_steadystate
+    test5_kin_diff
     fixed_ica_current
     point_ica_current
     linear_ca_conc
