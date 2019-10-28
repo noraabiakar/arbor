@@ -189,9 +189,13 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
 
         statements_.push_back(std::move(local_a_term.local_decl));
         statements_.push_back(std::move(local_a_term.assignment));
-        steadystate_rhs_ = a_;
+        rhs_.assign(dvars_.size(), a_);
     }
     scale_factor_.resize(dvars_.size());
+
+    if (rhs_.empty()) {
+        rhs_ = dvars_;
+    }
 
     BlockRewriterBase::visit(e);
 }
@@ -245,16 +249,27 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
     auto s = deriv->name();
     auto expanded_rhs = substitute(rhs, local_expr_);
     linear_test_result r = linear_test(expanded_rhs, dvars_);
-    if (!r.is_homogeneous) {
-        error({"System not homogeneous linear for sparse", loc});
-        return;
-    }
 
     // Populate sparse symbolic matrix for GE.
     if (s!=dvars_[deq_index_]) {
         error({"ICE: inconsistent ordering of derivative assignments", loc});
         return;
     }
+
+    if (!r.is_homogeneous) {
+        auto state_iden = make_expression<IdentifierExpression>(loc, s);
+        auto dt_expr    = make_expression<IdentifierExpression>(loc, "dt");
+        auto r_dt_expr  = make_expression<MulBinaryExpression> (loc, std::move(dt_expr), rhs->is_identifier()->clone());
+        auto mat_rhs    = make_expression<AddBinaryExpression> (loc, std::move(state_iden), std::move(r_dt_expr));
+
+        auto local_r_term = make_unique_local_assign(scope, mat_rhs.get(), "r_");
+        auto r_ = local_r_term.id->is_identifier()->spelling();
+
+        statements_.push_back(std::move(local_r_term.local_decl));
+        statements_.push_back(std::move(local_r_term.assignment));
+        rhs_[deq_index_] = r_;
+    }
+
 
     auto dt_expr = make_expression<IdentifierExpression>(loc, "dt");
     auto one_expr = make_expression<NumberExpression>(loc, 1.0);
@@ -379,9 +394,8 @@ void SparseSolverVisitor::finalize() {
     }
 
     std::vector<symge::symbol> rhs;
-    for (const auto& var: dvars_) {
-        auto v = solve_variant_ == solverVariant::steadystate? steadystate_rhs_ : var;
-        rhs.push_back(symtbl_.define(v));
+    for (const auto& var: rhs_) {
+        rhs.push_back(symtbl_.define(var));
     }
     if (conserve_) {
         for (unsigned i = 0; i < conserve_idx_.size(); ++i) {

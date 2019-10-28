@@ -86,6 +86,9 @@ protected:
     // Flag to indicate whether conserve statements are part of the system
     bool conserve_ = false;
 
+    // rhs of the matrix
+    std::vector<std::string> rhs_;
+
     // state variable multiplier/divider
     std::vector<expression_ptr> scale_factor_;
 
@@ -93,8 +96,6 @@ protected:
     std::vector<std::string> conserve_rhs_;
     std::vector<unsigned> conserve_idx_;
 
-    // rhs of steadstate
-    std::string steadystate_rhs_;
 public:
     using SolverVisitorBase::visit;
 
@@ -116,7 +117,7 @@ public:
         scale_factor_.clear();
         conserve_rhs_.clear();
         conserve_idx_.clear();
-        steadystate_rhs_.clear();
+        rhs_.clear();
         SolverVisitorBase::reset();
     }
 };
