@@ -301,7 +301,8 @@ int main(int argc, char** argv) {
                 groups.push_back({cell_kind::spike_source, {(cell_gid_type)i}, opt.backend});
             }
             if (opt.domain_id == 0) {
-                for (unsigned i = opt.mec_per_domain * opt.num_domains; i < opt.num_mec; ++i) {
+                for (unsigned i = opt.mec_start + opt.mec_per_domain * opt.num_domains; 
+                              i < opt.mec_start + opt.num_mec; ++i) {
                     groups.push_back({cell_kind::spike_source, {(cell_gid_type)i}, opt.backend});
                 }
             }
@@ -311,7 +312,8 @@ int main(int argc, char** argv) {
                 groups.push_back({cell_kind::spike_source, {(cell_gid_type)i}, opt.backend});
             }
             if (opt.domain_id == 0) {
-                for (unsigned i = opt.lec_per_domain * opt.num_domains; i < opt.num_lec; ++i) {
+                for (unsigned i = opt.lec_start + opt.lec_per_domain * opt.num_domains; 
+                              i < opt.lec_start + opt.num_lec; ++i) {
                     groups.push_back({cell_kind::spike_source, {(cell_gid_type)i}, opt.backend});
                 }
             }
@@ -321,7 +323,8 @@ int main(int argc, char** argv) {
                 groups.push_back({cell_kind::cable, {(cell_gid_type)i}, opt.backend});
             }
             if (opt.domain_id == 0) {
-                for (unsigned i = opt.gc_per_domain * opt.num_domains; i < opt.num_gc; ++i) {
+                for (unsigned i = opt.gc_start + opt.gc_per_domain * opt.num_domains; 
+                              i < opt.gc_start + opt.num_gc; ++i) {
                     groups.push_back({cell_kind::cable, {(cell_gid_type)i}, opt.backend});
                 }
             }
@@ -331,7 +334,8 @@ int main(int argc, char** argv) {
                 groups.push_back({cell_kind::cable, {(cell_gid_type)i}, opt.backend});
             }
             if (opt.domain_id == 0) {
-                for (unsigned i = opt.bc_per_domain * opt.num_domains; i < opt.num_bc; ++i) {
+                for (unsigned i = opt.bc_start + opt.bc_per_domain * opt.num_domains; 
+                              i < opt.bc_start + opt.num_bc; ++i) {
                     groups.push_back({cell_kind::cable, {(cell_gid_type)i}, opt.backend});
                 }
             }
@@ -342,13 +346,13 @@ int main(int argc, char** argv) {
                 int operator()(cell_gid_type gid) const {
                     int dom = 0;
                     if (gid >= opt.mec_start && gid < opt.lec_start) {
-                        dom = ((gid - opt.mec_start)/opt.mec_per_domain)+1;
+                        dom = ((gid - opt.mec_start)/opt.mec_per_domain);
                     } else if (gid >= opt.lec_start && gid < opt.gc_start) {
-                        dom = ((gid - opt.lec_start)/opt.lec_per_domain)+1;
+                        dom = ((gid - opt.lec_start)/opt.lec_per_domain);
                     } else if (gid >= opt.gc_start && gid < opt.bc_start) {
-                        dom = ((gid - opt.gc_start)/opt.gc_per_domain)+1;
+                        dom = ((gid - opt.gc_start)/opt.gc_per_domain);
                     } else if (gid >= opt.bc_start && gid){
-                        dom = ((gid - opt.bc_start)/opt.bc_per_domain)+1;
+                        dom = ((gid - opt.bc_start)/opt.bc_per_domain);
                     }
                     return dom >= opt.num_domains ? 0 : dom;
                 }
@@ -367,17 +371,6 @@ int main(int argc, char** argv) {
         };
 
         auto decomp = partition_network();
-        if (root) {
-            std::cout << "nd = " << decomp.num_domains << std::endl;
-            std::cout << "id = " << decomp.domain_id << std::endl;
-            std::cout << "lc = " << decomp.num_local_cells << std::endl;
-            std::cout << "gc = " << decomp.num_global_cells << std::endl;
-            for (auto g: decomp.groups) {
-                for (auto i: g.gids) {
-                    std::cout << i << std::endl;
-                }
-            }
-        }
 
         // Construct the model.
         arb::simulation sim(recipe, decomp, context);
@@ -386,7 +379,7 @@ int main(int argc, char** argv) {
         // Set up the probe that will measure voltage in the cell.
 
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-        auto probe_id = cell_member_type{112111, 0};
+        auto probe_id = cell_member_type{112000, 0};
 
         auto sched = arb::regular_schedule(params.dt);
 
@@ -438,7 +431,10 @@ int main(int argc, char** argv) {
         std::cout << profile << "\n";
 
         // Write the samples to a json file.
-        if (root) write_trace_json(voltage);
+        if (decomp.gid_domain(112000) == arb::rank(context)) {
+           std::cout << "rank " << arb::rank(context) << " is writing the voltages" << std::endl;
+           write_trace_json(voltage);
+        }
 
         auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;
