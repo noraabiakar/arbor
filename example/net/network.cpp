@@ -257,12 +257,132 @@ int main(int argc, char** argv) {
         recipe.add_ion("ks",  1, 1.0, 1.0, -90);
         recipe.add_ion("sk",  1, 1.0, 1.0, -90);
 
-        auto decomp = arb::partition_load_balance(recipe, context);
+        auto partition_network = [&recipe, &context]() {
+            arb::domain_decomposition decomp;
+            struct opt_ {
+                opt_(unsigned nd, unsigned id, bool has_gpu): num_domains(nd), domain_id(id) {
+                    backend = has_gpu ? arb::backend_kind::gpu : arb::backend_kind::multicore;
+                }
+                unsigned num_domains;
+                unsigned domain_id;
+                arb::backend_kind backend;
+
+                unsigned mec_start = 0;
+                unsigned lec_start = 66000;
+                unsigned gc_start = 112000;
+                unsigned bc_start = 113200;
+
+                unsigned num_mec = 66000;
+                unsigned num_lec = 46000;
+                unsigned num_gc = 1200;
+                unsigned num_bc = 8077;
+
+                unsigned gc_per_domain = num_gc/num_domains;
+                unsigned gc_rem            = num_gc%num_domains;
+
+                unsigned bc_per_domain = num_bc/num_domains;
+                unsigned bc_rem            = num_bc%num_domains;
+
+                unsigned lec_per_domain = num_lec/num_domains;
+                unsigned lec_rem            = num_lec%num_domains;
+
+                unsigned mec_per_domain = num_mec/num_domains;
+                unsigned mec_rem            = num_mec%num_domains;
+
+                unsigned base_count = gc_per_domain + bc_per_domain + lec_per_domain + mec_per_domain;
+                unsigned extra_count = gc_rem + bc_rem + lec_rem + mec_rem;
+
+                unsigned num_local_cells = domain_id == 0 ? base_count + extra_count: base_count;
+            } opt(num_ranks(context), rank(context), has_gpu(context));
+
+            std::vector<arb::group_description> groups;
+            for (unsigned i = opt.mec_start + opt.mec_per_domain*opt.domain_id;
+                          i < opt.mec_start + opt.mec_per_domain*(opt.domain_id+1); ++i) {
+                groups.push_back({cell_kind::spike_source, {(cell_gid_type)i}, opt.backend});
+            }
+            if (opt.domain_id == 0) {
+                for (unsigned i = opt.mec_per_domain * opt.num_domains; i < opt.num_mec; ++i) {
+                    groups.push_back({cell_kind::spike_source, {(cell_gid_type)i}, opt.backend});
+                }
+            }
+
+            for (unsigned i = opt.lec_start + opt.lec_per_domain * opt.domain_id;
+                          i < opt.lec_start + opt.lec_per_domain * (opt.domain_id + 1); ++i) {
+                groups.push_back({cell_kind::spike_source, {(cell_gid_type)i}, opt.backend});
+            }
+            if (opt.domain_id == 0) {
+                for (unsigned i = opt.lec_per_domain * opt.num_domains; i < opt.num_lec; ++i) {
+                    groups.push_back({cell_kind::spike_source, {(cell_gid_type)i}, opt.backend});
+                }
+            }
+
+            for (unsigned i = opt.gc_start + opt.gc_per_domain * opt.domain_id;
+                          i < opt.gc_start + opt.gc_per_domain * (opt.domain_id + 1); ++i) {
+                groups.push_back({cell_kind::cable, {(cell_gid_type)i}, opt.backend});
+            }
+            if (opt.domain_id == 0) {
+                for (unsigned i = opt.gc_per_domain * opt.num_domains; i < opt.num_gc; ++i) {
+                    groups.push_back({cell_kind::cable, {(cell_gid_type)i}, opt.backend});
+                }
+            }
+
+            for (unsigned i = opt.bc_start + opt.bc_per_domain * opt.domain_id;
+                          i < opt.bc_start + opt.bc_per_domain * (opt.domain_id + 1); ++i) {
+                groups.push_back({cell_kind::cable, {(cell_gid_type)i}, opt.backend});
+            }
+            if (opt.domain_id == 0) {
+                for (unsigned i = opt.bc_per_domain * opt.num_domains; i < opt.num_bc; ++i) {
+                    groups.push_back({cell_kind::cable, {(cell_gid_type)i}, opt.backend});
+                }
+            }
+
+            struct partition_gid_domain {
+                partition_gid_domain(const opt_& opt): opt(opt) {}
+
+                int operator()(cell_gid_type gid) const {
+                    int dom = 0;
+                    if (gid >= opt.mec_start && gid < opt.lec_start) {
+                        dom = ((gid - opt.mec_start)/opt.mec_per_domain)+1;
+                    } else if (gid >= opt.lec_start && gid < opt.gc_start) {
+                        dom = ((gid - opt.lec_start)/opt.lec_per_domain)+1;
+                    } else if (gid >= opt.gc_start && gid < opt.bc_start) {
+                        dom = ((gid - opt.gc_start)/opt.gc_per_domain)+1;
+                    } else if (gid >= opt.bc_start && gid){
+                        dom = ((gid - opt.bc_start)/opt.bc_per_domain)+1;
+                    }
+                    return dom >= opt.num_domains ? 0 : dom;
+                }
+
+                opt_ opt;
+            };
+
+            decomp.num_domains = opt.num_domains;
+            decomp.domain_id = opt.domain_id;
+            decomp.num_local_cells = opt.num_local_cells;
+            decomp.num_global_cells = 121277;
+            decomp.groups = std::move(groups);
+            decomp.gid_domain = partition_gid_domain(opt);
+
+            return decomp;
+        };
+
+        auto decomp = partition_network();
+        if (root) {
+            std::cout << "nd = " << decomp.num_domains << std::endl;
+            std::cout << "id = " << decomp.domain_id << std::endl;
+            std::cout << "lc = " << decomp.num_local_cells << std::endl;
+            std::cout << "gc = " << decomp.num_global_cells << std::endl;
+            for (auto g: decomp.groups) {
+                for (auto i: g.gids) {
+                    std::cout << i << std::endl;
+                }
+            }
+        }
 
         // Construct the model.
         arb::simulation sim(recipe, decomp, context);
         sim.set_binning_policy(arb::binning_kind::regular, params.dt);
-        std::cout << params.run_time << std::endl;
+        if (root) std::cout << params.run_time << std::endl;
         // Set up the probe that will measure voltage in the cell.
 
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
@@ -299,7 +419,7 @@ int main(int argc, char** argv) {
         if (root) {
             std::cout << "\n" << ns << " spikes generated at rate of "
                       << params.run_time << " ms between spikes\n";
-            /*std::ofstream fid("spikes.gdf");
+            std::ofstream fid("spikes.gdf");
             if (!fid.good()) {
                 std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
             }
@@ -311,7 +431,7 @@ int main(int argc, char** argv) {
                             unsigned{spike.source.gid}, float(spike.time));
                     fid.write(linebuf, n);
                 }
-            }*/
+            }
         }
 
         auto profile = arb::profile::profiler_summary();

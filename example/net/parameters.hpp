@@ -65,7 +65,6 @@ arb::cable_cell granule_cell(arb::sample_tree tree, arb::cell_gid_type gid) {
     using namespace arb::reg;
     using namespace arb::ls;
     using mech = arb::mechanism_desc;
-    using reg = arb::region;
 
     arb::label_dict dict;
 
