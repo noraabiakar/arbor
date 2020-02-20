@@ -15,6 +15,7 @@ struct sim_params {
     double v_init;
     double run_time;
     double dt;
+    unsigned probe_gid;
 };
 
 arb::cable_cell basket_cell() {
@@ -53,10 +54,10 @@ arb::cable_cell basket_cell() {
     cell.default_parameters.reversal_potential_method["tca"] = "ccanlrev";
 
     // Add a spike detector and soma
-//    cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
     cell.place(arb::mlocation{0,0.5}, mech("exp2syn").set("tau1", 0.1).set("tau2", 1.661328).set("e", 0.0));
     cell.place(arb::mlocation{0,0.5}, mech("exp2syn").set("tau1", 0.1).set("tau2", 16.423438).set("e", 0.0));
     cell.place(arb::mlocation{0,0.5}, mech("exp2syn").set("tau1", 0.1).set("tau2", 16.423438).set("e", 0.0));
+    cell.place(arb::mlocation{0,0.5}, arb::threshold_detector{10});
 
     return cell;
 }
@@ -91,7 +92,7 @@ arb::cable_cell granule_cell(arb::sample_tree tree, arb::cell_gid_type gid) {
     cell.place(arb::mlocation{0,0.5}, mech("exp2syn").set("tau1", 0.5).set("tau2", 6.441406).set("e", -75));
     cell.place(uniform("middle_layer",0, 0, gid), mech("exp2syn").set("tau1", 0.5).set("tau2", 1.777344).set("e", 0));
     cell.place(uniform("outer_layer",1, 1, gid), mech("exp2syn").set("tau1", 0.5).set("tau2", 4.109375).set("e", 0));
-//    cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
+    cell.place(arb::mlocation{0,0.5}, arb::threshold_detector{10});
 
     // Add density mechanisms
     cell.default_parameters.discretization = arb::cv_policy_max_extent(5, arb::cv_policy_flag::single_root_cv);
@@ -207,6 +208,7 @@ sim_params read_params(int argc, char** argv) {
     param_from_json(p.run_time, "run_time", json);
     param_from_json(p.morph_file, "morph_file", json);
     param_from_json(p.network_file, "network_file", json);
+    param_from_json(p.probe_gid, "probe_gid", json);
 
     for (auto it=json.begin(); it!=json.end(); ++it) {
         std::cout << "  Warning: unused input parameter: \"" << it.key() << "\"\n";

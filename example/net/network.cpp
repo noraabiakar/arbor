@@ -66,11 +66,11 @@ public:
         if (gid >=0 && gid < 66000) {
             //MEC cell
             std::mt19937_64 G(gid);
-            return arb::spike_source_cell{arb::poisson_schedule(3.0/1000.0, G)};
+            return arb::spike_source_cell{arb::poisson_schedule(20.0/1000.0, G)};
         } else if (gid >=66000 && gid < 112000) {
             //LEC cell
             std::mt19937_64 G(gid);
-            return arb::spike_source_cell{arb::poisson_schedule(3.0/1000.0, G)};
+            return arb::spike_source_cell{arb::poisson_schedule(20.0/1000.0, G)};
         } else if (gid >=112000 && gid < 113200) {
             //GC
             return granule_cell(tree_, gid);
@@ -139,7 +139,7 @@ public:
                     auto src_loc = cell_locs_[src];
                     auto dist = distance(dest_loc, src_loc);
                     conns.emplace_back(
-                            arb::cell_connection({(cell_gid_type) src, 0}, {gid, 1}, 1.52e-5, (2.4 + dist) / 0.32));
+                            arb::cell_connection({(cell_gid_type) src, 0}, {gid, 1}, 1.52e-4, (2.4 + dist) / 0.32));
                 }
             }
             //GC <- LEC
@@ -149,7 +149,7 @@ public:
                     auto src_loc = cell_locs_[src];
                     auto dist = distance(dest_loc, src_loc);
                     conns.emplace_back(
-                            arb::cell_connection({(cell_gid_type) src, 0}, {gid, 2}, 1.63e-5, (2.4 + dist) / 0.32));
+                            arb::cell_connection({(cell_gid_type) src, 0}, {gid, 2}, 1.63e-3, (2.4 + dist) / 0.32));
                 }
             }
             // GC <- BC
@@ -376,10 +376,11 @@ int main(int argc, char** argv) {
         arb::simulation sim(recipe, decomp, context);
         sim.set_binning_policy(arb::binning_kind::regular, params.dt);
         if (root) std::cout << params.run_time << std::endl;
+        
         // Set up the probe that will measure voltage in the cell.
 
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-        auto probe_id = cell_member_type{112000, 0};
+        auto probe_id = cell_member_type{params.probe_gid, 0};
 
         auto sched = arb::regular_schedule(params.dt);
 
@@ -431,7 +432,7 @@ int main(int argc, char** argv) {
         std::cout << profile << "\n";
 
         // Write the samples to a json file.
-        if (decomp.gid_domain(112000) == arb::rank(context)) {
+        if (decomp.gid_domain(params.probe_gid) == arb::rank(context)) {
            std::cout << "rank " << arb::rank(context) << " is writing the voltages" << std::endl;
            write_trace_json(voltage);
         }

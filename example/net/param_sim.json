@@ -1,8 +1,9 @@
 {
-    "run_time": 12,
+    "run_time": 2,
     "dt_arbor": 0.025,
     "temp": 35.0,
     "vinit": -70.0,
     "morph_file":   "/home/abiakarn/git/usc-collab-upstream/morphologies/output0_updated.swc",
-    "network_file": "/home/abiakarn/git/usc-collab-upstream/network/data_network_s1000.h5"
+    "network_file": "/home/abiakarn/git/usc-collab-upstream/network/data_network_s1000.h5",
+    "probe_gid": 112111
 }
