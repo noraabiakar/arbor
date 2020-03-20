@@ -58,7 +58,7 @@ set(arbor_sources
     version.cpp
 )
 
-if(ARB_WITH_CUDA)
+#if(ARB_WITH_CUDA)
     list(APPEND arbor_sources
         backends/gpu/mechanism.cpp
         backends/gpu/mechanism.cu
@@ -78,7 +78,7 @@ if(ARB_WITH_CUDA)
         backends/gpu/threshold_watcher.cu
         memory/fill.cu
     )
-endif()
+#endif()
 
 if(ARB_WITH_MPI)
     list(APPEND arbor_sources
@@ -113,6 +113,7 @@ add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
 set_source_files_properties(${arbor_mechanism_sources} PROPERTIES GENERATED TRUE)
 
 # Library target:
+set_source_files_properties(${arbor_sources} PROPERTIES LANGUAGE CXX)
 
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
 add_dependencies(arbor build_all_mods)
