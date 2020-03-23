@@ -1,4 +1,4 @@
-#include <cstdio>
+/*#include <cstdio>
 #include <random>
 #include <vector>
 
@@ -232,3 +232,4 @@ TEST(multi_event_stream_gpu, time_if_before) {
         }
     }
 }
+*/

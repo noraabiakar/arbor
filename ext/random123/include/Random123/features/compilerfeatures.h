@@ -202,8 +202,8 @@ added to each of the *features.h files, AND to examples/ut_features.cpp.
 #include "metalfeatures.h"
 #elif defined(__OPENCL_VERSION__) && __OPENCL_VERSION__ > 0
 #include "openclfeatures.h"
-#elif defined(__CUDACC__)
-#include "nvccfeatures.h"
+//#elif defined(__CUDACC__)
+//#include "nvccfeatures.h"
 #elif defined(__ICC)
 #include "iccfeatures.h"
 #elif defined(__xlC__)
@@ -295,7 +295,7 @@ added to each of the *features.h files, AND to examples/ut_features.cpp.
 #endif    
 
 #ifndef R123_USE_PHILOX_64BIT
-#define R123_USE_PHILOX_64BIT (R123_USE_64BIT && (R123_USE_MULHILO64_ASM || R123_USE_MULHILO64_MSVC_INTRIN || R123_USE_MULHILO64_CUDA_INTRIN || R123_USE_GNU_UINT128 || R123_USE_MULHILO64_C99 || R123_USE_MULHILO64_OPENCL_INTRIN || R123_USE_MULHILO64_MULHI_INTRIN))
+#define R123_USE_PHILOX_64BIT (R123_USE_64BIT && (R123_USE_MULHILO64_ASM || R123_USE_MULHILO64_MSVC_INTRIN || R123_USE_GNU_UINT128 || R123_USE_MULHILO64_C99 || R123_USE_MULHILO64_OPENCL_INTRIN || R123_USE_MULHILO64_MULHI_INTRIN))
 #endif
 
 #ifndef R123_ULONG_LONG

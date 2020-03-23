@@ -125,7 +125,7 @@ R123_MK_SIGNED_UNSIGNED(__int128_t, __uint128_t);
 #undef R123_MK_SIGNED_UNSIGNED
 #endif
 
-#if defined(__CUDACC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
+//#if defined(__CUDACC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
 // Amazing! cuda thinks numeric_limits::max() is a __host__ function, so
 // we can't use it in a device function.  
 //
@@ -137,17 +137,17 @@ R123_MK_SIGNED_UNSIGNED(__int128_t, __uint128_t);
 // 
 // In both cases, we find max() by computing ~(unsigned)0 right-shifted
 // by is_signed.
-template <typename T>
-R123_CONSTEXPR R123_STATIC_INLINE R123_CUDA_DEVICE T maxTvalue(){
-    typedef typename make_unsigned<T>::type uT;
-    return (~uT(0)) >> std::numeric_limits<T>::is_signed;
- }
-#else
+//template <typename T>
+//R123_CONSTEXPR R123_STATIC_INLINE R123_CUDA_DEVICE T maxTvalue(){
+//    typedef typename make_unsigned<T>::type uT;
+//    return (~uT(0)) >> std::numeric_limits<T>::is_signed;
+// }
+//#else
 template <typename T>
 R123_CONSTEXPR R123_STATIC_INLINE T maxTvalue(){
     return std::numeric_limits<T>::max();
 }
-#endif
+//#endif
 /** @endcond
     @}
  */

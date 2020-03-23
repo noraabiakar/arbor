@@ -58,7 +58,7 @@ set(arbor_sources
     version.cpp
 )
 
-#if(ARB_WITH_CUDA)
+if(ARB_WITH_CUDA)
     list(APPEND arbor_sources
         backends/gpu/mechanism.cpp
         backends/gpu/mechanism.cu
@@ -78,7 +78,7 @@ set(arbor_sources
         backends/gpu/threshold_watcher.cu
         memory/fill.cu
     )
-#endif()
+endif()
 
 if(ARB_WITH_MPI)
     list(APPEND arbor_sources
