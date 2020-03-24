@@ -54,3 +54,4 @@ foreach(mech ${mechanisms})
 endforeach()
 
 set(arbor_mechanism_sources ${mech_sources} PARENT_SCOPE)
+set_source_files_properties(${arbor_mechanism_sources} PROPERTIES LANGUAGE CXX)

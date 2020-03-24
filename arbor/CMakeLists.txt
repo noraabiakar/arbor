@@ -114,6 +114,7 @@ set_source_files_properties(${arbor_mechanism_sources} PROPERTIES GENERATED TRUE
 
 # Library target:
 set_source_files_properties(${arbor_sources} PROPERTIES LANGUAGE CXX)
+set_source_files_properties(${arbor_mechanism_sources} PROPERTIES LANGUAGE CXX)
 
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
 add_dependencies(arbor build_all_mods)

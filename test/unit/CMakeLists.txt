@@ -56,7 +56,6 @@ foreach(mech ${test_mechanisms})
     endif()
 endforeach()
 
-
 # TODO: test_mechanism and mechanism prototype comparisons must
 # be re-jigged.
 
@@ -173,6 +172,8 @@ if(ARB_WITH_CUDA)
         test_spikes_gpu.cpp
     )
 endif()
+set_source_files_properties(${unit_sources} PROPERTIES LANGUAGE CXX)
+set_source_files_properties(${test_mech_sources} PROPERTIES LANGUAGE CXX)
 
 add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${test_mech_sources})
 add_dependencies(unit build_test_mods)
@@ -181,4 +182,7 @@ add_dependencies(tests unit)
 target_compile_options(unit PRIVATE ${ARB_CXXOPT_ARCH})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/swc\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+
+set(clang_cuda_options_ -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_cuda_options_}>)
 target_link_libraries(unit PRIVATE gtest arbor arbor-private-headers arbor-sup)
