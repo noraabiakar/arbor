@@ -7,6 +7,20 @@
 namespace arb {
 namespace gpu {
 
+// Shuffle of double
+__device__ __inline__ double shfl(double x, int lane)
+{
+    int lo, hi;
+    asm volatile("mov.b64 {%0,%1}, %2;":"=r"(lo),"=r"(hi):"d"(x));
+
+    lo = __shfl(lo,lane,warpSize);
+    hi = __shfl(hi,lane,warpSize);
+
+    asm volatile("mov.b64 %0,{%1,%2};":"=d"(x):"r"(lo),"r"(hi));
+    return x;
+}
+
+
 // key_set_pos stores information required by a thread to calculate its
 // contribution to a reduce by key operation.
 //
@@ -36,7 +50,9 @@ struct key_set_pos {
         unsigned num_lanes = impl::threads_per_warp()-__clz(key_mask);
 
         // Determine if this thread is the root (i.e. first thread with this key).
-        int left_idx  = __shfl_up_sync(key_mask, idx, lane_id? 1: 0);
+        unsigned src_lane = lane_id - lane_id? 1: 0;
+        //int left_idx  = shfl(key_mask, idx, src_lane);
+        int left_idx  = shfl(idx, src_lane);
 
         is_root = lane_id? left_idx!=idx: 1;
 
@@ -60,7 +76,9 @@ void reduce_by_key(T contribution, T* target, I i, unsigned mask) {
     unsigned w = shift<width? shift: 0;
 
     while (__any_sync(run.key_mask, w)) {
-        T source_value = __shfl_down_sync(run.key_mask, contribution, w);
+        unsigned src_lane = run.lane_id + w;
+        //T source_value = shfl(run.key_mask, contribution, src_lane);
+        T source_value = shfl(contribution, src_lane);
 
         if (w) contribution += source_value;
 
