@@ -249,6 +249,7 @@ if(ARB_WITH_GPU)
     target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
     set(clang_cuda_options_ -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
     target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_cuda_options_}>)
+    target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_cuda_options_}>)
 
 
     # The arborenv lib needs to use the CUDA NVML library for CUDA 9.
