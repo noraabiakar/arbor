@@ -56,7 +56,7 @@ public:
 
     operator T() const {
         T tmp;
-        cuda_memcpy_d2h(&tmp, pointer_, sizeof(T));
+        gpu_memcpy_d2h(&tmp, pointer_, sizeof(T));
         return tmp;
     }
 
@@ -76,17 +76,17 @@ public:
     device_reference(pointer p) : pointer_(p) {}
 
     device_reference& operator=(const T& value) {
-        cuda_memcpy_h2d(pointer_, &value, sizeof(T));
+        gpu_memcpy_h2d(pointer_, &value, sizeof(T));
         return *this;
     }
 
     device_reference& operator=(const device_reference& ref) {
-        cuda_memcpy_d2d(pointer_, ref.pointer_, sizeof(T));
+        gpu_memcpy_d2d(pointer_, ref.pointer_, sizeof(T));
     }
 
     operator T() const {
         T tmp;
-        cuda_memcpy_d2h(&tmp, pointer_, sizeof(T));
+        gpu_memcpy_d2h(&tmp, pointer_, sizeof(T));
         return tmp;
     }
 
@@ -154,7 +154,7 @@ public:
         arb_assert(from.size()==to.size());
         arb_assert(!from.overlaps(to));
 
-        cuda_memcpy_d2d(to.data(), from.data(), from.size()*sizeof(value_type));
+        gpu_memcpy_d2d(to.data(), from.data(), from.size()*sizeof(value_type));
     }
 
     // copy memory from gpu to host
@@ -171,7 +171,7 @@ public:
         #endif
         arb_assert(from.size()==to.size());
 
-        cuda_memcpy_d2h(to.data(), from.data(), from.size()*sizeof(value_type));
+        gpu_memcpy_d2h(to.data(), from.data(), from.size()*sizeof(value_type));
     }
 
     // copy memory from host to gpu
@@ -188,7 +188,7 @@ public:
         #endif
         arb_assert(from.size()==to.size());
 
-        cuda_memcpy_h2d(to.data(), from.data(), from.size()*sizeof(value_type));
+        gpu_memcpy_h2d(to.data(), from.data(), from.size()*sizeof(value_type));
     }
 
     // copy from pinned memory to device

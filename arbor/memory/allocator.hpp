@@ -103,7 +103,7 @@ namespace impl {
                 }
 
                 // register the memory with CUDA
-                if (!cuda_host_register(ptr, size)) {
+                if (!gpu_host_register(ptr, size)) {
                     free(ptr);
                     ptr = nullptr;
                 }
@@ -115,7 +115,7 @@ namespace impl {
                 if (!ptr) {
                     return;
                 }
-                cuda_host_unregister(ptr);
+                gpu_host_unregister(ptr);
                 free(ptr);
             }
 
@@ -130,11 +130,11 @@ namespace impl {
         class device_policy {
         public:
             void *allocate_policy(size_type size) {
-                return cuda_malloc(size);
+                return gpu_malloc(size);
             }
 
             void free_policy(void *ptr) {
-                cuda_free(ptr);
+                gpu_free(ptr);
             }
 
             // memory allocated using cudaMalloc has alignment of 256 bytes
