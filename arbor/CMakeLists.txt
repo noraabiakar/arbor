@@ -118,8 +118,8 @@ set_source_files_properties(${arbor_mechanism_sources} PROPERTIES LANGUAGE CXX)
 
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
 add_dependencies(arbor build_all_mods)
-target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
-target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
+target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers ${CUDA_LIBRARIES})
+target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers ${CUDA_LIBRARIES})
 set_target_properties(arbor PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
