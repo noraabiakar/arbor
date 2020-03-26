@@ -7,11 +7,10 @@
 
 #ifdef ARB_HAVE_GPU
 
-#include <cuda.h>
-#include <cuda_runtime.h>
+#include <backends/gpu/gpu_api.hpp>
 
-#define HANDLE_CUDA_ERROR(error, msg)\
-throw arbor_exception("CUDA memory:: "+std::string(__func__)+" "+std::string((msg))+": "+cudaGetErrorString(error));
+#define HANDLE_GPU_ERROR(error, msg)\
+throw arbor_exception("CUDA memory:: "+std::string(__func__)+" "+std::string((msg))+": "+gpu_error_string(error));
 
 namespace arb {
 namespace memory {
@@ -19,46 +18,46 @@ namespace memory {
 using std::to_string;
 
 void cuda_memcpy_d2d(void* dest, const void* src, std::size_t n) {
-    if (auto error = cudaMemcpy(dest, src, n, cudaMemcpyDeviceToDevice)) {
-        HANDLE_CUDA_ERROR(error, "n="+to_string(n));
+    if (auto error = gpu_memcpy(dest, src, n, gpuMemcpyDeviceToDevice)) {
+        HANDLE_GPU_ERROR(error, "n="+to_string(n));
     }
 }
 
 void cuda_memcpy_d2h(void* dest, const void* src, std::size_t n) {
-    if (auto error = cudaMemcpy(dest, src, n, cudaMemcpyDeviceToHost)) {
-        HANDLE_CUDA_ERROR(error, "n="+to_string(n));
+    if (auto error = gpu_memcpy(dest, src, n, gpuMemcpyDeviceToHost)) {
+        HANDLE_GPU_ERROR(error, "n="+to_string(n));
     }
 }
 
 void cuda_memcpy_h2d(void* dest, const void* src, std::size_t n) {
-    if (auto error = cudaMemcpy(dest, src, n, cudaMemcpyHostToDevice)) {
-        HANDLE_CUDA_ERROR(error, "n="+to_string(n));
+    if (auto error = gpu_memcpy(dest, src, n, gpuMemcpyHostToDevice)) {
+        HANDLE_GPU_ERROR(error, "n="+to_string(n));
     }
 }
 
 void* cuda_host_register(void* ptr, std::size_t size) {
-    if (auto error = cudaHostRegister(ptr, size, cudaHostRegisterPortable)) {
-        HANDLE_CUDA_ERROR(error, "unable to register host memory");
+    if (auto error = gpu_host_register(ptr, size, gpuHostRegisterPortable)) {
+        HANDLE_GPU_ERROR(error, "unable to register host memory");
     }
     return ptr;
 }
 
 void cuda_host_unregister(void* ptr) {
-    cudaHostUnregister(ptr);
+    gpu_host_unregister(ptr);
 }
 
 void* cuda_malloc(std::size_t n) {
     void* ptr;
 
-    if (auto error = cudaMalloc(&ptr, n)) {
-        HANDLE_CUDA_ERROR(error, "unable to allocate "+to_string(n)+" bytes");
+    if (auto error = gpu_malloc(&ptr, n)) {
+        HANDLE_GPU_ERROR(error, "unable to allocate "+to_string(n)+" bytes");
     }
     return ptr;
 }
 
 void cuda_free(void* ptr) {
-    if (auto error = cudaFree(ptr)) {
-        HANDLE_CUDA_ERROR(error, "");
+    if (auto error = gpu_free(ptr)) {
+        HANDLE_GPU_ERROR(error, "");
     }
 }
 
