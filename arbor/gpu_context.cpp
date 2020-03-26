@@ -5,8 +5,7 @@
 #include "gpu_context.hpp"
 
 #ifdef ARB_HAVE_GPU
-#include <cuda.h>
-#include <cuda_runtime.h>
+#include <backends/gpu/gpu_api.hpp>
 #endif
 
 namespace arb {
@@ -44,9 +43,9 @@ gpu_context::gpu_context(int) {
 #else
 
 gpu_context::gpu_context(int gpu_id) {
-    cudaDeviceProp prop;
-    auto status = cudaGetDeviceProperties(&prop, gpu_id);
-    if (status==cudaErrorInvalidDevice) {
+    DeviceProp prop;
+    auto status = get_device_properities(&prop, gpu_id);
+    if (status==ErrorInvalidDevice) {
         throw arbor_exception("Invalid GPU id " + std::to_string(gpu_id));
     }
 
@@ -69,11 +68,9 @@ void gpu_context::set_gpu() const {
         throw arbor_exception(
             "Call to gpu_context::set_gpu() when there is no GPU selected.");
     }
-    auto status = cudaSetDevice(id_);
-    if (status != cudaSuccess) {
-        throw arbor_exception(
-            "Unable to select GPU id " + std::to_string(id_)
-            + ": " + cudaGetErrorName(status));
+    auto status = set_device(id_);
+    if (status != Success) {
+        throw arbor_exception("Unable to select GPU id");
     }
 }
 
