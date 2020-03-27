@@ -213,7 +213,7 @@ public:
                   << util::print_pointer(to.data()) << "\n";
         #endif
 
-        cuda_memcpy_h2d(to.begin(), from.begin(), from.size()*sizeof(value_type));
+        gpu_memcpy_h2d(to.begin(), from.begin(), from.size()*sizeof(value_type));
     }
 
     // generates compile time error if there is an attempt to copy from memory

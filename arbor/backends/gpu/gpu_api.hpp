@@ -51,3 +51,8 @@ inline auto device_free(ARGS&&... args) -> cudaError_t {
     return cudaFree(std::forward<ARGS>(args)...);
 }
 
+template <typename... ARGS>
+inline auto device_mem_get_info(ARGS&&... args) -> cudaError_t {
+    return cudaMemGetInfo(std::forward<ARGS>(args)...);
+}
+
