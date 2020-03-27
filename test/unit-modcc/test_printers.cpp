@@ -8,7 +8,7 @@
 
 #include "printer/cexpr_emit.hpp"
 #include "printer/cprinter.hpp"
-#include "printer/cudaprinter.hpp"
+#include "printer/gpuprinter.hpp"
 #include "expression.hpp"
 #include "symdiff.hpp"
 

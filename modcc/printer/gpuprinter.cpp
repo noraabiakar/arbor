@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_set>
 
-#include "cudaprinter.hpp"
+#include "gpuprinter.hpp"
 #include "expression.hpp"
 #include "io/ostream_wrappers.hpp"
 #include "io/prefixbuf.hpp"

@@ -1,6 +1,6 @@
 #include <arbor/fvm_types.hpp>
 
-#include "cuda_atomic.hpp"
+#include "gpu_atomic.hpp"
 #include "cuda_common.hpp"
 #include "stimulus.hpp"
 
