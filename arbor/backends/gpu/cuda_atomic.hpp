@@ -7,7 +7,7 @@
 
 #if __CUDA_ARCH__ < 600 // Maxwell or older (no native double precision atomic addition)
     __device__
-    inline double cuda_atomic_add(double* address, double val) {
+    inline double gpu_atomic_add(double* address, double val) {
         using I = unsigned long long int;
         I* address_as_ull = (I*)address;
         I old = *address_as_ull, assumed;
@@ -19,23 +19,23 @@
     }
 #else // use build in atomicAdd for double precision from Pascal onwards
     __device__
-    inline double cuda_atomic_add(double* address, double val) {
+    inline double gpu_atomic_add(double* address, double val) {
         return atomicAdd(address, val);
     }
 #endif
 
 __device__
-inline double cuda_atomic_sub(double* address, double val) {
-    return cuda_atomic_add(address, -val);
+inline double gpu_atomic_sub(double* address, double val) {
+    return gpu_atomic_add(address, -val);
 }
 
 __device__
-inline float cuda_atomic_add(float* address, float val) {
+inline float gpu_atomic_add(float* address, float val) {
     return atomicAdd(address, val);
 }
 
 __device__
-inline float cuda_atomic_sub(float* address, float val) {
+inline float gpu_atomic_sub(float* address, float val) {
     return atomicAdd(address, -val);
 }
 

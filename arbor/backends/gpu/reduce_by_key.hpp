@@ -88,7 +88,7 @@ void reduce_by_key(T contribution, T* target, I i, unsigned mask) {
 
     if(run.is_root) {
         // The update must be atomic, because the run may span multiple warps.
-        cuda_atomic_add(target+i, contribution);
+        gpu_atomic_add(target+i, contribution);
     }
 }
 

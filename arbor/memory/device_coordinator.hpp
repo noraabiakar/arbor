@@ -94,7 +94,7 @@ private:
     pointer pointer_;
 };
 
-template <typename T, class Allocator_= cuda_allocator<T> >
+template <typename T, class Allocator_= gpu_allocator<T> >
 class device_coordinator {
 public:
     using value_type = T;

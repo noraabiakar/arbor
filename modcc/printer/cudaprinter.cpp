@@ -48,7 +48,7 @@ static std::string ion_state_index(const std::string& ion_name) {
     return "ion_"+ion_name+"_index_";
 }
 
-std::string emit_cuda_cpp_source(const Module& module_, const printer_options& opt) {
+std::string emit_gpu_cpp_source(const Module& module_, const printer_options& opt) {
     std::string name = module_.module_name();
     std::string class_name = make_class_name(name);
     std::string ppack_name = make_ppack_name(name);
@@ -207,7 +207,7 @@ std::string emit_cuda_cpp_source(const Module& module_, const printer_options& o
     return out.str();
 }
 
-std::string emit_cuda_cu_source(const Module& module_, const printer_options& opt) {
+std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt) {
     std::string name = module_.module_name();
     std::string class_name = make_class_name(name);
     std::string ppack_name = make_ppack_name(name);
