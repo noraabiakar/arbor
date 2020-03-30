@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cuda.h>
-#include <cuda_runtime.h>
+//#include <cuda.h>
+//#include <cuda_runtime.h>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>

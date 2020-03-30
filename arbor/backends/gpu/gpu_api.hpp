@@ -1,5 +1,6 @@
 #include <utility>
 
+#ifdef CUDA_RUN
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
@@ -56,5 +57,62 @@ inline auto device_free(ARGS&&... args) -> cudaError_t {
 template <typename... ARGS>
 inline auto device_mem_get_info(ARGS&&... args) -> cudaError_t {
     return cudaMemGetInfo(std::forward<ARGS>(args)...);
+}
+#endif
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime_api.h>
+using DeviceProp = hipDeviceProp_t;
+
+constexpr auto Success = hipSuccess;
+constexpr auto ErrorInvalidDevice = hipErrorInvalidDevice;
+constexpr auto gpuMemcpyDeviceToHost = hipMemcpyDeviceToHost;
+constexpr auto gpuMemcpyHostToDevice = hipMemcpyHostToDevice;
+constexpr auto gpuMemcpyDeviceToDevice = hipMemcpyDeviceToDevice;
+constexpr auto gpuHostRegisterPortable = hipHostRegisterPortable;
+
+template <typename... ARGS>
+inline auto get_device_properities(ARGS&&... args) -> hipError_t {
+  return hipGetDeviceProperties(std::forward<ARGS>(args)...);
+}
+
+template <typename... ARGS>
+inline auto device_error_string(ARGS&&... args) -> const char* {
+    return hipGetErrorString(std::forward<ARGS>(args)...);
+}
+
+template <typename... ARGS>
+inline auto set_device(ARGS&&... args) -> hipError_t {
+  return hipSetDevice(std::forward<ARGS>(args)...);
+}
+
+template <typename... ARGS>
+inline auto device_memcpy(ARGS&&... args) -> hipError_t {
+    return hipMemcpy(std::forward<ARGS>(args)...);
+}
+
+template <typename... ARGS>
+inline auto host_register(ARGS&&... args) -> hipError_t {
+    return hipHostRegister(std::forward<ARGS>(args)...);
+}
+
+template <typename... ARGS>
+inline auto host_unregister(ARGS&&... args) -> hipError_t {
+    return hipHostUnregister(std::forward<ARGS>(args)...);
+}
+
+template <typename... ARGS>
+inline auto device_malloc(ARGS&&... args) -> hipError_t {
+    return hipMalloc(std::forward<ARGS>(args)...);
+}
+
+template <typename... ARGS>
+inline auto device_free(ARGS&&... args) -> hipError_t {
+    return hipFree(std::forward<ARGS>(args)...);
+}
+
+template <typename... ARGS>
+inline auto device_mem_get_info(ARGS&&... args) -> hipError_t {
+    return hipMemGetInfo(std::forward<ARGS>(args)...);
 }
 

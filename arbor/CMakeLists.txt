@@ -100,7 +100,7 @@ target_include_directories(arbor-private-headers INTERFACE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 
 if(ARB_WITH_GPU)
-    target_include_directories(arbor-private-headers INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+    target_include_directories(arbor-private-headers INTERFACE /opt/rocm/hip/include/ /opt/rocm/hsa/include/)
 endif()
 
 install(TARGETS arbor-private-headers EXPORT arbor-targets)
@@ -118,8 +118,10 @@ set_source_files_properties(${arbor_mechanism_sources} PROPERTIES LANGUAGE CXX)
 
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
 add_dependencies(arbor build_all_mods)
-target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers ${CUDA_LIBRARIES})
-target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers ${CUDA_LIBRARIES})
+#target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers ${CUDA_LIBRARIES})
+#target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers ${CUDA_LIBRARIES})
+target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers ${HIP_LIBRARIES})
+target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers ${HIP_LIBRARIES})
 set_target_properties(arbor PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
