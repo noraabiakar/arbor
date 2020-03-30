@@ -1,3 +1,5 @@
+#include <hip/hip_runtime.h> 
+
 #include <backends/event.hpp>
 #include <backends/multi_event_stream_state.hpp>
 

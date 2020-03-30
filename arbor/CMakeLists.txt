@@ -100,7 +100,8 @@ target_include_directories(arbor-private-headers INTERFACE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 
 if(ARB_WITH_GPU)
-    target_include_directories(arbor-private-headers INTERFACE /opt/rocm/hip/include/ /opt/rocm/hsa/include/)
+    #target_include_directories(arbor-private-headers INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+    target_include_directories(arbor-private-headers INTERFACE)
 endif()
 
 install(TARGETS arbor-private-headers EXPORT arbor-targets)

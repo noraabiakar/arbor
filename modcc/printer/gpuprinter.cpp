@@ -68,6 +68,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n";
 
     out <<
+        "#include <" << arb_private_header_prefix() << "hip/hip_runtime_api.h>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
 
@@ -401,7 +402,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
             auto it = std::find_if(indexed_vars.begin(), indexed_vars.end(),
                       [](auto& sym){return sym->external_variable()->is_write();});
             if (it!=indexed_vars.end()) {
-                out << "unsigned lane_mask_ = __ballot_sync(0xffffffff, tid_<n_);\n";
+                out << "unsigned lane_mask_ = __ballot(tid_<n_);\n";
             }
         }
 

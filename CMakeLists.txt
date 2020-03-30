@@ -92,7 +92,7 @@ if(ARB_WITH_GPU)
     # Despite native CUDA support, the CUDA package is still required to find
     # the NVML library and to export the cuda library dependencies from the
     # installed target.
-    find_package(HIP REQUIRED)
+    #find_package(CUDA REQUIRED)
 endif()
 
 # Build paths.
@@ -241,19 +241,18 @@ endif()
 
 if(ARB_WITH_GPU)
     set(ARB_WITH_CUDA TRUE)
-    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU -D__HIP_PLATFORM_HCC__)
+    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU)
     if(ARB_WITH_GPU_FINE_MATRIX)
         target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
     endif()
 
     #target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-    #set(clang_cuda_options_ -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+    #set(clang_options_ -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+    target_include_directories(arborenv-private-deps INTERFACE)
+    set(clang_options_ -xhip --amdgpu-target=gfx906)
 
-    target_include_directories(arborenv-private-deps INTERFACE ${HIP_PATH})
-    set(clang_cuda_options_ -xhip --amdgpu-target=gfx900)
-
-    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_cuda_options_}>)
-    target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_cuda_options_}>)
+    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+    target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
 
 
     # The arborenv lib needs to use the CUDA NVML library for CUDA 9.

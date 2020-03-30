@@ -1,5 +1,7 @@
 #pragma once
 
+#include <hip/hip_runtime.h>
+
 #include "cuda_common.hpp"
 #include "matrix_common.hpp"
 

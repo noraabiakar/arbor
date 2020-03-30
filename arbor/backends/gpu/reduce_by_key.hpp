@@ -11,13 +11,18 @@ namespace gpu {
 __device__ __inline__ double shfl(double x, int lane)
 {
     int lo, hi;
-    asm volatile("mov.b64 {%0,%1}, %2;":"=r"(lo),"=r"(hi):"d"(x));
+    //asm volatile("mov.b64 {%0,%1}, %2;":"=r"(lo),"=r"(hi):"d"(x));
+    int* xptr = reinterpret_cast<int*>(&x);
+    lo = xptr[0];
+    hi = xptr[1];
 
     lo = __shfl(lo,lane,warpSize);
     hi = __shfl(hi,lane,warpSize);
 
-    asm volatile("mov.b64 %0,{%1,%2};":"=d"(x):"r"(lo),"r"(hi));
-    return x;
+    //asm volatile("mov.b64 %0,{%1,%2};":"=d"(x):"r"(lo),"r"(hi));
+    xptr[0] = lo;
+    xptr[1] = hi;
+    return *reinterpret_cast<double*>(xptr);
 }
 
 
@@ -57,7 +62,7 @@ struct key_set_pos {
         is_root = lane_id? left_idx!=idx: 1;
 
         // Determine the range this thread contributes to.
-        unsigned roots = __ballot_sync(key_mask, is_root);
+        unsigned roots = __ballot(is_root);
 
         // Find the distance to the lane id one past the end of the run.
         // Take care if this is the last run in the warp.
@@ -75,7 +80,7 @@ void reduce_by_key(T contribution, T* target, I i, unsigned mask) {
 
     unsigned w = shift<width? shift: 0;
 
-    while (__any_sync(run.key_mask, w)) {
+    while (w) {
         unsigned src_lane = run.lane_id + w;
         //T source_value = shfl(run.key_mask, contribution, src_lane);
         T source_value = shfl(contribution, src_lane);

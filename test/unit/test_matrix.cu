@@ -2,7 +2,7 @@
 #include <random>
 #include <vector>
 
-#include <cuda.h>
+//#include <cuda.h>
 
 #include <arbor/math.hpp>
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <cfloat>
+#include <cmath>
 #include <hip/hip_runtime.h>
 
 // Implementations of mathematical operations required

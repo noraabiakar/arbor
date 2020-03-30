@@ -1,5 +1,7 @@
 #pragma once
 
+#include <hip/hip_runtime.h>
+
 // Wrappers around CUDA addition functions.
 // CUDA 8 introduced support for atomicAdd with double precision, but only for
 // Pascal GPUs (__CUDA_ARCH__ >= 600). These wrappers provide a portable

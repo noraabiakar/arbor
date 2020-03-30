@@ -1,5 +1,7 @@
 #pragma once
 
+#include <hip/hip_runtime.h>
+
 #include "stack_storage.hpp"
 
 namespace arb {

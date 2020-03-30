@@ -1,5 +1,7 @@
 #include <cstdint>
 
+#include <hip/hip_runtime.h>
+
 namespace arb {
 namespace gpu {
 

@@ -1,5 +1,6 @@
 #include <utility>
 
+#ifdef CUDA_RUN
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
@@ -30,3 +31,35 @@ template <typename... ARGS>
 inline auto device_error_name(ARGS&&... args) -> const char* {
     return cudaGetErrorName(std::forward<ARGS>(args)...);
 }
+#endif
+
+#include<hip/hip_runtime.h>
+#include<hip/hip_runtime_api.h>
+
+using DeviceProp = hipDeviceProp_t;
+using Error = hipError_t;
+
+constexpr auto Success = hipSuccess;
+constexpr auto ErrorInvalidDevice = hipErrorInvalidDevice;
+constexpr auto ErrorNoDevice = hipErrorNoDevice;
+
+template <typename... ARGS>
+inline auto get_device_count(ARGS&&... args) -> hipError_t {
+    return hipGetDeviceCount(std::forward<ARGS>(args)...);
+}
+
+template <typename... ARGS>
+inline auto get_device_properities(ARGS&&... args) -> hipError_t {
+    return hipGetDeviceProperties(std::forward<ARGS>(args)...);
+}
+
+template <typename... ARGS>
+inline auto device_error_string(ARGS&&... args) -> const char* {
+    return hipGetErrorString(std::forward<ARGS>(args)...);
+}
+
+template <typename... ARGS>
+inline auto device_error_name(ARGS&&... args) -> const char* {
+    return hipGetErrorName(std::forward<ARGS>(args)...);
+}
+

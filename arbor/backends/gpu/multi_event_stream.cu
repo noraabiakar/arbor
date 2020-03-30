@@ -1,5 +1,7 @@
 #include <arbor/common_types.hpp>
 
+#include <hip/hip_runtime.h>
+
 #include "backends/event.hpp"
 #include "backends/gpu/multi_event_stream.hpp"
 #include "cuda_common.hpp"

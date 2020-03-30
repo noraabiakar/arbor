@@ -12,8 +12,8 @@ BREAKPOINT {
 
 KINETIC state {
     LOCAL f, r
-    f = 2
-    r = 1
+    f = 2.0
+    r = 1.0
 
     ~ 2a  + b <-> c (f, r)
 }
