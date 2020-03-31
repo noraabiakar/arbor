@@ -143,10 +143,13 @@ void interleaved_to_flat(
     constexpr unsigned Threads = BlockWidth*LoadWidth;
     const unsigned blocks = impl::block_count(num_vec, BlockWidth);
 
+    printf("here\n");
+
     kernels::interleaved_to_flat
         <T, I, BlockWidth, LoadWidth, Threads>
         <<<blocks, Threads>>>
         (in, out, sizes, starts, padded_size, num_vec);
+   hipDeviceSynchronize();
 }
 
 } // namespace gpu

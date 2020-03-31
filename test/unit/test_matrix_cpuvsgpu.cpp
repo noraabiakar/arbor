@@ -132,10 +132,9 @@ TEST(matrix, assemble)
     // Compare the GPU and CPU results.
     // Cast result to float, because we are happy to ignore small differencs
     std::vector<float> result_h = util::assign_from(m_mc.solution());
+    std::cout << "before" << std::endl;
     std::vector<float> result_g = util::assign_from(on_host(m_gpu.solution()));
-    for (unsigned i =0; i < result_h.size(); i++) {
-        std::cout << result_h[i] << " " << result_g[i] << std::endl;
-    }
+    std::cout << "after" << std::endl;
     EXPECT_TRUE(seq_almost_eq<float>(result_h, result_g));
 }
 

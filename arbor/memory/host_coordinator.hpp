@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+#include <hip/hip_runtime_api.h>
+
 #include <arbor/assert.hpp>
 
 #include "gpu_wrappers.hpp"
@@ -135,6 +137,8 @@ public:
         #endif
 
         gpu_memcpy_d2h(to.data(), from.data(), from.size()*sizeof(value_type));
+        hipDeviceSynchronize();
+        std::cout << "Synced" << std::endl;
     }
 
     // copy memory from host to device

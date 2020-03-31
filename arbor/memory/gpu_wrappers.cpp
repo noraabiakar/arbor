@@ -27,6 +27,7 @@ void gpu_memcpy_d2h(void* dest, const void* src, std::size_t n) {
     if (auto error = device_memcpy(dest, src, n, gpuMemcpyDeviceToHost)) {
         HANDLE_GPU_ERROR(error, "n="+to_string(n));
     }
+    std::cout << "copy d to h" << std::endl;
 }
 
 void gpu_memcpy_h2d(void* dest, const void* src, std::size_t n) {
