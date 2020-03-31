@@ -10,19 +10,22 @@ namespace gpu {
 // Shuffle of double
 __device__ __inline__ double shfl(double x, int lane)
 {
+    #ifdef CUDA_RUN
     int lo, hi;
-    //asm volatile("mov.b64 {%0,%1}, %2;":"=r"(lo),"=r"(hi):"d"(x));
-    int* xptr = reinterpret_cast<int*>(&x);
-    lo = xptr[0];
-    hi = xptr[1];
-
+    asm volatile("mov.b64 {%0,%1}, %2;":"=r"(lo),"=r"(hi):"d"(x));
     lo = __shfl(lo,lane,warpSize);
     hi = __shfl(hi,lane,warpSize);
+    asm volatile("mov.b64 %0,{%1,%2};":"=d"(x):"r"(lo),"r"(hi));
+    return x;
+    #endif
 
-    //asm volatile("mov.b64 %0,{%1,%2};":"=d"(x):"r"(lo),"r"(hi));
-    xptr[0] = lo;
-    xptr[1] = hi;
-    return *reinterpret_cast<double*>(xptr);
+    auto tmp = static_cast<uint64_t>(x);
+    auto lo = static_cast<unsigned>(tmp);
+    auto hi = static_cast<unsigned>(tmp >> 32);
+    hi = __shfl(static_cast<int>(hi), lane, warpSize);
+    lo = __shfl(static_cast<int>(lo), lane, warpSize);
+    return static_cast<double>(static_cast<uint64_t>(hi) << 32 |
+                               static_cast<uint64_t>(lo));
 }
 
 
@@ -80,9 +83,9 @@ void reduce_by_key(T contribution, T* target, I i, unsigned mask) {
 
     unsigned w = shift<width? shift: 0;
 
-    while (w) {
-        unsigned src_lane = run.lane_id + w;
+    while (__any(w)) {
         //T source_value = shfl(run.key_mask, contribution, src_lane);
+        unsigned src_lane = run.lane_id + w;
         T source_value = shfl(contribution, src_lane);
 
         if (w) contribution += source_value;

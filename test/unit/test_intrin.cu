@@ -151,6 +151,6 @@ TEST(gpu_intrinsics, exprelr) {
         double expected = std::fabs(x)<deps? 1.0: x/std::expm1(x);
         double error = std::fabs(expected-double(result[i]));
         double relerr = expected==0.? error: error/std::fabs(expected);
-        EXPECT_TRUE(relerr<deps);
+        EXPECT_TRUE(relerr<=deps);
     }
 }

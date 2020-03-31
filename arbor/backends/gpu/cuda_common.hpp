@@ -14,7 +14,7 @@ namespace impl {
 // This has always been 32, however it may change in future NVIDIA gpus
 HOST_DEVICE_IF_CUDA
 constexpr inline unsigned threads_per_warp() {
-    return 32u;
+    return 64u;
 }
 
 // The minimum number of bins required to store n values where the bins have
