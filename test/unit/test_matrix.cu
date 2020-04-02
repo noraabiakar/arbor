@@ -50,158 +50,44 @@ template <typename T, typename I, int BlockWidth, int LoadWidth>
         std::vector<I> sizes,
         std::vector<I> starts,
         std::vector<T> values,
-        int padded_size, 
-        bool run=true)
+        int padded_size)
 {
     auto num_mtx = sizes.size();
 
-    auto in       = on_gpu(memory::make_const_view(values));
-    auto sizes_d  = on_gpu(memory::make_const_view(sizes));
+    auto in  = on_gpu(memory::make_const_view(values));
+    auto sizes_d = on_gpu(memory::make_const_view(sizes));
     auto starts_d = on_gpu(memory::make_const_view(starts));
 
     int packed_size = padded_size * BlockWidth * gpu::impl::block_count(num_mtx, BlockWidth);
- 
-    // Create GPU vector and fill it 
+
+    // forward will hold the result of the interleave operation on the GPU
     auto forward = memory::device_vector<T>(packed_size, npos<T>());
 
-    hipDeviceSynchronize(); /// <--------------------------------------
-
+    // find the interleaved values on gpu
     gpu::flat_to_interleaved<T, I, BlockWidth, LoadWidth>(in.data(), forward.data(), sizes_d.data(), starts_d.data(), padded_size, num_mtx);
 
-    hipDeviceSynchronize(); /// <--------------------------------------
-
-    // Create and fill host vector from GPU vector
-
     std::vector<T> result_f = assign_from(on_host(forward));
-
-    hipDeviceSynchronize(); /// <--------------------------------------
-
-    // CHECK RESULTS
     std::vector<T> expected = gpu::flat_to_interleaved(values, sizes, starts, BlockWidth, num_mtx, padded_size);
-
-    hipDeviceSynchronize(); /// <--------------------------------------
-
     const auto forward_success = (result_f==expected);
     if (!forward_success) {
-        std::cout << "  FAIL :(" << std::endl;
         return ::testing::AssertionFailure() << "interleave to flat failed: BlockWidth "
             << BlockWidth << ", LoadWidth " << LoadWidth << "\n";
     }
 
-    // Create and fill host vector from GPU vector
-
-    hipDeviceSynchronize(); /// <--------------------------------------
-
+    // backward will hold the result of reverse interleave on the GPU
     auto backward = memory::device_vector<T>(values.size(), npos<T>());
-
-    hipDeviceSynchronize(); /// <--------------------------------------
-
     gpu::interleaved_to_flat<T, I, BlockWidth, LoadWidth>(forward.data(), backward.data(), sizes_d.data(), starts_d.data(), padded_size, num_mtx);
 
-    hipDeviceSynchronize(); /// <--------------------------------------
-
-    // Create and fill host vector from GPU vector
-    std::vector<T> result_b = assign_from(on_host(backward)); 
-
-    hipDeviceSynchronize(); /// <--------------------------------------
+    std::vector<T> result_b = assign_from(on_host(backward));
 
     // we expect that the result of the reverse permutation is the original input vector
     const auto backward_success = (result_b==values);
     if (!backward_success) {
-        std::cout << "  FAIL :(" << std::endl;
         return ::testing::AssertionFailure() << "flat to interleave failed: BlockWidth "
             << BlockWidth << ", LoadWidth " << LoadWidth << "\n";
     }
+
     return ::testing::AssertionSuccess();
-}
-__global__
-void copy(int* in, int* out, unsigned size) {
-    const unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
-    if (tid < size) {
-       out[tid] = in[tid]; 
-    }
-}
-
-__global__
-void update(int* in, int* out, unsigned size) {
-    const unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
-    if (tid < size) {
-       out[tid] = in[tid]*171; 
-    }
-}
-
-TEST(matrix, basic) {
-    unsigned size = 1000; 
-    // start on host 
-    std::vector<int> host_init(size); 
-    for (unsigned i = 0; i < size; ++i) {
-        host_init[i] = i; 
-    }
-
-    // copy to device
-    auto device_init  = on_gpu(memory::make_const_view(host_init));
-
-    // copy from device to device
-    auto device_inter = memory::device_vector<int>(size);
-    auto device_final = memory::device_vector<int>(size);
-    copy<<<32, 32>>>  (device_init.data() , device_inter.data(), size);
-    update<<<32, 32>>>(device_inter.data(), device_final.data(), size);
-
-    // copy from device to host
-    std::vector<int> host_final = assign_from(on_host(device_final));
-    bool pass = true;
-    for (unsigned i =0; i < 1000; i++) {
-        if (host_final[i] != i*171) {
-            pass = false; 
-            break;
-        }
-    }
-    EXPECT_TRUE(pass);
- 
-    std::cout << "SUCCESS" << std::endl;
-}
-
-template<unsigned threads>
-__global__
-void copy_shared(int* in, int* out, unsigned size) {
-    const unsigned lid = threadIdx.x;
-    const unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
-    __shared__ int local[threads];
-    if (tid < size) {
-       local[lid] = in[tid]
-       __syncthreads();
-       out[tid] = local[lid]; 
-       __syncthreads();
-    }
-}
-
-TEST(matrix, basic2) {
-    unsigned size = 1000; 
-    // start on host 
-    std::vector<int> host_init(size); 
-    for (unsigned i = 0; i < size; ++i) {
-        host_init[i] = i; 
-    }
-
-    // copy to device
-    auto device_init  = on_gpu(memory::make_const_view(host_init));
-
-    // copy from device to device
-    auto device_final = memory::device_vector<int>(size);
-    copy_shared<36> <<<32, 36>>> (device_init.data() , device_final.data(), size);
-
-    // copy from device to host
-    std::vector<int> host_final = assign_from(on_host(device_final));
-    bool pass = true;
-    for (unsigned i =0; i < 1000; i++) {
-        if (host_final[i] != i) {
-            pass = false; 
-            break;
-        }
-    }
-    EXPECT_TRUE(pass);
- 
-    std::cout << "SUCCESS" << std::endl;
 }
 
 // test conversion to and from interleaved back end storage format
@@ -213,7 +99,7 @@ TEST(matrix, interleave)
     using tvec = std::vector<T>;
 
     // simple case with 4 matrices of length 2
-    /*{
+    {
         const int padded_size = 2;
         const int num_mtx = 4;
         ivec sizes(num_mtx, padded_size);
@@ -252,7 +138,7 @@ TEST(matrix, interleave)
         EXPECT_TRUE((test_interleave<T, I, 6, 3>(sizes, starts, values, padded_size)));
         EXPECT_TRUE((test_interleave<T, I, 7, 3>(sizes, starts, values, padded_size)));
         EXPECT_TRUE((test_interleave<T, I, 8, 3>(sizes, starts, values, padded_size)));
-    }*/
+    }
 
     // another small example with matrices of differing lengths
     {
@@ -268,7 +154,7 @@ TEST(matrix, interleave)
         tvec values(util::sum(sizes));
         std::iota(values.begin(), values.end(), 0);
 
-        /*EXPECT_TRUE((test_interleave<T, I, 1, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 1, 1>(sizes, starts, values, padded_size)));
         EXPECT_TRUE((test_interleave<T, I, 2, 1>(sizes, starts, values, padded_size)));
         EXPECT_TRUE((test_interleave<T, I, 3, 1>(sizes, starts, values, padded_size)));
         EXPECT_TRUE((test_interleave<T, I, 4, 1>(sizes, starts, values, padded_size)));
@@ -291,13 +177,13 @@ TEST(matrix, interleave)
         EXPECT_TRUE((test_interleave<T, I, 3, 3>(sizes, starts, values, padded_size)));
         EXPECT_TRUE((test_interleave<T, I, 4, 3>(sizes, starts, values, padded_size)));
         EXPECT_TRUE((test_interleave<T, I, 5, 3>(sizes, starts, values, padded_size)));
-        EXPECT_TRUE((test_interleave<T, I, 6, 3>(sizes, starts, values, padded_size)));*/
+        EXPECT_TRUE((test_interleave<T, I, 6, 3>(sizes, starts, values, padded_size)));
         EXPECT_TRUE((test_interleave<T, I, 7, 3>(sizes, starts, values, padded_size)));
         EXPECT_TRUE((test_interleave<T, I, 8, 3>(sizes, starts, values, padded_size)));
     }
 
     // more interesting case...
-    /*{
+    {
         const int padded_size = 256;
         const int num_mtx = 1000;
         ivec sizes(num_mtx);
@@ -316,7 +202,7 @@ TEST(matrix, interleave)
 
         // test in "full" 1024 thread configuration with 32 threads per matrix
         EXPECT_TRUE((test_interleave<T, I, 32, 32>(sizes, starts, values, padded_size)));
-    }*/
+    }
 }
 
 // test that the flat and interleaved storage back ends produce identical results

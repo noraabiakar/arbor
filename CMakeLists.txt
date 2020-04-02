@@ -113,7 +113,6 @@ include("CheckCompilerXLC")
 
 include("CompilerOptions")
 add_compile_options(
-    "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_DEBUG}>"
     "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

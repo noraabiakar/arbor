@@ -74,7 +74,7 @@ std::runtime_error make_runtime_error(Error error_code) {
 // For CUDA 10 and later the uuid of all available GPUs is straightforward
 // to obtain by querying cudaGetDeviceProperties for each visible device.
 std::vector<uuid> get_gpu_uuids() {
-    // Get number of devices.
+    /*// Get number of devices.
     int ngpus = 0;
     auto status = get_device_count(&ngpus);
     if (status==ErrorNoDevice) {
@@ -101,7 +101,8 @@ std::vector<uuid> get_gpu_uuids() {
         std::copy(b, b+sizeof(uuid), uuids[i].bytes.begin());
     }
 
-    return uuids;
+    return uuids;*/
+    return {};
 }
 
 #else

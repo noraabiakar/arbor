@@ -21,7 +21,7 @@ namespace kernels {
 // integer, so we use unsigned explicitly.
 template <typename T, typename I, unsigned BlockWidth, unsigned LoadWidth, unsigned Threads>
 __global__
-void flat_to_interleaved(
+static void flat_to_interleaved(
     const T* in, T* out, const I* sizes, const I* starts, unsigned padded_size, unsigned num_vec)
 {
     static_assert(BlockWidth*LoadWidth==Threads, "");
@@ -67,7 +67,7 @@ void flat_to_interleaved(
 // integer, so we use unsigned explicitly.
 template <typename T, typename I, unsigned BlockWidth, unsigned LoadWidth, unsigned THREADS>
 __global__
-void interleaved_to_flat(
+static void interleaved_to_flat(
     const T* in, T* out, const I* sizes, const I* starts, unsigned padded_size, unsigned num_vec)
 {
     static_assert(BlockWidth*LoadWidth==THREADS, "");
@@ -143,13 +143,10 @@ void interleaved_to_flat(
     constexpr unsigned Threads = BlockWidth*LoadWidth;
     const unsigned blocks = impl::block_count(num_vec, BlockWidth);
 
-    printf("here\n");
-
     kernels::interleaved_to_flat
         <T, I, BlockWidth, LoadWidth, Threads>
         <<<blocks, Threads>>>
         (in, out, sizes, starts, padded_size, num_vec);
-   hipDeviceSynchronize();
 }
 
 } // namespace gpu

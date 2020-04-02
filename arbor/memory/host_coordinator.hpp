@@ -137,8 +137,6 @@ public:
         #endif
 
         gpu_memcpy_d2h(to.data(), from.data(), from.size()*sizeof(value_type));
-        hipDeviceSynchronize();
-        std::cout << "Synced" << std::endl;
     }
 
     // copy memory from host to device
