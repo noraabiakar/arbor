@@ -21,7 +21,7 @@ namespace kernels {
 // integer, so we use unsigned explicitly.
 template <typename T, typename I, unsigned BlockWidth, unsigned LoadWidth, unsigned Threads>
 __global__
-static void flat_to_interleaved(
+void flat_to_interleaved(
     const T* in, T* out, const I* sizes, const I* starts, unsigned padded_size, unsigned num_vec)
 {
     static_assert(BlockWidth*LoadWidth==Threads, "");
@@ -67,7 +67,7 @@ static void flat_to_interleaved(
 // integer, so we use unsigned explicitly.
 template <typename T, typename I, unsigned BlockWidth, unsigned LoadWidth, unsigned THREADS>
 __global__
-static void interleaved_to_flat(
+void interleaved_to_flat(
     const T* in, T* out, const I* sizes, const I* starts, unsigned padded_size, unsigned num_vec)
 {
     static_assert(BlockWidth*LoadWidth==THREADS, "");

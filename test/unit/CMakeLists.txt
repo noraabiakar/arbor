@@ -184,6 +184,6 @@ target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 #set(clang_cuda_options_ -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
-set(clang_options_ -xhip --amdgpu-target=gfx906)
+set(clang_options_ -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
 target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
 target_link_libraries(unit PRIVATE gtest arbor arbor-private-headers arbor-sup ${HIP_LIBRARIES})

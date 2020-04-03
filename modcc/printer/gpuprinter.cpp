@@ -119,7 +119,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     out << popindent <<
         "protected:\n" << indent <<
         "std::size_t object_sizeof() const override { return sizeof(*this); }\n"
-        "::arb::gpu::mechanism_ppack_base* ppack_ptr() { return &pp_; }\n\n";
+        "::arb::gpu::mechanism_ppack_base* ppack_ptr() override { return &pp_; }\n\n";
 
     io::separator sep("\n", ",\n");
     if (!vars.scalars.empty()) {

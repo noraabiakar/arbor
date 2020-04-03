@@ -15,7 +15,7 @@ endif()
 add_library(arbor-sup ${sup-sources})
 
 # Compile sup library with the same optimization flags as libarbor.
-set(clang_options_ -xhip --amdgpu-target=gfx906)
+set(clang_options_ -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
 target_compile_options(arbor-sup PRIVATE ${ARB_CXXOPT_ARCH} $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
 
 # The sup library uses both the json library and libarbor
