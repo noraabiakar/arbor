@@ -628,7 +628,7 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         fp u[N], v[N], r[N];
 
         // Trigonometric functions (sin, cos):
-       fill_random(u, rng);
+        fill_random(u, rng);
 
         fp sin_u[N];
         for (unsigned i = 0; i<N; ++i) sin_u[i] = std::sin(u[i]);

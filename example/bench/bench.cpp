@@ -85,7 +85,8 @@ public:
         return params_.num_cells;
     }
 
-    arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override { std::mt19937_64 rng(gid);
+    arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
+        std::mt19937_64 rng(gid);
         arb::benchmark_cell cell;
         cell.realtime_ratio = params_.cell.realtime_ratio;
 
