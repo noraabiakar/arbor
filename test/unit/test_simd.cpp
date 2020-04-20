@@ -628,14 +628,14 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         fp u[N], v[N], r[N];
 
         // Trigonometric functions (sin, cos):
-        fill_random(u, rng);
+       fill_random(u, rng);
 
         fp sin_u[N];
         for (unsigned i = 0; i<N; ++i) sin_u[i] = std::sin(u[i]);
         sin(simd(u)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(sin_u, r));
 
-        fp    cos_u[N];
+        fp cos_u[N];
         for (unsigned i = 0; i<N; ++i) cos_u[i] = std::cos(u[i]);
         cos(simd(u)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(cos_u, r));
