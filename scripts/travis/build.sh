@@ -14,8 +14,7 @@ if [[ "${CHECK_FORMAT}" = "true" ]]; then
   if [ "$output" == "no modified files to format" ] || [ "$output" == "clang-format did not modify any files" ] ; then
     success "clang-format passed"
   else
-    echo -e "${RED}clang-format suggested diff${CLEAR}:
-    echo "$output" || error "clang-format failed:"
+    echo "$output" || error "clang-format failed"
   fi
 fi
 
