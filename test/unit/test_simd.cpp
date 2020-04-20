@@ -8,6 +8,7 @@
 #include <arbor/simd/simd.hpp>
 #include <arbor/simd/avx.hpp>
 #include <arbor/simd/neon.hpp>
+#include <arbor/simd/sve.hpp>
 #include <arbor/util/compat.hpp>
 
 #include "common.hpp"
@@ -589,9 +590,13 @@ typedef ::testing::Types<
     simd<int, 8, simd_abi::avx512>,
     simd<double, 8, simd_abi::avx512>,
 #endif
-#if defined(__ARM_NEON)
+#ifdef __ARM_NEON
     simd<int, 2, simd_abi::neon>,
     simd<double, 2, simd_abi::neon>,
+#endif
+#ifdef __ARM_FEATURE_SVE
+    simd<int, 8, simd_abi::sve>,
+    simd<double, 8, simd_abi::sve>,
 #endif
 
     simd<int, 4, simd_abi::generic>,
@@ -875,8 +880,11 @@ typedef ::testing::Types<
 #ifdef __AVX512F__
     simd<double, 8, simd_abi::avx512>,
 #endif
-#if defined(__ARM_NEON)
+#ifdef __ARM_NEON
     simd<double, 2, simd_abi::neon>,
+#endif
+#ifdef __ARM_FEATURE_SVE
+    simd<double, 8, simd_abi::sve>,
 #endif
 
     simd<float, 2, simd_abi::generic>,
@@ -1202,12 +1210,19 @@ typedef ::testing::Types<
     simd_and_index<simd<int, 8, simd_abi::avx512>,
                    simd<int, 8, simd_abi::avx512>>,
 #endif
-#if defined(__ARM_NEON)
+#if __ARM_NEON
     simd_and_index<simd<double, 2, simd_abi::neon>,
                    simd<int, 2, simd_abi::neon>>,
 
     simd_and_index<simd<int, 2, simd_abi::neon>,
                    simd<int, 2, simd_abi::neon>>,
+#endif
+#ifdef __ARM_FEATURE_SVE
+    simd_and_index<simd<double, 8, simd_abi::sve>,
+                   simd<int, 8, simd_abi::sve>>,
+
+    simd_and_index<simd<int, 8, simd_abi::sve>,
+                   simd<int, 8, simd_abi::sve>>,
 #endif
 
     simd_and_index<simd<float, 4, simd_abi::generic>,
@@ -1288,9 +1303,13 @@ typedef ::testing::Types<
     simd_pair<simd<double, 8, simd_abi::avx512>,
               simd<int, 8, simd_abi::avx512>>,
 #endif
-#if defined(__ARM_NEON)
+#ifdef __ARM_NEON
     simd_pair<simd<double, 2, simd_abi::neon>,
               simd<int, 2, simd_abi::neon>>,
+#endif
+#ifdef __ARM_FEATURE_SVE
+    simd_pair<simd<double, 8, simd_abi::sve>,
+              simd<int, 8, simd_abi::sve>>,
 #endif
 
     simd_pair<simd<double, 4, simd_abi::default_abi>,

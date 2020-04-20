@@ -73,6 +73,13 @@ ARB_DEF_NATIVE_SIMD_(double, 2, neon)
 
 #endif
 
+#if defined(__ARM_FEATURE_SVE)
+
+#include <arbor/simd/sve.hpp>
+ARB_DEF_NATIVE_SIMD_(int, 8, sve)
+ARB_DEF_NATIVE_SIMD_(double, 8, sve)
+
+#endif
 
 namespace arb {
 namespace simd {
