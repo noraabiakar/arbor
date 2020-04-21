@@ -1,22 +1,69 @@
 ---
-BasedOnStyle: Google
-AccessModifierOffset: '0'
-AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: 'false'
-AlignConsecutiveDeclarations: 'false'
-AlignEscapedNewlinesLeft: 'false'
-AlignOperands: 'false'
-AlignTrailingComments: 'true'
-AllowAllParametersOfDeclarationOnNextLine: 'false'
-AllowShortBlocksOnASingleLine: 'true'
-AllowShortCaseLabelsOnASingleLine: 'true'
-AllowShortIfStatementsOnASingleLine: 'true'
-AllowShortLoopsOnASingleLine: 'true'
-AlwaysBreakAfterDefinitionReturnType: None
-AlwaysBreakTemplateDeclarations: 'true'
-AlwaysBreakAfterReturnType: None
-IndentCaseLabels: 'false'
-IndentWidth: '6'
+Language: Cpp
+
+IndentWidth: '4'
 UseTab: Never
 
+AccessModifierOffset: 0
+
+AlignAfterOpenBracket:        false
+AlignConsecutiveAssignments:  true
+AlignConsecutiveDeclarations: true
+AlignEscapedNewlinesLeft:     true
+AlignOperands:                true
+AlignTrailingComments:        true
+
+AllowAllArgumentsOnNextLine:               true
+AllowAllConstructorInitializersOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine:             true
+AllowShortCaseLabelsOnASingleLine:         true
+AllowShortIfStatementsOnASingleLine:       true
+AllowShortLoopsOnASingleLine:              true
+
+AlwaysBreakAfterReturnType:        None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations:   Yes
+
+BinPackArguments:  false
+BinPackParameters: false
+
+BreakBeforeBraces:            Attach
+BreakBeforeBinaryOperators:   None
+BreakConstructorInitializers: AfterColon
+BreakInheritanceList:         AfterColon
+
+ColumnLimit: 0
+
+CompactNamespaces: false
+
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+
+Cpp11BracedListStyle: true
+
+FixNamespaceComments: true
+
+IncludeBlocks: Preserve
+SortIncludes: true
+
+IndentCaseLabels: false
+
+KeepEmptyLinesAtTheStartOfBlocks: true
+MaxEmptyLinesToKeep: 1
+
+NamespaceIndentation: None
+
+PointerAlignment: Left
+
+SpaceAfterLogicalNot:      false
+SpaceAfterTemplateKeyword:       false
+SpaceBeforeAssignmentOperators:  true
+SpaceBeforeCtorInitializerColon: false
+SpaceBeforeInheritanceColon:     false
+SpaceBeforeParens:               ControlStatements
+SpaceInEmptyParentheses:         false
+SpacesInAngles:                  false
+SpacesInContainerLiterals:       false
+SpacesInParentheses:             false
+SpacesInSquareBrackets:          false
 ...
