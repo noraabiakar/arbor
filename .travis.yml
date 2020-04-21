@@ -10,7 +10,7 @@ sudo: false
 matrix:
   include:
 ########################## clang-format #########################
-  - name: "check format"
+  - name: "check style"
     os: linux
     dist: bionic
     addons:
