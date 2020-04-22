@@ -9,6 +9,19 @@ sudo: false
 
 matrix:
   include:
+########################## clang-format #########################
+  - name: "check style format"
+    os: linux
+    dist: bionic
+    addons:
+      apt:
+        sources:
+        packages:
+        - clang-format
+    env:
+      - CHECK_FORMAT=true
+    compiler: gcc-6
+
 ########################## OS X #########################
 ## test gcc6 - single node/rank with threading backend ##
   - name: "osx, gcc, serial, py"

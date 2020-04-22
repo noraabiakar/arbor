@@ -4,6 +4,20 @@ CLEAR='\033[0m'
 
 error()    {>&2 echo -e "${RED}ERROR${CLEAR}: $1"; exit 1;}
 progress() { echo; echo -e "${YELLOW}STATUS${CLEAR}: $1"; echo;}
+success()  { echo; echo -e "${YELLOW}STATUS${CLEAR}: $1"; exit 0;}
+
+if [[ "${CHECK_FORMAT}" = "true" ]]; then
+  base_commit="$TRAVIS_BRANCH"
+  echo "Running clang-format against branch $base_commit, with hash $(git rev-parse $base_commit)"
+
+  output="$(git clang-format --commit $base_commit --diff)"
+  if [ "$output" == "no modified files to format" ] || [ "$output" == "clang-format did not modify any files" ] ; then
+    success "clang-format passed"
+  else
+    echo "$output"
+    error "clang-format failed"
+  fi
+fi
 
 base_path=`pwd`
 build_path=build-${BUILD_NAME}
