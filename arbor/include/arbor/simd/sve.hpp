@@ -1,13 +1,13 @@
-sve_double8 once
+#pragma once
 
 // SVE SIMD intrinsics implementation.
 
 #ifdef __ARM_FEATURE_SVE
+
 #include <arm_sve.h>
 #include <cmath>
 #include <cstdint>
 
-#include <iostream>
 #include <arbor/simd/approx.hpp>
 #include <arbor/simd/implbase.hpp>
 
@@ -17,13 +17,22 @@ namespace detail {
 
 struct sve_double8;
 struct sve_int8;
+struct sve_mask8;
+
+template <>
+struct simd_traits<sve_mask8> {
+    static constexpr unsigned width = 8;
+    using scalar_type = bool;
+    using vector_type = svbool_t;
+    using mask_impl = sve_mak8;
+};
 
 template <>
 struct simd_traits<sve_double8> {
     static constexpr unsigned width = 8;
     using scalar_type = double;
     using vector_type = svfloat64_t;
-    using mask_impl = sve_double8;
+    using mask_impl = sve_mask8;
 };
 
 template <>
@@ -31,8 +40,172 @@ struct simd_traits<sve_int8> {
     static constexpr unsigned width = 8;
     using scalar_type = int32_t;
     using vector_type = svint32_t;
-    using mask_impl = sve_int8;
+    using mask_impl = sve_mask8;
 };
+
+struct avx512_mask8: implbase<avx512_mask8> {
+    using implbase<sve_mask8>::gather;
+    using implbase<sve_mask8>::scatter;
+    using implbase<sve_mask8>::cast_from;
+
+    static svbool_t broadcast(bool b) {
+        return svdup_b64(-b);
+    }
+
+    static void copy_to(const svbool_t& k, bool* b) {
+        uint64_t c[8];
+        svuint64_t a = svdup_u64_z(k, 1);
+        svst1(true_pred, c, a);
+        for (unsigned i =0; i< 8; i++) {
+	        b[i] = (bool)c[i];
+        }
+    }
+
+    static svbool_t copy_from(const bool* p) {
+        // copy p into vector of uint64 a
+        uint64_t mask[8];
+        for (unsigned i =0; i< 8; i++) {
+            mask[i] = (uint64_t)p[i];
+        }
+        svuint64_t a = svld1(true_pred, mask);
+
+        // Create vector of ones
+        svuint64_t ones = svdup_n_u64(1);
+
+        return svcmpeq_u64(true_pred, a, ones);
+
+    }
+
+    // Note: fall back to implbase implementations of copy_to_masked and copy_from_masked;
+    // could be improved with the use of AVX512BW instructions on supported platforms.
+
+    static svbool_t logical_not(const svbool_t& k) {
+        return _mm512_knot(k);
+    }
+
+    static svbool_t logical_and(const svbool_t& a, const svbool_t& b) {
+        return _mm512_kand(a, b);
+    }
+
+    static svbool_t logical_or(const svbool_t& a, const svbool_t& b) {
+        return _mm512_kor(a, b);
+    }
+
+    // Arithmetic operations not necessarily appropriate for
+    // packed bit mask, but implemented for completeness/testing,
+    // with Z modulo 2 semantics:
+    //     a + b   is equivalent to   a ^ b
+    //     a * b                      a & b
+    //     a / b                      a
+    //     a - b                      a ^ b
+    //     -a                         a
+    //     max(a, b)                  a | b
+    //     min(a, b)                  a & b
+
+    static svbool_t negate(const svbool_t& a) {
+        return a;
+    }
+
+    static svbool_t add(const svbool_t& a, const svbool_t& b) {
+        return _mm512_kxor(a, b);
+    }
+
+    static svbool_t sub(const svbool_t& a, const svbool_t& b) {
+        return _mm512_kxor(a, b);
+    }
+
+    static svbool_t mul(const svbool_t& a, const svbool_t& b) {
+        return _mm512_kand(a, b);
+    }
+
+    static svbool_t div(const svbool_t& a, const svbool_t& b) {
+        return a;
+    }
+
+    static svbool_t fma(const svbool_t& a, const svbool_t& b, const svbool_t& c) {
+        return add(mul(a, b), c);
+    }
+
+    static svbool_t max(const svbool_t& a, const svbool_t& b) {
+        return _mm512_kor(a, b);
+    }
+
+    static svbool_t min(const svbool_t& a, const svbool_t& b) {
+        return _mm512_kand(a, b);
+    }
+
+    // Comparison operators are also taken as operating on Z modulo 2,
+    // with 1 > 0:
+    //
+    //     a > b    is equivalent to  a & ~b
+    //     a >= b                     a | ~b,  ~(~a & b)
+    //     a < b                      ~a & b
+    //     a <= b                     ~a | b,  ~(a & ~b)
+    //     a == b                     ~(a ^ b)
+    //     a != b                     a ^ b
+
+    static svbool_t cmp_eq(const svbool_t& a, const svbool_t& b) {
+        return _mm512_kxnor(a, b);
+    }
+
+    static svbool_t cmp_neq(const svbool_t& a, const svbool_t& b) {
+        return _mm512_kxor(a, b);
+    }
+
+    static svbool_t cmp_lt(const svbool_t& a, const svbool_t& b) {
+        return _mm512_kandn(a, b);
+    }
+
+    static svbool_t cmp_gt(const svbool_t& a, const svbool_t& b) {
+        return cmp_lt(b, a);
+    }
+
+    static svbool_t cmp_geq(const svbool_t& a, const svbool_t& b) {
+        return logical_not(cmp_lt(a, b));
+    }
+
+    static svbool_t cmp_leq(const svbool_t& a, const svbool_t& b) {
+        return logical_not(cmp_gt(a, b));
+    }
+
+    static svbool_t ifelse(const svbool_t& m, const svbool_t& u, const svbool_t& v) {
+        return _mm512_kor(_mm512_kandn(m, u), _mm512_kand(m, v));
+    }
+
+    static bool element(const svbool_t& k, int i) {
+        return _mm512_mask2int(k)&(1<<i);
+    }
+
+    static void set_element(svbool_t& k, int i, bool b) {
+        int n = _mm512_mask2int(k);
+        k = _mm512_int2mask((n&~(1<<i))|(b<<i));
+    }
+
+    static svbool_t mask_broadcast(bool b) {
+        return broadcast(b);
+    }
+
+    static svbool_t mask_unpack(unsigned long long p) {
+        return _mm512_int2mask(p);
+    }
+
+    static bool mask_element(const svbool_t& u, int i) {
+        return element(u, i);
+    }
+
+    static void mask_set_element(svbool_t& u, int i, bool b) {
+        set_element(u, i, b);
+    }
+
+    static void mask_copy_to(const svbool_t& m, bool* y) {
+        copy_to(m, y);
+    }
+
+    static svbool_t mask_copy_from(const bool* y) {
+        return copy_from(y);
+    }
+};
+
 
 struct sve_int8 : implbase<sve_int8> {
     // Use default implementations for:
