@@ -617,7 +617,7 @@ struct avx512_double8: implbase<avx512_double8> {
         auto gg = mul(g, g);
 
         // Compute the g*P(g^2) and Q(g^2).
-auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
+        auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
         auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
 
         // Compute R(g)/R(-g) = 1 + 2*g*P(g^2) / (Q(g^2)-g*P(g^2))
