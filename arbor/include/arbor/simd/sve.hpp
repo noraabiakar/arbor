@@ -24,7 +24,7 @@ struct simd_traits<sve_mask8> {
     static constexpr unsigned width = 8;
     using scalar_type = bool;
     using vector_type = svbool_t;
-    using mask_impl = sve_mak8;
+    using mask_impl = sve_mask8;
 };
 
 template <>
@@ -54,25 +54,25 @@ struct sve_mask8: implbase<sve_mask8> {
 
     static void copy_to(const svbool_t& k, bool* b) {
         svuint64_t a = svdup_u64_z(k, 1);
-        svst1b_u64(true_pred, reinterpret_cast<uint8_t*>(b), a);
+        svst1b_u64(svptrue_b64(), reinterpret_cast<uint8_t*>(b), a);
     }
 
     static svbool_t copy_from(const bool* p) {
-        svuint64_t a = svld1ub_u64(true_pred, reinterpret_cast<const uint8_t*>(p));
+        svuint64_t a = svld1ub_u64(svptrue_b64(), reinterpret_cast<const uint8_t*>(p));
         svuint64_t ones = svdup_n_u64(1);
-        return svcmpeq_u64(true_pred, a, ones);
+        return svcmpeq_u64(svptrue_b64(), a, ones);
     }
 
     static svbool_t logical_not(const svbool_t& k) {
-        return svnot_b_z(true_pred, k);
+        return svnot_b_z(svptrue_b64(), k);
     }
 
     static svbool_t logical_and(const svbool_t& a, const svbool_t& b) {
-        return svand_b_z(true_pred, a, b);
+        return svand_b_z(svptrue_b64(), a, b);
     }
 
     static svbool_t logical_or(const svbool_t& a, const svbool_t& b) {
-        return svorr_b_z(true_pred, a, b);
+        return svorr_b_z(svptrue_b64(), a, b);
     }
 
     // Arithmetic operations not necessarily appropriate for
@@ -91,15 +91,15 @@ struct sve_mask8: implbase<sve_mask8> {
     }
 
     static svbool_t add(const svbool_t& a, const svbool_t& b) {
-        return sveor_b_z(true_pred, a, b);
+        return sveor_b_z(svptrue_b64(), a, b);
     }
 
     static svbool_t sub(const svbool_t& a, const svbool_t& b) {
-        return sveor_b_z(true_pred, a, b);
+        return sveor_b_z(svptrue_b64(), a, b);
     }
 
     static svbool_t mul(const svbool_t& a, const svbool_t& b) {
-        return svand_b_z(true_pred, a, b);
+        return svand_b_z(svptrue_b64(), a, b);
     }
 
     static svbool_t div(const svbool_t& a, const svbool_t& b) {
@@ -111,11 +111,11 @@ struct sve_mask8: implbase<sve_mask8> {
     }
 
     static svbool_t max(const svbool_t& a, const svbool_t& b) {
-        return svorr_b_z(true_pred, a, b);
+        return svorr_b_z(svptrue_b64(), a, b);
     }
 
     static svbool_t min(const svbool_t& a, const svbool_t& b) {
-        return svand_b_z(true_pred, a, b);
+        return svand_b_z(svptrue_b64(), a, b);
     }
 
     // Comparison operators are also taken as operating on Z modulo 2,
@@ -129,15 +129,15 @@ struct sve_mask8: implbase<sve_mask8> {
     //     a != b                     a ^ b
 
     static svbool_t cmp_eq(const svbool_t& a, const svbool_t& b) {
-        return svnot_b_z(true_pred, sveor_b_z(true_pred, a, b));
+        return svnot_b_z(svptrue_b64(), sveor_b_z(svptrue_b64(), a, b));
     }
 
     static svbool_t cmp_neq(const svbool_t& a, const svbool_t& b) {
-        return sveor_b_z(true_pred, a, b);
+        return sveor_b_z(svptrue_b64(), a, b);
     }
 
     static svbool_t cmp_lt(const svbool_t& a, const svbool_t& b) {
-        return svbic_b_z(true_pred, b, a);
+        return svbic_b_z(svptrue_b64(), b, a);
     }
 
     static svbool_t cmp_gt(const svbool_t& a, const svbool_t& b) {
@@ -175,10 +175,6 @@ struct sve_mask8: implbase<sve_mask8> {
     static svbool_t mask_copy_from(const bool* y) {
         return copy_from(y);
     }
-
-private:
-    svbool_t true_pred = svptrue_b64();
-    svbool_t false_pred = svpfalse_b64();
 };
 
 struct sve_int8: implbase<sve_int8> {
@@ -196,7 +192,7 @@ struct sve_int8: implbase<sve_int8> {
     }
 
     static void copy_to(const svint64_t& v, int32* p) {
-        svst1w_s64(true_pred, p, v);
+        svst1w_s64(svptrue_b64(), p, v);
     }
 
     static void copy_to_masked(const svint64_t& v, int32* p, const svbool_t& mask) {
@@ -204,7 +200,7 @@ struct sve_int8: implbase<sve_int8> {
     }
 
     static svint64_t copy_from(const int32* p) {
-        return svld1sw_s64(true_pred, p);
+        return svld1sw_s64(svptrue_b64(), p);
     }
 
     static svint64_t copy_from_masked(const int32* p, const svbool_t& mask) {
@@ -216,28 +212,28 @@ struct sve_int8: implbase<sve_int8> {
     }
 
     static int element0(const svint64_t& a) {
-        return svlasta_s64(true_pred, a);
+        return svlasta_s64(svptrue_b64(), a);
     }
 
     static svint64_t negate(const svint64_t& a) {
-        return svneg_s64_z(true_pred, a);
+        return svneg_s64_z(svptrue_b64(), a);
     }
 
     static svint64_t add(const svint64_t& a, const svint64_t& b) {
-        return svadd_s64_z(true_pred, a, b);
+        return svadd_s64_z(svptrue_b64(), a, b);
     }
 
     static svint64_t sub(const svint64_t& a, const svint64_t& b) {
-        return svsub_s64_m(true_pred, a, b);
+        return svsub_s64_m(svptrue_b64(), a, b);
     }
 
     static svint64_t mul(const svint64_t& a, const svint64_t& b) {
         //May overflow
-        return svmul_s64_z(true_pred, a, b);
+        return svmul_s64_z(svptrue_b64(), a, b);
     }
 
     static svint64_t div(const svint64_t& a, const svint64_t& b) {
-        return svdiv_s64_z(true_pred, a, b);
+        return svdiv_s64_z(svptrue_b64(), a, b);
     }
 
     static svint64_t fma(const svint64_t& a, const svint64_t& b, const svint64_t& c) {
@@ -245,27 +241,27 @@ struct sve_int8: implbase<sve_int8> {
     }
 
     static svbool_t cmp_eq(const svint64_t& a, const svint64_t& b) {
-        return svcmpeq_s64(true_pred, a, b);
+        return svcmpeq_s64(svptrue_b64(), a, b);
     }
 
     static svbool_t cmp_neq(const svint64_t& a, const svint64_t& b) {
-        return svcmpne_s64(true_pred, a, b);
+        return svcmpne_s64(svptrue_b64(), a, b);
     }
 
     static svbool_t cmp_gt(const svint64_t& a, const svint64_t& b) {
-        return svcmpgt_s64(true_pred, a, b);
+        return svcmpgt_s64(svptrue_b64(), a, b);
     }
 
     static svbool_t cmp_geq(const svint64_t& a, const svint64_t& b) {
-        return svcmpge_s64(true_pred, a, b);
+        return svcmpge_s64(svptrue_b64(), a, b);
     }
 
     static svbool_t cmp_lt(const svint64_t& a, const svint64_t& b) {
-        return svcmplt_s64(true_pred, a, b);
+        return svcmplt_s64(svptrue_b64(), a, b);
     }
 
     static svbool_t cmp_leq(const svint64_t& a, const svint64_t& b) {
-        return svcmple_s64(true_pred, a, b);
+        return svcmple_s64(svptrue_b64(), a, b);
     }
 
     static svint64_t ifelse(const svbool_t& m, const svint64_t& u, const svint64_t& v) {
@@ -273,23 +269,23 @@ struct sve_int8: implbase<sve_int8> {
     }
 
     static svint64_t max(const svint64_t& a, const svint64_t& b) {
-        return svmax_s64_x(true_pred, a, b);
+        return svmax_s64_x(svptrue_b64(), a, b);
     }
 
     static svint64_t min(const svint64_t& a, const svint64_t& b) {
-        return svmin_s64_x(true_pred, a, b);
+        return svmin_s64_x(svptrue_b64(), a, b);
     }
 
     static svint64_t abs(const svint64_t& a) {
-        return svabs_s64_z(true_pred, a);
+        return svabs_s64_z(svptrue_b64(), a);
     }
 
     static int reduce_add(const svint64_t& a) {
-        return svaddv_s64(true_pred, a);
+        return svaddv_s64(svptrue_b64(), a);
     }
 
     static svint64_t gather(tag<sve_int8>, const int32* p, const svint64_t& index) {
-        return svld1sw_gather_s64index_s64(true_pred, p, index);
+        return svld1sw_gather_s64index_s64(svptrue_b64(), p, index);
     }
 
     static svint64_t gather(tag<sve_int8>, svint64_t a, const int32* p, const svint64_t& index, const svbool_t& mask) {
@@ -297,16 +293,12 @@ struct sve_int8: implbase<sve_int8> {
     }
 
     static void scatter(tag<sve_int8>, const svint64_t& s, int32* p, const svint64_t& index) {
-        svst1w_scatter_s64index_s64(true_pred, p, index, s);
+        svst1w_scatter_s64index_s64(svptrue_b64(), p, index, s);
     }
 
     static void scatter(tag<sve_int8>, const svint64_t& s, int32* p, const svint64_t& index, const svbool_t& mask) {
-        svst1s_scatter_s64index_s64(mask, p, index, s);
+        svst1w_scatter_s64index_s64(mask, p, index, s);
     }
-
-private:
-    svbool_t true_pred = svptrue_b64();
-    svbool_t false_pred = svpfalse_b64();
 };
 
 struct sve_double8: implbase<sve_double8> {
@@ -322,75 +314,75 @@ struct sve_double8: implbase<sve_double8> {
     }
 
     static void copy_to(const svfloat64_t& v, double* p) {
-        svst1w_f64(true_pred, p, v);
+        svst1_f64(svptrue_b64(), p, v);
     }
 
     static void copy_to_masked(const svfloat64_t& v, double* p, const svbool_t& mask) {
-        svst1w_f64(mask, p, v);
+        svst1_f64(mask, p, v);
     }
 
     static svfloat64_t copy_from(const double* p) {
-        return svld1sw_f64(true_pred, p);
+        return svld1_f64(svptrue_b64(), p);
     }
 
     static svfloat64_t copy_from_masked(const double* p, const svbool_t& mask) {
-        return svld1sw_f64(mask, p);
+        return svld1_f64(mask, p);
     }
 
     static svfloat64_t copy_from_masked(const svfloat64_t& v, const double* p, const svbool_t& mask) {
-        return svsel_f64(mask, svld1sw_f64(mask, p), v);
+        return svsel_f64(mask, svld1_f64(mask, p), v);
     }
 
     static double element0(const svfloat64_t& a) {
-        return svlasta_f64(true_pred, a);
+        return svlasta_f64(svptrue_b64(), a);
     }
 
     static svfloat64_t negate(const svfloat64_t& a) {
-        return svneg_f64_z(true_pred, a);
+        return svneg_f64_z(svptrue_b64(), a);
     }
 
     static svfloat64_t add(const svfloat64_t& a, const svfloat64_t& b) {
-        return svadd_f64_z(true_pred, a, b);
+        return svadd_f64_z(svptrue_b64(), a, b);
     }
 
     static svfloat64_t sub(const svfloat64_t& a, const svfloat64_t& b) {
-        return svsub_f64_m(true_pred, a, b);
+        return svsub_f64_m(svptrue_b64(), a, b);
     }
 
     static svfloat64_t mul(const svfloat64_t& a, const svfloat64_t& b) {
-        return svmul_f64_z(true_pred, a, b);
+        return svmul_f64_z(svptrue_b64(), a, b);
     }
 
     static svfloat64_t div(const svfloat64_t& a, const svfloat64_t& b) {
-        return svdiv_f64_z(true_pred, a, b);
+        return svdiv_f64_z(svptrue_b64(), a, b);
     }
 
     static svfloat64_t fma(const svfloat64_t& a, const svfloat64_t& b, const svfloat64_t& c) {
-        return svmad_f64_z(true_pred, a, b, c);
+        return svmad_f64_z(svptrue_b64(), a, b, c);
     }
 
     static svbool_t cmp_eq(const svfloat64_t& a, const svfloat64_t& b) {
-        return svcmpeq_f64(true_pred, a, b);
+        return svcmpeq_f64(svptrue_b64(), a, b);
     }
 
     static svbool_t cmp_neq(const svfloat64_t& a, const svfloat64_t& b) {
-        return svcmpne_f64(true_pred, a, b);
+        return svcmpne_f64(svptrue_b64(), a, b);
     }
 
     static svbool_t cmp_gt(const svfloat64_t& a, const svfloat64_t& b) {
-        return svcmpgt_f64(true_pred, a, b);
+        return svcmpgt_f64(svptrue_b64(), a, b);
     }
 
     static svbool_t cmp_geq(const svfloat64_t& a, const svfloat64_t& b) {
-        return svcmpge_f64(true_pred, a, b);
+        return svcmpge_f64(svptrue_b64(), a, b);
     }
 
     static svbool_t cmp_lt(const svfloat64_t& a, const svfloat64_t& b) {
-        return svcmplt_f64(true_pred, a, b);
+        return svcmplt_f64(svptrue_b64(), a, b);
     }
 
     static svbool_t cmp_leq(const svfloat64_t& a, const svfloat64_t& b) {
-        return svcmple_f64(true_pred, a, b);
+        return svcmple_f64(svptrue_b64(), a, b);
     }
 
     static svfloat64_t ifelse(const svbool_t& m, const svfloat64_t& u, const svfloat64_t& v) {
@@ -398,23 +390,23 @@ struct sve_double8: implbase<sve_double8> {
     }
 
     static svfloat64_t max(const svfloat64_t& a, const svfloat64_t& b) {
-        return svmax_s64_x(true_pred, a, b);
+        return svmax_f64_x(svptrue_b64(), a, b);
     }
 
     static svfloat64_t min(const svfloat64_t& a, const svfloat64_t& b) {
-        return svmin_s64_x(true_pred, a, b);
+        return svmin_f64_x(svptrue_b64(), a, b);
     }
 
     static svfloat64_t abs(const svfloat64_t& x) {
-        return svabs_s64_x(true_pred, a, b);
+        return svabs_f64_x(svptrue_b64(), x);
     }
 
     static double reduce_add(const svfloat64_t& a) {
-        return svaddv_f64(true_pred, a);
+        return svaddv_f64(svptrue_b64(), a);
     }
 
     static svfloat64_t gather(tag<sve_int8>, const double* p, const svint64_t& index) {
-        return svld1_gather_s64index_f64(true_pred, p, index);
+        return svld1_gather_s64index_f64(svptrue_b64(), p, index);
     }
 
     static svfloat64_t gather(tag<sve_int8>, svfloat64_t a, const double* p, const svint64_t& index, const svbool_t& mask) {
@@ -422,7 +414,7 @@ struct sve_double8: implbase<sve_double8> {
     }
 
     static void scatter(tag<sve_int8>, const svfloat64_t& s, double* p, const svint64_t& index) {
-        svst1_scatter_s64index_f64(true_pred, p, index, s);
+        svst1_scatter_s64index_f64(svptrue_b64(), p, index, s);
     }
 
     static void scatter(tag<sve_int8>, const svfloat64_t& s, double* p, const svint64_t& index, const svbool_t& mask) {
@@ -440,7 +432,7 @@ struct sve_double8: implbase<sve_double8> {
 
         // Compute n and g.
 
-        auto n = svcvt_s64_f64_z(true_pred, add(mul(broadcast(ln2inv), x), broadcast(0.5))));
+        auto n = svrintz_f64_z(svptrue_b64(), add(mul(broadcast(ln2inv), x), broadcast(0.5)));
 
         auto g = fma(n, broadcast(-ln2C1), x);
         g = fma(n, broadcast(-ln2C2), g);
@@ -457,7 +449,7 @@ struct sve_double8: implbase<sve_double8> {
 
         // Scale by 2^n, propogating NANs.
 
-        auto result = svscale_f64_z(true_pred, expg, n);
+        auto result = svscale_f64_z(svptrue_b64(), expg, svcvt_s64_f64_z(svptrue_b64(), n));
 
         return
             ifelse(is_large, broadcast(HUGE_VAL),
@@ -473,7 +465,7 @@ struct sve_double8: implbase<sve_double8> {
         auto one = broadcast(1.);
 
         auto nnz = cmp_gt(abs(x), half);
-        svfloat64_t svrinta_f64_z(svbool_t pg, svfloat64_t op)
+        svfloat64_t svrinta_f64_z(svbool_t pg, svfloat64_t op);
         auto n = svrinta_f64_z(nnz, mul(broadcast(ln2inv), x));
 
         auto g = fma(n, broadcast(-ln2C1), x);
@@ -493,13 +485,13 @@ struct sve_double8: implbase<sve_double8> {
         //     result = 2 * ( 2^(n-1)*expgm1 + (2^(n-1)+0.5) )
         // to avoid overflow when n=1024.
 
-        auto nm1 = sub(n, one);
+        auto nm1 = svcvt_s64_f64_z(svptrue_b64(), sub(n, one));
 
         auto result =
-            svscale_f64_z(true_pred,
-                add(sub(svscale_f64_z(true_pred,one, nm1), half),
-                    svscale_f64_z(true_pred,expgm1, nm1)),
-                one);
+            svscale_f64_z(svptrue_b64(),
+                add(sub(svscale_f64_z(svptrue_b64(),one, nm1), half),
+                    svscale_f64_z(svptrue_b64(),expgm1, nm1)),
+                svcvt_s64_f64_z(svptrue_b64(), one));
 
         return
             ifelse(is_large, broadcast(HUGE_VAL),
@@ -514,7 +506,7 @@ struct sve_double8: implbase<sve_double8> {
         auto is_small = cmp_lt(x, broadcast(log_minarg));
         is_small = sve_mask8::logical_and(is_small, cmp_geq(x, broadcast(0)));
 
-        svfloat64_t g = svcvt_f64_s64_z(true_pred, logb_normal(x));
+        svfloat64_t g = svcvt_f64_s64_z(svptrue_b64(), logb_normal(x));
         svfloat64_t u = fraction_normal(x);
 
         svfloat64_t one = broadcast(1.);
@@ -544,23 +536,22 @@ struct sve_double8: implbase<sve_double8> {
             ifelse(is_small, broadcast(-HUGE_VAL),
                 r));
     }
-#endif
 
 protected:
     // Compute n and f such that x = 2^n·f, with |f| ∈ [1,2), given x is finite and normal.
     static svint64_t logb_normal(const svfloat64_t& x) {
         svuint64_t xw    = svunpkhi_u64(svreinterpret_u32_f64(x));
         svuint64_t emask = svunpkhi_u64(svdup_n_u32(0x7ff00000));
-        svuint64_t ebiased = svlsr_n_u64_z(true_pred, svand_u64_z(true_pred, xw, emask), 20);
+        svuint64_t ebiased = svlsr_n_u64_z(svptrue_b64(), svand_u64_z(svptrue_b64(), xw, emask), 20);
 
-        return svsub_s64_z(true_pred, svreinterpret_s64_u64(ebiased), svunpkhi_s64(svdup_n_s32(1023)));
+        return svsub_s64_z(svptrue_b64(), svreinterpret_s64_u64(ebiased), svunpkhi_s64(svdup_n_s32(1023)));
     }
 
     static svfloat64_t fraction_normal(const svfloat64_t& x) {
         svuint64_t emask = svdup_n_u64(0x800fffffffffffff);
         svuint64_t bias =  svdup_n_u64(0x3ff0000000000000);
-        return svreinterpretq_f64_u64(
-            svorr_u64_z(true_pred, bias, svand_u64_z(true_pred, emask, vreinterpretq_u64_f64(x))));
+        return svreinterpret_f64_u64(
+            svorr_u64_z(svptrue_b64(), bias, svand_u64_z(svptrue_b64(), emask, svreinterpret_u64_f64(x))));
     }
 
     static inline svfloat64_t horner1(svfloat64_t x, double a0) {
@@ -582,12 +573,8 @@ protected:
     }
 
     static svfloat64_t fms(const svfloat64_t& a, const svfloat64_t& b, const svfloat64_t& c) {
-        return svnmsb_f64_z(true_pred, a, b, c);
+        return svnmsb_f64_z(svptrue_b64(), a, b, c);
     }
-
-private:
-    svbool_t true_pred = svptrue_b64();
-    svbool_t false_pred = svpfalse_b64();
 };
 
 
