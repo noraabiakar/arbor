@@ -350,45 +350,8 @@ struct neon_double2 : implbase<neon_double2> {
 
     static float64x2_t abs(const float64x2_t& x) { return vabsq_f64(x); }
 
-    // Exponential is calculated as follows:
-    //
-    //     e^x = e^g · 2^n,
-    //
-    // where g in [-0.5, 0.5) and n is an integer. 2^n can be
-    // calculated via bit manipulation or specialized scaling intrinsics,
-    // whereas e^g is approximated using the order-6 rational
-    // approximation:
-    //
-    //     e^g = R(g)/R(-g)
-    //
-    // with R(x) split into even and odd terms:
-    //
-    //     R(x) = Q(x^2) + x·P(x^2)
-    //
-    // so that the ratio can be computed as:
-    //
-    //     e^g = 1 + 2·g·P(g^2) / (Q(g^2)-g·P(g^2)).
-    //
-    // Note that the coefficients for R are close to but not the same as those
-    // from the 6,6 Padé approximant to the exponential.
-    //
-    // The exponents n and g are calculated by:
-    //
-    //     n = floor(x/ln(2) + 0.5)
-    //     g = x - n·ln(2)
-    //
-    // so that x = g + n·ln(2). We have:
-    //
-    //     |g| = |x - n·ln(2)|
-    //         = |x - x + α·ln(2)|
-    //
-    // for some fraction |α| ≤ 0.5, and thus |g| ≤ 0.5ln(2) ≈ 0.347.
-    //
-    // Tne subtraction x - n·ln(2) is performed in two parts, with
-    // ln(2) = C1 + C2, in order to compensate for the possible loss of
-    // precision
-    // attributable to catastrophic rounding. C1 comprises the first
-    // 32-bits of mantissa, C2 the remainder.
+    // Refer to avx/avx2 code for details of the exponential and log
+    // implementations.
 
     static float64x2_t exp(const float64x2_t& x) {
         // Masks for exceptional cases.
@@ -427,13 +390,6 @@ struct neon_double2 : implbase<neon_double2> {
                       ifelse(is_small, broadcast(0),
                              ifelse(is_not_nan, result, broadcast(NAN))));
     }
-
-    // Use same rational polynomial expansion as for exp(x), without
-    // the unit term.
-    //
-    // For |x|<=0.5, take n to be zero. Otherwise, set n as above,
-    // and scale the answer by:
-    //     expm1(x) = 2^n * expm1(g) + (2^n - 1).
 
     static float64x2_t expm1(const float64x2_t& x) {
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
@@ -476,25 +432,6 @@ struct neon_double2 : implbase<neon_double2> {
                       ifelse(is_small, broadcast(-1),
                              ifelse(is_not_nan, ifelse(nzero, expgm1, scaled), broadcast(NAN))));
     }
-
-    // Natural logarithm:
-    //
-    // Decompose x = 2^g * u such that g is an integer and
-    // u is in the interval [sqrt(2)/2, sqrt(2)].
-    //
-    // Then ln(x) is computed as R(u-1) + g*ln(2) where
-    // R(z) is a rational polynomial approximating ln(z+1)
-    // for small z:
-    //
-    //     R(z) = z - z^2/2 + z^3 * P(z)/Q(z)
-    //
-    // where P and Q are degree 5 polynomials, Q monic.
-    //
-    // In order to avoid cancellation error, ln(2) is represented
-    // as C3 + C4, with the C4 correction term approx. -2.1e-4.
-    // The summation order for R(z)+2^g is:
-    //
-    //     z^3*P(z)/Q(z) + g*C4 - z^2/2 + z + g*C3
 
     static float64x2_t log(const float64x2_t& x) {
         // Masks for exceptional cases.
@@ -549,10 +486,6 @@ struct neon_double2 : implbase<neon_double2> {
         return vreinterpret_u32_u64(vorr_u64(xh, xl));
     }
 
-    // horner(x, a0, ..., an) computes the degree n polynomial A(x) with
-    // coefficients
-    // a0, ..., an by a0+x·(a1+x·(a2+...+x·an)...).
-
     static inline float64x2_t horner(float64x2_t x, double a0) {
         return broadcast(a0);
     }
@@ -561,10 +494,6 @@ struct neon_double2 : implbase<neon_double2> {
     static float64x2_t horner(float64x2_t x, double a0, T... tail) {
         return add(mul(x, horner(x, tail...)), broadcast(a0));
     }
-
-    // horner1(x, a0, ..., an) computes the degree n+1 monic polynomial A(x)
-    // with coefficients
-    // a0, ..., an, 1 by by a0+x·(a1+x·(a2+...+x·(an+x)...).
 
     static inline float64x2_t horner1(float64x2_t x, double a0) {
         return add(x, broadcast(a0));
