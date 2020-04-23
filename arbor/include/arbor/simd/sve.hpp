@@ -63,9 +63,6 @@ struct sve_mask8: implbase<sve_mask8> {
         return svcmpeq_u64(true_pred, a, ones);
     }
 
-    // Note: fall back to implbase implementations of copy_to_masked and copy_from_masked;
-    // could be improved with the use of AVX512BW instructions on supported platforms.
-
     static svbool_t logical_not(const svbool_t& k) {
         return svnot_b_z(true_pred, k);
     }
@@ -311,6 +308,7 @@ private:
     svbool_t true_pred = svptrue_b64();
     svbool_t false_pred = svpfalse_b64();
 };
+
 struct sve_double8: implbase<sve_double8> {
     // Use default implementations for:
     //     element, set_element.
@@ -415,19 +413,19 @@ struct sve_double8: implbase<sve_double8> {
         return svaddv_f64(true_pred, a);
     }
 
-    static svfloat64_t gather(tag<avx512_int8>, const double* p, const svint64_t& index) {
+    static svfloat64_t gather(tag<sve_int8>, const double* p, const svint64_t& index) {
         return svld1_gather_s64index_f64(true_pred, p, index);
     }
 
-    static svfloat64_t gather(tag<avx512_int8>, svfloat64_t a, const double* p, const svint64_t& index, const svbool_t& mask) {
+    static svfloat64_t gather(tag<sve_int8>, svfloat64_t a, const double* p, const svint64_t& index, const svbool_t& mask) {
         return svsel_f64(mask, svld1_gather_s64index_f64(mask, p, index), a);
     }
 
-    static void scatter(tag<avx512_int8>, const svfloat64_t& s, double* p, const svint64_t& index) {
+    static void scatter(tag<sve_int8>, const svfloat64_t& s, double* p, const svint64_t& index) {
         svst1_scatter_s64index_f64(true_pred, p, index, s);
     }
 
-    static void scatter(tag<avx512_int8>, const svfloat64_t& s, double* p, const svint64_t& index, const svbool_t& mask) {
+    static void scatter(tag<sve_int8>, const svfloat64_t& s, double* p, const svint64_t& index, const svbool_t& mask) {
         svst1_scatter_s64index_f64(mask, p, index, s);
     }
 
@@ -442,7 +440,7 @@ struct sve_double8: implbase<sve_double8> {
 
         // Compute n and g.
 
-        auto n = _mm512_floor_pd(add(mul(broadcast(ln2inv), x), broadcast(0.5)));
+        auto n = svcvt_s64_f64_z(true_pred, add(mul(broadcast(ln2inv), x), broadcast(0.5))));
 
         auto g = fma(n, broadcast(-ln2C1), x);
         g = fma(n, broadcast(-ln2C2), g);
@@ -459,7 +457,7 @@ struct sve_double8: implbase<sve_double8> {
 
         // Scale by 2^n, propogating NANs.
 
-        auto result = _mm512_scalef_pd(expg, n);
+        auto result = svscale_f64_z(true_pred, expg, n);
 
         return
             ifelse(is_large, broadcast(HUGE_VAL),
@@ -475,11 +473,8 @@ struct sve_double8: implbase<sve_double8> {
         auto one = broadcast(1.);
 
         auto nnz = cmp_gt(abs(x), half);
-        auto n = _mm512_maskz_roundscale_round_pd(
-                    nnz,
-                    mul(broadcast(ln2inv), x),
-                    0,
-                    _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC);
+        svfloat64_t svrinta_f64_z(svbool_t pg, svfloat64_t op)
+        auto n = svrinta_f64_z(nnz, mul(broadcast(ln2inv), x));
 
         auto g = fma(n, broadcast(-ln2C1), x);
         g = fma(n, broadcast(-ln2C2), g);
@@ -501,9 +496,9 @@ struct sve_double8: implbase<sve_double8> {
         auto nm1 = sub(n, one);
 
         auto result =
-            _mm512_scalef_pd(
-                add(sub(_mm512_scalef_pd(one, nm1), half),
-                    _mm512_scalef_pd(expgm1, nm1)),
+            svscale_f64_z(true_pred,
+                add(sub(svscale_f64_z(true_pred,one, nm1), half),
+                    svscale_f64_z(true_pred,expgm1, nm1)),
                 one);
 
         return
@@ -517,10 +512,10 @@ struct sve_double8: implbase<sve_double8> {
 
         auto is_large = cmp_geq(x, broadcast(HUGE_VAL));
         auto is_small = cmp_lt(x, broadcast(log_minarg));
-        is_small = avx512_mask8::logical_and(is_small, cmp_geq(x, broadcast(0)));
+        is_small = sve_mask8::logical_and(is_small, cmp_geq(x, broadcast(0)));
 
-        svfloat64_t g = _mm512_getexp_pd(x);
-        svfloat64_t u = _mm512_getmant_pd(x, _MM_MANT_NORM_1_2, _MM_MANT_SIGN_nan);
+        svfloat64_t g = svcvt_f64_s64_z(true_pred, logb_normal(x));
+        svfloat64_t u = fraction_normal(x);
 
         svfloat64_t one = broadcast(1.);
         svfloat64_t half = broadcast(0.5);
@@ -552,6 +547,22 @@ struct sve_double8: implbase<sve_double8> {
 #endif
 
 protected:
+    // Compute n and f such that x = 2^n·f, with |f| ∈ [1,2), given x is finite and normal.
+    static svint64_t logb_normal(const svfloat64_t& x) {
+        svuint64_t xw    = svunpkhi_u64(svreinterpret_u32_f64(x));
+        svuint64_t emask = svunpkhi_u64(svdup_n_u32(0x7ff00000));
+        svuint64_t ebiased = svlsr_n_u64_z(true_pred, svand_u64_z(true_pred, xw, emask), 20);
+
+        return svsub_s64_z(true_pred, svreinterpret_s64_u64(ebiased), svunpkhi_s64(svdup_n_s32(1023)));
+    }
+
+    static svfloat64_t fraction_normal(const svfloat64_t& x) {
+        svuint64_t emask = svdup_n_u64(0x800fffffffffffff);
+        svuint64_t bias =  svdup_n_u64(0x3ff0000000000000);
+        return svreinterpretq_f64_u64(
+            svorr_u64_z(true_pred, bias, svand_u64_z(true_pred, emask, vreinterpretq_u64_f64(x))));
+    }
+
     static inline svfloat64_t horner1(svfloat64_t x, double a0) {
         return add(x, broadcast(a0));
     }
@@ -571,7 +582,7 @@ protected:
     }
 
     static svfloat64_t fms(const svfloat64_t& a, const svfloat64_t& b, const svfloat64_t& c) {
-        return _mm512_fmsub_pd(a, b, c);
+        return svnmsb_f64_z(true_pred, a, b, c);
     }
 
 private:
