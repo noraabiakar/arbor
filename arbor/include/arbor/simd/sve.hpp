@@ -5,6 +5,7 @@
 #ifdef __ARM_FEATURE_SVE
 
 #include <arm_sve.h>
+#include <array>
 #include <cmath>
 #include <cstdint>
 
@@ -23,7 +24,7 @@ template <>
 struct simd_traits<sve_mask8> {
     static constexpr unsigned width = 8;
     using scalar_type = bool;
-    using vector_type = svbool_t;
+    using vector_type = std::array<uint8_t, width>;
     using mask_impl = sve_mask8;
 };
 
@@ -31,7 +32,7 @@ template <>
 struct simd_traits<sve_double8> {
     static constexpr unsigned width = 8;
     using scalar_type = double;
-    using vector_type = svfloat64_t;
+    using vector_type = std::array<double, width>;
     using mask_impl = sve_mask8;
 };
 
@@ -39,7 +40,7 @@ template <>
 struct simd_traits<sve_int8> {
     static constexpr unsigned width = 8;
     using scalar_type = int32_t;
-    using vector_type = svint64_t;
+    using vector_type = std::array<int32_t, width>;
     using mask_impl = sve_mask8;
 };
 
@@ -48,31 +49,38 @@ struct sve_mask8: implbase<sve_mask8> {
     using implbase<sve_mask8>::scatter;
     using implbase<sve_mask8>::cast_from;
 
-    static svbool_t broadcast(bool b) {
-        return svdup_b64(-b);
+    using bool_arr = std::array<uint8_t, 8>;
+
+    static void copy_to(const bool_arr& k, bool* b) {
+        std::copy(std::begin(k), std::end(k), b);
     }
 
-    static void copy_to(const svbool_t& k, bool* b) {
-        svuint64_t a = svdup_u64_z(k, 1);
-        svst1b_u64(svptrue_b64(), reinterpret_cast<uint8_t*>(b), a);
+    static bool_arr copy_from(const bool* p) {
+        return std::copy(b, b+a.size(), std::begin(a));
     }
 
-    static svbool_t copy_from(const bool* p) {
-        svuint64_t a = svld1ub_u64(svptrue_b64(), reinterpret_cast<const uint8_t*>(p));
-        svuint64_t ones = svdup_n_u64(1);
-        return svcmpeq_u64(svptrue_b64(), a, ones);
+    static bool_arr broadcast(bool b) {
+        bool_arr a;
+        std::fill(std::begin(a), std::end(a), b);
+        return a;
     }
 
-    static svbool_t logical_not(const svbool_t& k) {
-        return svnot_b_z(svptrue_b64(), k);
+    static bool_arr logical_not(const bool_arr& k) {
+        bool_arr a;
+        copy_to_sve(svnot_b_z(svptrue_b64(), copy_from_sve(k), a);
+        return a;
     }
 
-    static svbool_t logical_and(const svbool_t& a, const svbool_t& b) {
-        return svand_b_z(svptrue_b64(), a, b);
+    static bool_arr logical_and(const bool_arr& a, const bool_arr& b) {
+        bool_arr r;
+        copy_to_sve(svand_b_z(svptrue_b64(), copy_from_sve(a), copy_from_sve(b)), r);
+        return r;
     }
 
-    static svbool_t logical_or(const svbool_t& a, const svbool_t& b) {
-        return svorr_b_z(svptrue_b64(), a, b);
+    static bool_arr logical_or(const bool_arr& a, const bool_arr& b) {
+        bool_arr r;
+        copy_to_sve(svorr_b_z(svptrue_b64(), copy_from_sve(a), copy_from_sve(b)), r);
+        return r;
     }
 
     // Arithmetic operations not necessarily appropriate for
@@ -86,36 +94,46 @@ struct sve_mask8: implbase<sve_mask8> {
     //     max(a, b)                  a | b
     //     min(a, b)                  a & b
 
-    static svbool_t negate(const svbool_t& a) {
+    static bool_arr negate(const bool_arr& a) {
         return a;
     }
 
-    static svbool_t add(const svbool_t& a, const svbool_t& b) {
-        return sveor_b_z(svptrue_b64(), a, b);
+    static bool_arr add(const bool_arr& a, const bool_arr& b) {
+        bool_arr r;
+        copy_to_sve(sveor_b_z(svptrue_b64(), copy_from_sve(a), copy_from_sve(b)), r);
+        return r;
     }
 
-    static svbool_t sub(const svbool_t& a, const svbool_t& b) {
-        return sveor_b_z(svptrue_b64(), a, b);
+    static bool_arr sub(const bool_arr& a, const bool_arr& b) {
+        bool_arr r;
+        copy_to_sve(sveor_b_z(svptrue_b64(), copy_from_sve(a), copy_from_sve(b)), r);
+        return r;
     }
 
-    static svbool_t mul(const svbool_t& a, const svbool_t& b) {
-        return svand_b_z(svptrue_b64(), a, b);
+    static bool_arr mul(const bool_arr& a, const bool_arr& b) {
+        bool_arr r;
+        copy_to_sve(svand_b_z(svptrue_b64(), copy_from_sve(a), copy_from_sve(b)), r);
+        return r;
     }
 
-    static svbool_t div(const svbool_t& a, const svbool_t& b) {
+    static bool_arr div(const bool_arr& a, const bool_arr& b) {
         return a;
     }
 
-    static svbool_t fma(const svbool_t& a, const svbool_t& b, const svbool_t& c) {
+    static bool_arr fma(const bool_arr& a, const bool_arr& b, const bool_arr& c) {
         return add(mul(a, b), c);
     }
 
-    static svbool_t max(const svbool_t& a, const svbool_t& b) {
-        return svorr_b_z(svptrue_b64(), a, b);
+    static bool_arr max(const bool_arr& a, const bool_arr& b) {
+        bool_arr r;
+        copy_to_sve(svorr_b_z(svptrue_b64(), copy_from_sve(a), copy_from_sve(b)), r);
+        return r;
     }
 
-    static svbool_t min(const svbool_t& a, const svbool_t& b) {
-        return svand_b_z(svptrue_b64(), a, b);
+    static bool_arr min(const bool_arr& a, const bool_arr& b) {
+        bool_arr r;
+        copy_to_sve(svand_b_z(svptrue_b64(), copy_from_sve(a), copy_from_sve(b)), r);
+        return r;
     }
 
     // Comparison operators are also taken as operating on Z modulo 2,
@@ -128,52 +146,72 @@ struct sve_mask8: implbase<sve_mask8> {
     //     a == b                     ~(a ^ b)
     //     a != b                     a ^ b
 
-    static svbool_t cmp_eq(const svbool_t& a, const svbool_t& b) {
-        return svnot_b_z(svptrue_b64(), sveor_b_z(svptrue_b64(), a, b));
+    static bool_arr cmp_eq(const bool_arr& a, const bool_arr& b) {
+        bool_arr r;
+        copy_to_sve(svnot_b_z(svptrue_b64(), copy_from_sve(a), copy_from_sve(b)), r);
+        return r;
     }
 
-    static svbool_t cmp_neq(const svbool_t& a, const svbool_t& b) {
-        return sveor_b_z(svptrue_b64(), a, b);
+    static bool_arr cmp_neq(const bool_arr& a, const bool_arr& b) {
+        bool_arr r;
+        copy_to_sve(sveor_b_z(svptrue_b64(), copy_from_sve(a), copy_from_sve(b)), r);
+        return r;
     }
 
-    static svbool_t cmp_lt(const svbool_t& a, const svbool_t& b) {
-        return svbic_b_z(svptrue_b64(), b, a);
+    static bool_arr cmp_lt(const bool_arr& a, const bool_arr& b) {
+        bool_arr r;
+        copy_to_sve(svbic_b_z(svptrue_b64(), copy_from_sve(a), copy_from_sve(b)), r);
+        return r;
     }
 
-    static svbool_t cmp_gt(const svbool_t& a, const svbool_t& b) {
+    static bool_arr cmp_gt(const bool_arr& a, const bool_arr& b) {
         return cmp_lt(b, a);
     }
 
-    static svbool_t cmp_geq(const svbool_t& a, const svbool_t& b) {
+    static bool_arr cmp_geq(const bool_arr& a, const bool_arr& b) {
         return logical_not(cmp_lt(a, b));
     }
 
-    static svbool_t cmp_leq(const svbool_t& a, const svbool_t& b) {
+    static bool_arr cmp_leq(const bool_arr& a, const bool_arr& b) {
         return logical_not(cmp_gt(a, b));
     }
 
-    static svbool_t ifelse(const svbool_t& m, const svbool_t& u, const svbool_t& v) {
-        return svsel_b(m, u, v);
+    static bool_arr ifelse(const bool_arr& m, const bool_arr& u, const bool_arr& v) {
+        bool_arr r;
+        copy_to_sve(svsel_b(svptrue_b64(), copy_from_sve(a), copy_from_sve(b)), r);
+        return r;
     }
 
-    static svbool_t mask_broadcast(bool b) {
+    static bool_arr mask_broadcast(bool b) {
         return broadcast(b);
     }
 
-    static bool mask_element(const svbool_t& u, int i) {
+    static bool mask_element(const bool_arr& u, int i) {
         return element(u, i);
     }
 
-    static void mask_set_element(svbool_t& u, int i, bool b) {
+    static void mask_set_element(bool_arr& u, int i, bool b) {
         set_element(u, i, b);
     }
 
-    static void mask_copy_to(const svbool_t& m, bool* y) {
+    static void mask_copy_to(const bool_arr& m, bool* y) {
         copy_to(m, y);
     }
 
-    static svbool_t mask_copy_from(const bool* y) {
+    static bool_arr mask_copy_from(const bool* y) {
         return copy_from(y);
+    }
+
+private:
+    static void copy_to_sve(const svbool_t& k, bool_arr& b) {
+        svuint64_t a = svdup_u64_z(k, 1);
+        svst1b_u64(svptrue_b64(), b.data(), a);
+    }
+
+    static svbool_t copy_from_sve(const bool_arr& p) {
+        svuint64_t a = svld1ub_u64(svptrue_b64(), p.data());
+        svuint64_t ones = svdup_n_u64(1);
+        return svcmpeq_u64(svptrue_b64(), a, ones);
     }
 };
 
@@ -187,28 +225,53 @@ struct sve_int8: implbase<sve_int8> {
 
     using int32 = std::int32_t;
 
-    static svint64_t broadcast(int32 v) {
+    using bool_arr = std::array<uint8_t, 8>;
+    using int32_arr = std::array<int32, 8>;
+
+    static void copy_to(const int32_arr& v, int32* p) {
+        std::copy(std::begin(v), std::end(v), p);
+    }
+
+    static void copy_to_masked(const int32_arr& v, int32* p, const bool_arr& mask) {
+        sve_mask = sve_mask8::copy_from_sve(mask);
+        sve_v = copy_from_sve(v);
+        svst1w_s64(sve_mask, p, sve_v);
+    }
+
+    static int32_arr copy_from(const int32* p) {
+        int32_arr r;
+        std::copy(p, p+r.size(), std::begin(r));
+        return r;
+    }
+
+    static int32_arr copy_from_masked(const int32* p, const bool_arr& mask) {
+        sve_mask = sve_mask8::copy_from_sve(mask);
+        int32_arr r;
+        copy_to_sve(svld1sw_s64(sve_mask, p), r);
+        return r;
+    }
+
+    static int32_arr copy_from_masked(const int32_arr& v, const int32* p, const bool_arr& mask) {
+        sve_mask = sve_mask8::copy_from_sve(mask);
+        sve_v = copy_from_sve(v);
+        int32_arr r;
+        copy_to_sve(svsel_s64(mask, svld1sw_s64(sve_mask, p), sve_v), r);
+        return r;
+    }
+
+    /*static svint64_t broadcast(int32 v) {
         return svreinterpret_s64_s32(svdup_n_s32(v));
     }
 
-    static void copy_to(const svint64_t& v, int32* p) {
-        svst1w_s64(svptrue_b64(), p, v);
-    }
-
-    static void copy_to_masked(const svint64_t& v, int32* p, const svbool_t& mask) {
-        svst1w_s64(mask, p, v);
-    }
-
-    static svint64_t copy_from(const int32* p) {
-        return svld1sw_s64(svptrue_b64(), p);
-    }
-
-    static svint64_t copy_from_masked(const int32* p, const svbool_t& mask) {
         return svld1sw_s64(mask, p);
     }
 
-    static svint64_t copy_from_masked(const svint64_t& v, const int32* p, const svbool_t& mask) {
+    static int32_arr copy_from_masked(const int32_arr& v, const int32* p, const bool_arr& mask) {
         return svsel_s64(mask, svld1sw_s64(mask, p), v);
+    }
+
+    /*static svint64_t broadcast(int32 v) {
+        return svreinterpret_s64_s32(svdup_n_s32(v));
     }
 
     static int element0(const svint64_t& a) {
@@ -298,6 +361,15 @@ struct sve_int8: implbase<sve_int8> {
 
     static void scatter(tag<sve_int8>, const svint64_t& s, int32* p, const svint64_t& index, const svbool_t& mask) {
         svst1w_scatter_s64index_s64(mask, p, index, s);
+    }*/
+
+private:
+    static void copy_to_sve(const svint64_t& v, int32_arr&p) {
+        svst1w_s64(svptrue_b64(), p.data(), v);
+    }
+
+    static svint64_t copy_from_sve(const int32_arr& p) {
+        return svld1sw_s64(svptrue_b64(), p.data());
     }
 };
 
@@ -309,28 +381,43 @@ struct sve_double8: implbase<sve_double8> {
     using implbase<sve_double8>::scatter;
     using implbase<sve_double8>::cast_from;
 
-    static svfloat64_t broadcast(double v) {
+    using bool_arr = std::array<uint8_t, 8>;
+    using int32_arr = std::array<int32, 8>;
+    using double_arr = std::array<double, 8>;
+
+    static void copy_to(const double_arr& v, double* p) {
+        std::copy(std::begin(v), std::end(v), p);
+    }
+
+    static void copy_to_masked(const double_arr& v, double* p, const svbool_t& mask) {
+        sve_mask = sve_mask8::copy_from_sve(mask);
+        sve_v = copy_from_sve(v);
+        svst1_f64(sve_mask, p, sve_v);
+    }
+
+    static double_arr copy_from(const double* p) {
+        double_arr r;
+        std::copy(p, p+r.size(), std::begin(r));
+        return r;
+    }
+
+    static double_arr copy_from_masked(const double* p, const svbool_t& mask) {
+        sve_mask = sve_mask8::copy_from_sve(mask);
+        double_arr r;
+        copy_to_sve(svld1_f64(sve_mask, p),r);
+        return r;
+    }
+
+    static double_arr copy_from_masked(const double_arr& v, const double* p, const svbool_t& mask) {
+        sve_mask = sve_mask8::copy_from_sve(mask);
+        sve_v = copy_from_sve(v);
+        double_arr r;
+        copy_to_sve(svsel_f64(mask, svld1_f64(mask, p), v), r);
+        return r;
+    }
+
+    /*static svfloat64_t broadcast(double v) {
         return svdup_n_f64(v);
-    }
-
-    static void copy_to(const svfloat64_t& v, double* p) {
-        svst1_f64(svptrue_b64(), p, v);
-    }
-
-    static void copy_to_masked(const svfloat64_t& v, double* p, const svbool_t& mask) {
-        svst1_f64(mask, p, v);
-    }
-
-    static svfloat64_t copy_from(const double* p) {
-        return svld1_f64(svptrue_b64(), p);
-    }
-
-    static svfloat64_t copy_from_masked(const double* p, const svbool_t& mask) {
-        return svld1_f64(mask, p);
-    }
-
-    static svfloat64_t copy_from_masked(const svfloat64_t& v, const double* p, const svbool_t& mask) {
-        return svsel_f64(mask, svld1_f64(mask, p), v);
     }
 
     static double element0(const svfloat64_t& a) {
@@ -574,6 +661,15 @@ protected:
 
     static svfloat64_t fms(const svfloat64_t& a, const svfloat64_t& b, const svfloat64_t& c) {
         return svnmsb_f64_z(svptrue_b64(), a, b, c);
+    }*/
+
+private:
+    static void copy_to_sve(const svfloat64_t& v, double_arr& p) {
+        svst1_f64(svptrue_b64(), p.data(), v);
+    }
+
+    static svfloat64_t copy_from_sve(const double_arr& p) {
+        return svld1_f64(svptrue_b64(), p.data());
     }
 };
 
