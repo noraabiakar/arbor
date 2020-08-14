@@ -134,23 +134,31 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym, bool read) {
         v.readonly = true;
         break;
     case sourceKind::current_density:
-        v.data_var = "vec_i_";
+        v.data_var = read ? "vec_i_" : "local_i_";
+        v.accumulate = false;
+        v.direct_idx = !read;
         v.readonly = false;
-        v.scale = 0.1;
+        v.scale = read ? 0.1 : 1;
         break;
     case sourceKind::current:
         // unit scale; sourceKind for point processes updating current variable.
-        v.data_var = "vec_i_";
+        v.data_var = read ? "vec_i_" : "local_i_";
+        v.direct_idx = !read;
+        v.accumulate = false;
         v.readonly = false;
         break;
     case sourceKind::conductivity:
-        v.data_var = "vec_g_";
+        v.data_var = read ? "vec_g_" : "local_g_";
+        v.direct_idx = !read;
+        v.accumulate = false;
         v.readonly = false;
-        v.scale = 0.1;
+        v.scale = read ? 0.1 : 1;
         break;
     case sourceKind::conductance:
         // unit scale; sourceKind for point processes updating conductivity.
-        v.data_var = "vec_g_";
+        v.data_var = read ? "vec_g_" : "local_g_";
+        v.direct_idx = !read;
+        v.accumulate = false;
         v.readonly = false;
         break;
     case sourceKind::dt:
@@ -163,15 +171,17 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym, bool read) {
         v.readonly = true;
         break;
     case sourceKind::ion_current_density:
-        v.data_var = read ? ion_pfx+".current_density" : ion_name+"_ion_current_density";
+        v.data_var = read ? ion_pfx+".current_density" : ion_name+"_current_density";
         v.direct_idx = !read;
-        v.scale = 0.1;
+        v.accumulate = false;
+        v.scale = read ? 0.1 : 1;
         v.readonly = false;
         break;
     case sourceKind::ion_current:
         // unit scale; sourceKind for point processes updating an ionic current variable.
-        v.data_var = read ? ion_pfx+".current_density" : ion_name+"_ion_current_density";
+        v.data_var = read ? ion_pfx+".current_density" : ion_name+"_current_density";
         v.direct_idx = !read;
+        v.accumulate = false;
         v.readonly = false;
         break;
     case sourceKind::ion_revpot:
@@ -180,13 +190,15 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym, bool read) {
         v.readonly = false;
         break;
     case sourceKind::ion_iconc:
-        v.data_var = read ? ion_pfx+".internal_concentration" : ion_name+"_ion_internal_concentration";
+        v.data_var = read ? ion_pfx+".internal_concentration" : ion_name+"i";
         v.direct_idx = !read;
+        v.accumulate = false;
         v.readonly = false;
         break;
     case sourceKind::ion_econc:
-        v.data_var = read ? ion_pfx+".external_concentration" : ion_name+"_ion_external_concentration";
+        v.data_var = read ? ion_pfx+".external_concentration" : ion_name+"o";
         v.direct_idx = !read;
+        v.accumulate = false;
         v.readonly = false;
         break;
     case sourceKind::ion_valence:

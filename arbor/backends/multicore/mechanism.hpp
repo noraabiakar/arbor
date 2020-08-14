@@ -90,6 +90,8 @@ protected:
 
     iarray node_index_;
     iarray multiplicity_;
+    array local_i_;
+    array local_g_;
     bool mult_in_place_;
     constraint_partition index_constraints_;
     const value_type* weight_;    // Points within data_ after instantiation.

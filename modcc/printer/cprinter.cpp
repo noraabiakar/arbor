@@ -276,15 +276,24 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out << popindent << "\n};\n" << popindent << "}\n";
     }
 
-    if (!vars.arrays.empty()) {
+    std::set<std::string> fields;
+    for (const auto& array: vars.arrays) {
+        auto memb = array->name();
+        fields.insert(memb);
+    }
+    for (const auto& f: module_.local_ion_fields().fields) {
+        auto memb = f.name + suffix(f.field);
+        fields.insert(memb);
+    }
+
+    if (!fields.empty()) {
         out <<
             "mechanism_field_table field_table() override {\n" << indent <<
             "return {" << indent;
 
         sep.reset();
-        for (const auto& array: vars.arrays) {
-            auto memb = array->name();
-            out << sep << "{" << quote(memb) << ", &" << memb << "}";
+        for (auto f: fields) {
+            out << sep << "{" << quote(f) << ", &" << f << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
 
@@ -344,7 +353,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
         for (auto f: module_.local_ion_fields().fields) {
             out << sep << "{\"" << f.name << "\", ion_field::" << to_string(f.field)
-                << ", &" << f.name << "_" << to_string(f.field)  << "}";
+                << ", &" << f.name << suffix(f.field)  << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
     }
@@ -355,15 +364,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     for (const auto& scalar: vars.scalars) {
         out << "value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
     }
-    for (const auto& array: vars.arrays) {
-        out << "value_type* " << array->name() << ";\n";
+    for (const auto& f: fields) {
+        out << "value_type* " << f << ";\n";
     }
     for (const auto& dep: ion_deps) {
         out << "ion_state_view " << ion_state_field(dep.name) << ";\n";
         out << "iarray " << ion_state_index(dep.name) << ";\n";
-    }
-    for (const auto& f: module_.local_ion_fields().fields) {
-        out << "value_type* " << f.name << "_" << to_string(f.field) << ";\n";
     }
 
     for (auto proc: normal_procedures(module_)) {

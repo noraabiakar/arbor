@@ -148,6 +148,8 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
     node_index_ = iarray(width_padded_, pad);
+    local_i_    = array(width_padded_, pad);
+    local_g_    = array(width_padded_, pad);
 
     copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);

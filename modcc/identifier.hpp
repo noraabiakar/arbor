@@ -83,6 +83,16 @@ inline std::string to_string(linkageKind v) {
     return std::string("<error : undefined visibilityKind>");
 }
 
+inline std::string suffix(sourceKind v) {
+    switch(v) {
+        case sourceKind::ion_current:         return "_current_density";
+        case sourceKind::ion_current_density: return "_current_density";
+        case sourceKind::ion_iconc:           return "i";
+        case sourceKind::ion_econc:           return "o";
+        default:                              return "unknown source";
+    }
+}
+
 inline std::string to_string(sourceKind v) {
     switch(v) {
     case sourceKind::voltage:             return "voltage";
