@@ -105,6 +105,19 @@ protected:
     using ion_index_entry = std::pair<const char*, const index_type**>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
 
+    enum ion_field {
+        current,
+        current_density,
+        iconc,
+        econc
+    };
+    struct ion_update_entry {
+        const char* name;
+        ion_field   field;
+        value_type**
+    };
+    using mechanism_ion_update_table = std::vector<ion_update_entry>;
+
     virtual void nrn_init() = 0;
 
     // Generated mechanisms must implement the following methods, together with

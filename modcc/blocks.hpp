@@ -158,6 +158,14 @@ struct AssignedBlock {
     }
 };
 
+struct LocalIonFields {
+    struct ion_field {
+        std::string name;
+        sourceKind  field;
+    };
+    std::vector<ion_field> fields;
+};
+
 ////////////////////////////////////////////////
 // helpers for pretty printing block information
 ////////////////////////////////////////////////

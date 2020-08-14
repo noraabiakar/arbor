@@ -60,6 +60,8 @@ public:
     // Retrieve list of ion dependencies.
     const std::vector<IonDep>& ion_deps() const { return neuron_block_.ions; }
 
+    LocalIonFields const& local_ion_fields() const {return local_ion_fields_;}
+
     // Set top-level blocks (called from Parser).
     void neuron_block(const NeuronBlock& n) { neuron_block_ = n; }
     void state_block(const StateBlock& s) { state_block_ = s; }
@@ -105,6 +107,13 @@ public:
 
     bool is_linear() const { return linear_; }
 
+    struct ion_field {
+        std::string ion;
+        sourceKind  field;
+    };
+
+
+
 private:
     moduleKind kind_;
     std::string title_;
@@ -118,6 +127,8 @@ private:
     ParameterBlock parameter_block_;
     AssignedBlock assigned_block_;
     bool linear_;
+
+    LocalIonFields local_ion_fields_;
 
     // AST storage.
     std::vector<symbol_ptr> callables_;

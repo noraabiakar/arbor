@@ -113,7 +113,7 @@ NetReceiveExpression* find_net_receive(const Module& m) {
     return it==m.symbols().end()? nullptr: it->second->is_net_receive();
 }
 
-indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
+indexed_variable_info decode_indexed_variable(IndexedVariable* sym, bool read) {
     indexed_variable_info v;
     v.node_index_var = "node_index_";
     v.scale = 1;
@@ -121,8 +121,10 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     v.readonly = true;
 
     std::string ion_pfx;
+    std::string ion_name;
     if (sym->is_ion()) {
-        ion_pfx = "ion_"+sym->ion_channel()+"_";
+        ion_name = sym->ion_channel();
+        ion_pfx = "ion_"+ ion_name +"_";
         v.node_index_var = ion_pfx+"index_";
     }
 
@@ -161,13 +163,15 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         v.readonly = true;
         break;
     case sourceKind::ion_current_density:
-        v.data_var = ion_pfx+".current_density";
+        v.data_var = read ? ion_pfx+".current_density" : ion_name+"_ion_current_density";
+        v.direct_idx = !read;
         v.scale = 0.1;
         v.readonly = false;
         break;
     case sourceKind::ion_current:
         // unit scale; sourceKind for point processes updating an ionic current variable.
-        v.data_var = ion_pfx+".current_density";
+        v.data_var = read ? ion_pfx+".current_density" : ion_name+"_ion_current_density";
+        v.direct_idx = !read;
         v.readonly = false;
         break;
     case sourceKind::ion_revpot:
@@ -176,16 +180,18 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         v.readonly = false;
         break;
     case sourceKind::ion_iconc:
-        v.data_var = ion_pfx+".internal_concentration";
+        v.data_var = read ? ion_pfx+".internal_concentration" : ion_name+"_ion_internal_concentration";
+        v.direct_idx = !read;
         v.readonly = false;
         break;
     case sourceKind::ion_econc:
-        v.data_var = ion_pfx+".external_concentration";
+        v.data_var = read ? ion_pfx+".external_concentration" : ion_name+"_ion_external_concentration";
+        v.direct_idx = !read;
         v.readonly = false;
         break;
     case sourceKind::ion_valence:
         v.data_var = ion_pfx+".ionic_charge";
-        v.node_index_var = ""; // scalar global
+        v.scalar_var = true;
         v.readonly = true;
         break;
     case sourceKind::temperature:

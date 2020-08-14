@@ -122,10 +122,15 @@ struct indexed_variable_info {
     bool accumulate = true; // true => add with weight_ factor on assignment
     bool readonly = false;  // true => can never be assigned to by a mechanism
 
+    bool scalar_var = false;
+    bool direct_idx = false;
+
     // Scale is the conversion factor from the data variable
     // to the NMODL value.
     double scale = 1;
-    bool scalar() const { return node_index_var.empty(); }
+    bool scalar() const { return scalar_var; }
+    bool direct_index() const { return direct_idx; }
+
 };
 
-indexed_variable_info decode_indexed_variable(IndexedVariable* sym);
+indexed_variable_info decode_indexed_variable(IndexedVariable* sym, bool read=true);

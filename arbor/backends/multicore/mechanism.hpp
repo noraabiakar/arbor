@@ -121,6 +121,19 @@ protected:
     using ion_index_entry = std::pair<const char*, iarray*>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
 
+    enum ion_field {
+        ion_current,
+        ion_current_density,
+        ion_iconc,
+        ion_econc
+    };
+    struct ion_update_entry {
+        const char* name;
+        ion_field   field;
+        value_type** ptr;
+    };
+    using mechanism_ion_update_table = std::vector<ion_update_entry>;
+
     virtual void nrn_init() = 0;
 
     // Generated mechanisms must implement the following methods, together with
@@ -136,6 +149,7 @@ protected:
     virtual mechanism_state_table state_table() { return {}; }
     virtual mechanism_ion_state_table ion_state_table() { return {}; }
     virtual mechanism_ion_index_table ion_index_table() { return {}; }
+    virtual mechanism_ion_update_table ion_update_table() { return {}; }
 
     // Simd width used in mechanism.
 

@@ -663,6 +663,15 @@ void Module::add_variables_to_symbols() {
         std::string name = tkn.spelling;
         sourceKind data_source = ion_source(channel, name, kind_);
 
+        auto requires_accumulate = (data_source == sourceKind::ion_current_density) ||
+                                   (data_source == sourceKind::ion_current) ||
+                                   (data_source == sourceKind::ion_iconc) ||
+                                   (data_source == sourceKind::ion_econc);
+
+        if (requires_accumulate && (acc == accessKind::write)) {
+            local_ion_fields_.fields.push_back({channel, data_source});
+        }
+
         // If the symbol already exists and is not a state variable,
         // it is an error.
         //

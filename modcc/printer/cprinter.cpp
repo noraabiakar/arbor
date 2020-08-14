@@ -336,6 +336,19 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out << popindent << "\n};" << popindent << "\n}\n";
     }
 
+    if (!module_.local_ion_fields().fields.empty()) {
+        out <<
+            "mechanism_ion_update_table ion_update_table() override {\n" << indent <<
+            "return {" << indent;
+        sep.reset();
+
+        for (auto f: module_.local_ion_fields().fields) {
+            out << sep << "{\"" << f.name << "\", ion_field::" << to_string(f.field)
+                << ", &" << f.name << "_" << to_string(f.field)  << "}";
+        }
+        out << popindent << "\n};" << popindent << "\n}\n";
+    }
+
     out << popindent << "\n"
         "private:\n" << indent;
 
@@ -348,6 +361,9 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     for (const auto& dep: ion_deps) {
         out << "ion_state_view " << ion_state_field(dep.name) << ";\n";
         out << "iarray " << ion_state_index(dep.name) << ";\n";
+    }
+    for (const auto& f: module_.local_ion_fields().fields) {
+        out << "value_type* " << f.name << "_" << to_string(f.field) << ";\n";
     }
 
     for (auto proc: normal_procedures(module_)) {
@@ -508,7 +524,7 @@ namespace {
         friend std::ostream& operator<<(std::ostream& o, const deref& wrap) {
             auto index_var = wrap.d.cell_index_var.empty() ? wrap.d.node_index_var : wrap.d.cell_index_var;
             return o << wrap.d.data_var << '['
-                     << (wrap.d.scalar()? "0": index_i_name(index_var)) << ']';
+                     << (wrap.d.scalar()? "0": ( wrap.d.direct_idx ? "i_" : index_i_name(index_var))) << ']';
         }
     };
 }
@@ -531,7 +547,7 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
 void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* external) {
     if (!external->is_write()) return;
 
-    auto d = decode_indexed_variable(external);
+    auto d = decode_indexed_variable(external, false);
     double coeff = 1./d.scale;
 
     if (d.readonly) {
