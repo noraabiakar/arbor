@@ -120,21 +120,24 @@ protected:
     using ion_state_entry = std::pair<const char*, ion_state_view*>;
     using mechanism_ion_state_table = std::vector<ion_state_entry>;
 
-    using ion_index_entry = std::pair<const char*, iarray*>;
-    using mechanism_ion_index_table = std::vector<ion_index_entry>;
+    using mechanism_ion_index_table = std::unordered_map<const char*, iarray*>;
 
+    struct pair_hash
+    {
+        template <class T1, class T2>
+        std::size_t operator() (const std::pair<T1, T2> &pair) const {
+            return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
+        }
+    };
     enum ion_field {
         ion_current,
         ion_current_density,
         ion_iconc,
         ion_econc
     };
-    struct ion_update_entry {
-        const char* name;
-        ion_field   field;
-        value_type** ptr;
-    };
-    using mechanism_ion_update_table = std::vector<ion_update_entry>;
+
+    using ion_update_entry = std::pair<const char*, ion_field>;
+    using mechanism_ion_update_table = std::unordered_map<ion_update_entry, value_type**, pair_hash>;
 
     virtual void nrn_init() = 0;
 
@@ -165,12 +168,52 @@ protected:
 
     virtual void deliver_events(deliverable_event_stream::state) {};
 
+    std::vector<const char*> used_ions() override {
+        auto table = ion_state_table();
+        std::vector<const char*> ions;
+        for (auto i: table) {
+            ions.push_back(i.first);
+        }
+        return ions;
+    }
+
     fvm_value_type* current_density() override {
         return local_i_.data();
     }
 
     fvm_value_type* conductivity() override {
         return local_g_.data();
+    }
+
+    fvm_index_type* node_index() override {
+        return node_index_.data();
+    }
+
+    fvm_value_type* current_density(const char* ion) override {
+        auto table = ion_update_table();
+        auto key   =  std::make_pair(ion, ion_field::ion_current_density);
+        if (!table.count(key)) return nullptr;
+        return *(table.at(key));
+    }
+
+    fvm_value_type* internal_conc(const char* ion) override {
+        auto table = ion_update_table();
+        auto key   =  std::make_pair(ion, ion_field::ion_iconc);
+        if (!table.count(key)) return nullptr;
+        return *(table.at(key));
+    }
+
+    fvm_value_type* external_conc(const char* ion) override {
+        auto table = ion_update_table();
+        auto key   =  std::make_pair(ion, ion_field::ion_econc);
+        if (!table.count(key)) return nullptr;
+        return *(table.at(key));
+    }
+
+    fvm_index_type* node_index(const char* ion) override {
+        auto table = ion_index_table();
+        if (!table.count(ion)) return nullptr;
+        return (*(table.at(ion))).data();
     }
 };
 

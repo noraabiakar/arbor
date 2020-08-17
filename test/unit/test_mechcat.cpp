@@ -79,8 +79,15 @@ struct common_impl: concrete_mechanism<B> {
     void nrn_current() override {}
     void deliver_events() override {}
     void write_ions() override {}
-    fvm_value_type* current_density() override { return nullptr; };
+
+    fvm_value_type* current_density() override { return nullptr; }
     fvm_value_type* conductivity() override { return nullptr; }
+    fvm_index_type* node_index() {return nullptr; }
+    fvm_value_type* current_density(const char* ion) {return nullptr; }
+    fvm_value_type* internal_conc(const char* ion) {return nullptr; }
+    fvm_value_type* external_conc(const char* ion) {return nullptr; }
+    fvm_index_type* node_index(const char* ion) {return nullptr; }
+    std::vector<const char*> used_ions() {return {}; }
 
     std::size_t width_ = 0;
 

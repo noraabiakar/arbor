@@ -67,7 +67,7 @@ arb::mechanism* find_mechanism(fvm_cell& fvcell, int index) {
 
 using mechanism_global_table = std::vector<std::pair<const char*, arb::fvm_value_type*>>;
 using mechanism_field_table = std::vector<std::pair<const char*, arb::fvm_value_type**>>;
-using mechanism_ion_index_table = std::vector<std::pair<const char*, backend::iarray*>>;
+using mechanism_ion_index_table = std::unordered_map<const char*, backend::iarray*>;
 
 ACCESS_BIND(\
     mechanism_global_table (arb::multicore::mechanism::*)(),\
@@ -838,9 +838,9 @@ TEST(fvm_lowered, weighted_write_ion) {
     ASSERT_TRUE(opt_cai_ptr);
     auto& test_ca_cai = *opt_cai_ptr.value();
 
-    auto opt_ca_index_ptr = util::value_by_key((test_ca->*private_ion_index_table_ptr)(), "ca"s);
+    auto opt_ca_index_ptr = (test_ca->*private_ion_index_table_ptr)().at("ca");
     ASSERT_TRUE(opt_ca_index_ptr);
-    auto& test_ca_ca_index = *opt_ca_index_ptr.value();
+    auto& test_ca_ca_index = *opt_ca_index_ptr;
 
     double cai_contrib[3] = {200., 0., 300.};
     double test_ca_weight[3] = {0.25, 0., 1.};

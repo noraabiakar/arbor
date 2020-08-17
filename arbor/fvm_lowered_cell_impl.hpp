@@ -33,6 +33,7 @@
 #include "sampler_map.hpp"
 #include "util/maputil.hpp"
 #include "util/meta.hpp"
+#include "util/padded_alloc.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
 #include "util/strprintf.hpp"
@@ -331,22 +332,62 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::update_ion_state() {
-    state_->ions_init_concentration();
-    auto curr = state_->current_density;
-    auto cond = state_->conductivity;
-    auto cond = state_->
+    auto curr = array(state_->n_cv, 0, state_->alloc);
+    auto cond = array(state_->n_cv, 0, state_->alloc);
+
+    //update current and conductivity
     for (auto& m: mechanisms_) {
-        //m->write_ions();
-        auto mech_curr =  m->current_density();
-        auto mech_cond =  m->conductivity();
+        auto mech_curr = m->current_density();
+        auto mech_cond = m->conductivity();
+        auto node_idx = m->node_index();
         for (unsigned i = 0; i < curr.size(); ++i) {
-            curr[i] += mech_curr[i];
-            cond[i] += mech_cond[i];
-            std::cout << curr[i] << std::endl;
+            curr[node_idx[i]] += mech_curr[i];
+            cond[node_idx[i]] += mech_cond[i];
         }
     }
-    state_->current_density = curr;
-    state_->conductivity = cond;
+
+    for (unsigned i = 0; i < state_->current_density.size(); ++i) {
+        state_->current_density[i] += curr[i];
+        state_->conductivity[i] += cond[i];
+    }
+
+    // update ion currents and concentrations
+    state_->ions_init_concentration();
+    auto ion_data = state_->ion_data;
+    std::unordered_map<std::string, array> iX, Xi, Xo;
+
+    for (auto& data: ion_data) {
+        auto ion = data.first;
+        auto ion_state = data.second;
+        iX.insert({ion, array(ion_state.node_index_.size(), 0, ion_state.alloc)});
+        Xi.insert({ion, array(ion_state.node_index_.size(), 0, ion_state.alloc)});
+        Xo.insert({ion, array(ion_state.node_index_.size(), 0, ion_state.alloc)});
+    }
+
+    for (auto& m: mechanisms_) {
+        auto ions = m->used_ions();
+        for (auto ion: ions) {
+            auto ion_curr = m->current_density(ion);
+            auto ion_iconc = m->internal_conc(ion);
+            auto ion_econc = m->external_conc(ion);
+            auto node_idx = m->node_index(ion);
+            for (unsigned i = 0; i <  iX[ion].size(); ++i) {
+                if (ion_curr)  iX[ion][node_idx[i]] += ion_curr[i];
+                if (ion_iconc) Xi[ion][node_idx[i]] += ion_iconc[i];
+                if (ion_econc) Xo[ion][node_idx[i]] += ion_econc[i];
+            }
+        }
+    }
+
+    for (auto& data: ion_data) {
+        auto ion = data.first;
+        auto ion_state = data.second;
+        for (unsigned i = 0; i < ion_state.iX_.size(); ++i) {
+            ion_state.iX_[i] += iX[ion][i];
+            ion_state.Xi_[i] += Xi[ion][i];
+            ion_state.Xo_[i] += Xo[ion][i];
+        }
+    }
 }
 
 template <typename Backend>

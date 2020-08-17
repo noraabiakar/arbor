@@ -40,6 +40,7 @@ namespace multicore {
 
 struct ion_state {
     unsigned alignment = 1; // Alignment and padding multiple.
+    util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
 
     iarray node_index_;     // Instance to CV map.
     array iX_;              // (A/m²) current density

@@ -352,8 +352,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         sep.reset();
 
         for (auto f: module_.local_ion_fields().fields) {
-            out << sep << "{\"" << f.name << "\", ion_field::" << to_string(f.field)
-                << ", &" << f.name << suffix(f.field)  << "}";
+            out << sep << "{{\"" << f.name << "\", ion_field::" << to_string(f.field)
+                << "}, &" << f.name << suffix(f.field)  << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
     }

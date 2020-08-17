@@ -53,6 +53,7 @@ ion_state::ion_state(
     unsigned align
 ):
     alignment(min_alignment(align)),
+    alloc(alignment),
     node_index_(ion_data.cv.begin(), ion_data.cv.end(), pad(alignment)),
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
