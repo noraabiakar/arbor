@@ -164,6 +164,14 @@ protected:
     // Event delivery, given event queue state:
 
     virtual void deliver_events(deliverable_event_stream::state) {};
+
+    fvm_value_type* current_density() override {
+        return local_i_.data();
+    }
+
+    fvm_value_type* conductivity() override {
+        return local_g_.data();
+    }
 };
 
 } // namespace multicore

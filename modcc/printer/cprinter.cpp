@@ -568,11 +568,19 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
         out << "weight_[i_], " << from->name() << ", " << deref(d) << ");\n";
     }
     else {
-        out << deref(d) << " = ";
-        if (coeff != 1) {
-            out << as_c_double(coeff) << '*';
+        if (d.direct_idx) {
+            out << deref(d) << " = ";
+            if (coeff != 1) {
+                out << as_c_double(coeff) << '*';
+            }
+            out << "weight_[i_]*" << from->name() << ";\n";
+        } else {
+            out << deref(d) << " = ";
+            if (coeff != 1) {
+                out << as_c_double(coeff) << '*';
+            }
+            out << from->name() << ";\n";
         }
-        out << from->name() << ";\n";
     }
 }
 

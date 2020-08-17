@@ -61,6 +61,9 @@ public:
     // Per-cell group identifier for an instantiated mechanism.
     unsigned  mechanism_id() const { return mechanism_id_; }
 
+    virtual fvm_value_type* current_density() = 0;
+    virtual fvm_value_type* conductivity() = 0;
+
 protected:
     // Per-cell group identifier for an instantiation of a mechanism; set by
     // concrete_mechanism<B>::instantiate()

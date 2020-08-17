@@ -138,7 +138,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym, bool read) {
         v.accumulate = false;
         v.direct_idx = !read;
         v.readonly = false;
-        v.scale = read ? 0.1 : 1;
+        v.scale = 0.1;
         break;
     case sourceKind::current:
         // unit scale; sourceKind for point processes updating current variable.
@@ -152,7 +152,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym, bool read) {
         v.direct_idx = !read;
         v.accumulate = false;
         v.readonly = false;
-        v.scale = read ? 0.1 : 1;
+        v.scale = 0.1;
         break;
     case sourceKind::conductance:
         // unit scale; sourceKind for point processes updating conductivity.
@@ -174,7 +174,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym, bool read) {
         v.data_var = read ? ion_pfx+".current_density" : ion_name+"_current_density";
         v.direct_idx = !read;
         v.accumulate = false;
-        v.scale = read ? 0.1 : 1;
+        v.scale = 0.1;
         v.readonly = false;
         break;
     case sourceKind::ion_current:

@@ -17,6 +17,8 @@ ASSIGNED {}
 
 STATE {
     s
+    xi
+    xo
 }
 
 INITIAL {

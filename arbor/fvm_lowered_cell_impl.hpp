@@ -332,9 +332,21 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::update_ion_state() {
     state_->ions_init_concentration();
+    auto curr = state_->current_density;
+    auto cond = state_->conductivity;
+    auto cond = state_->
     for (auto& m: mechanisms_) {
-        m->write_ions();
+        //m->write_ions();
+        auto mech_curr =  m->current_density();
+        auto mech_cond =  m->conductivity();
+        for (unsigned i = 0; i < curr.size(); ++i) {
+            curr[i] += mech_curr[i];
+            cond[i] += mech_cond[i];
+            std::cout << curr[i] << std::endl;
+        }
     }
+    state_->current_density = curr;
+    state_->conductivity = cond;
 }
 
 template <typename Backend>
