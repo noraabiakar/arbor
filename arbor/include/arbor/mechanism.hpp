@@ -64,10 +64,12 @@ public:
     virtual fvm_value_type* current_density() = 0;
     virtual fvm_value_type* conductivity() = 0;
     virtual fvm_index_type* node_index() = 0;
+    virtual fvm_size_type index_size() = 0;
     virtual fvm_value_type* current_density(const char* ion) = 0;
     virtual fvm_value_type* internal_conc(const char* ion) = 0;
     virtual fvm_value_type* external_conc(const char* ion) = 0;
     virtual fvm_index_type* node_index(const char* ion) = 0;
+    virtual fvm_size_type index_size(const char* ion) = 0;
     virtual std::vector<const char*> used_ions() = 0;
 
 protected:

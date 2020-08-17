@@ -115,6 +115,7 @@ private:
     decltype(backend::host_view(sample_time_)) sample_time_host_;
     decltype(backend::host_view(sample_value_)) sample_value_host_;
 
+    void reduce_currents();
     void update_ion_state();
 
     // Throw if absolute value of membrane voltage exceeds bounds.
@@ -191,6 +192,8 @@ void fvm_lowered_cell_impl<Backend>::reset() {
         m->initialize();
     }
 
+    reduce_currents();
+
     // NOTE: Threshold watcher reset must come after the voltage values are set,
     // as voltage is implicitly read by watcher to set initial state.
     threshold_watcher_.reset();
@@ -249,6 +252,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->deliver_events();
             m->nrn_current();
         }
+
+        reduce_currents();
 
         // Add current contribution from gap_junctions
         state_->add_gj_current();
@@ -329,9 +334,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         util::range_pointer_view(sample_value_host_)
     };
 }
-
 template <typename Backend>
-void fvm_lowered_cell_impl<Backend>::update_ion_state() {
+void fvm_lowered_cell_impl<Backend>::reduce_currents() {
     auto curr = array(state_->n_cv, 0, state_->alloc);
     auto cond = array(state_->n_cv, 0, state_->alloc);
 
@@ -340,9 +344,10 @@ void fvm_lowered_cell_impl<Backend>::update_ion_state() {
         auto mech_curr = m->current_density();
         auto mech_cond = m->conductivity();
         auto node_idx = m->node_index();
-        for (unsigned i = 0; i < curr.size(); ++i) {
-            curr[node_idx[i]] += mech_curr[i];
-            cond[node_idx[i]] += mech_cond[i];
+        for (unsigned i = 0; i < m->index_size(); ++i) {
+            auto nid = node_idx[i];
+            curr[nid] += mech_curr[i];
+            cond[nid] += mech_cond[i];
         }
     }
 
@@ -351,15 +356,47 @@ void fvm_lowered_cell_impl<Backend>::update_ion_state() {
         state_->conductivity[i] += cond[i];
     }
 
-    // update ion currents and concentrations
-    state_->ions_init_concentration();
-    auto ion_data = state_->ion_data;
-    std::unordered_map<std::string, array> iX, Xi, Xo;
+    // update ion currents
+    auto& ion_data = state_->ion_data;
+    std::unordered_map<std::string, array> iX;
 
     for (auto& data: ion_data) {
         auto ion = data.first;
         auto ion_state = data.second;
         iX.insert({ion, array(ion_state.node_index_.size(), 0, ion_state.alloc)});
+    }
+
+    for (auto& m: mechanisms_) {
+        auto ions = m->used_ions();
+        for (auto ion: ions) {
+            auto ion_curr = m->current_density(ion);
+            auto node_idx = m->node_index(ion);
+            auto size = m->index_size(ion);
+            for (unsigned i = 0; i < size; ++i) {
+                if (ion_curr)  iX[ion][node_idx[i]] += ion_curr[i];
+            }
+        }
+    }
+
+    for (auto& data: ion_data) {
+        auto ion = data.first;
+        auto& ion_state = data.second;
+        for (unsigned i = 0; i < ion_state.iX_.size(); ++i) {
+            ion_state.iX_[i] += iX[ion][i];
+        }
+    }
+}
+
+template <typename Backend>
+void fvm_lowered_cell_impl<Backend>::update_ion_state() {
+    // update ion concentrations
+    state_->ions_init_concentration();
+    auto& ion_data = state_->ion_data;
+    std::unordered_map<std::string, array> Xi, Xo;
+
+    for (auto& data: ion_data) {
+        auto ion = data.first;
+        auto ion_state = data.second;
         Xi.insert({ion, array(ion_state.node_index_.size(), 0, ion_state.alloc)});
         Xo.insert({ion, array(ion_state.node_index_.size(), 0, ion_state.alloc)});
     }
@@ -367,12 +404,11 @@ void fvm_lowered_cell_impl<Backend>::update_ion_state() {
     for (auto& m: mechanisms_) {
         auto ions = m->used_ions();
         for (auto ion: ions) {
-            auto ion_curr = m->current_density(ion);
             auto ion_iconc = m->internal_conc(ion);
             auto ion_econc = m->external_conc(ion);
             auto node_idx = m->node_index(ion);
-            for (unsigned i = 0; i <  iX[ion].size(); ++i) {
-                if (ion_curr)  iX[ion][node_idx[i]] += ion_curr[i];
+            auto size = m->index_size(ion);
+            for (unsigned i = 0; i < size; ++i) {
                 if (ion_iconc) Xi[ion][node_idx[i]] += ion_iconc[i];
                 if (ion_econc) Xo[ion][node_idx[i]] += ion_econc[i];
             }
@@ -381,9 +417,8 @@ void fvm_lowered_cell_impl<Backend>::update_ion_state() {
 
     for (auto& data: ion_data) {
         auto ion = data.first;
-        auto ion_state = data.second;
+        auto& ion_state = data.second;
         for (unsigned i = 0; i < ion_state.iX_.size(); ++i) {
-            ion_state.iX_[i] += iX[ion][i];
             ion_state.Xi_[i] += Xi[ion][i];
             ion_state.Xo_[i] += Xo[ion][i];
         }

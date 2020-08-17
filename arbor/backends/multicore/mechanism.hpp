@@ -189,6 +189,10 @@ protected:
         return node_index_.data();
     }
 
+    fvm_size_type index_size() override {
+        return width_;
+    }
+
     fvm_value_type* current_density(const char* ion) override {
         auto table = ion_update_table();
         auto key   =  std::make_pair(ion, ion_field::ion_current_density);
@@ -214,6 +218,10 @@ protected:
         auto table = ion_index_table();
         if (!table.count(ion)) return nullptr;
         return (*(table.at(ion))).data();
+    }
+
+    fvm_size_type index_size(const char* ion) override {
+        return width_;
     }
 };
 

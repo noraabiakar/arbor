@@ -1249,7 +1249,7 @@ void run_exact_sampling_probe_test(const context& ctx) {
 #undef PROBE_TESTS
 #define PROBE_TESTS \
     v_i, v_cell, v_sampled, expsyn_g, expsyn_g_cell, \
-    ion_density, axial_and_ion_current_sampled, partial_density, total_current, exact_sampling, \
+    axial_and_ion_current_sampled, partial_density, total_current, exact_sampling, \
     multi
 
 #undef RUN_MULTICORE
