@@ -195,9 +195,11 @@ protected:
 
     fvm_value_type* current_density(const char* ion) override {
         auto table = ion_update_table();
-        auto key   =  std::make_pair(ion, ion_field::ion_current_density);
-        if (!table.count(key)) return nullptr;
-        return *(table.at(key));
+        auto key0   =  std::make_pair(ion, ion_field::ion_current_density);
+        auto key1   =  std::make_pair(ion, ion_field::ion_current);
+        if (table.count(key0)) return *(table.at(key0));
+        if (table.count(key1)) return *(table.at(key1));
+        return nullptr;
     }
 
     fvm_value_type* internal_conc(const char* ion) override {

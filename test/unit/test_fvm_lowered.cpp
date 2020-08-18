@@ -618,37 +618,39 @@ TEST(fvm_lowered, ionic_concentrations) {
     auto read_cai  = cat.instance<backend>("read_cai_init");
     auto write_cai = cat.instance<backend>("write_cai_breakpoint");
 
-    auto& read_cai_mech  = read_cai.mech;
-    auto& write_cai_mech = write_cai.mech;
-
     auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, cv_to_intdom, gj, vinit, temp, diam, read_cai_mech->data_alignment());
+            ncell, cv_to_intdom, gj, vinit, temp, diam, read_cai.mech->data_alignment());
     shared_state->add_ion("ca", 2, ion_config);
 
-    read_cai_mech->instantiate(0, *shared_state, overrides, layout);
-    write_cai_mech->instantiate(1, *shared_state, overrides, layout);
+    read_cai.mech->instantiate(0, *shared_state, overrides, layout);
+    write_cai.mech->instantiate(1, *shared_state, overrides, layout);
+
+
+    std::vector<mechanism_ptr> mechs;
+    mechs.push_back(mechanism_ptr(read_cai.mech.release()));
+    mechs.push_back(mechanism_ptr(write_cai.mech.release()));
 
     shared_state->reset();
 
     // expect 2.3 value in state 's' in read_cai_init after init:
-    read_cai_mech->initialize();
-    write_cai_mech->initialize();
+    mechs[0]->initialize();
+    mechs[1]->initialize();
 
     std::vector<fvm_value_type> expected_s_values(ncv, 2.3e-4);
 
-    EXPECT_EQ(expected_s_values, mechanism_field(read_cai_mech.get(), "s"));
+    EXPECT_EQ(expected_s_values, mechanism_field(mechs[0], "s"));
 
     // expect 5.2 + 2.3 value in state 's' in read_cai_init after state update:
-    read_cai_mech->nrn_state();
-    write_cai_mech->nrn_state();
+    mechs[0]->nrn_state();
+    mechs[1]->nrn_state();
 
-    read_cai_mech->write_ions();
-    write_cai_mech->write_ions();
+    shared_state->update_ion_state(mechs);
+    shared_state->reduce_currents(mechs);
 
-    read_cai_mech->nrn_state();
+    mechs[0]->nrn_state();
 
-    expected_s_values.assign(ncv, 7.5e-4);
-    EXPECT_EQ(expected_s_values, mechanism_field(read_cai_mech.get(), "s"));
+    expected_s_values.assign(ncv, 5.2e-4);
+    EXPECT_EQ(expected_s_values, mechanism_field(mechs[0], "s"));
 }
 
 TEST(fvm_lowered, ionic_currents) {
@@ -838,26 +840,32 @@ TEST(fvm_lowered, weighted_write_ion) {
     ASSERT_TRUE(opt_cai_ptr);
     auto& test_ca_cai = *opt_cai_ptr.value();
 
-    auto opt_ca_index_ptr = (test_ca->*private_ion_index_table_ptr)().at("ca");
-    ASSERT_TRUE(opt_ca_index_ptr);
-    auto& test_ca_ca_index = *opt_ca_index_ptr;
+    auto tbl = (test_ca->*private_ion_index_table_ptr)();
+    for (auto t: tbl) {
+        if (std::strcmp(t.first, "ca") == 0) {
+            auto opt_ca_index_ptr = t.second;
+            ASSERT_TRUE(opt_ca_index_ptr);
+            auto& test_ca_ca_index = *opt_ca_index_ptr;
 
-    double cai_contrib[3] = {200., 0., 300.};
-    double test_ca_weight[3] = {0.25, 0., 1.};
+            double cai_contrib[3] = {200., 0., 300.};
+            double test_ca_weight[3] = {0.25, 0., 1.};
 
-    for (int i = 0; i<2; ++i) {
-        test_ca_cai[i] = cai_contrib[test_ca_ca_index[i]];
+            for (int i = 0; i<2; ++i) {
+             test_ca_cai[i] = cai_contrib[test_ca_ca_index[i]];
+            }
+
+            std::vector<double> expected_iconc(3);
+            for (int i = 0; i<3; ++i) {
+             expected_iconc[i] = test_ca_weight[i]*cai_contrib[i] + ion_init_iconc[i];
+            }
+
+            ion.init_concentration();
+            test_ca->write_ions();
+            std::vector<double> ion_iconc = util::assign_from(ion.Xi_);
+            EXPECT_TRUE(testing::seq_almost_eq<double>(expected_iconc, ion_iconc));
+            break;
+        }
     }
-
-    std::vector<double> expected_iconc(3);
-    for (int i = 0; i<3; ++i) {
-        expected_iconc[i] = test_ca_weight[i]*cai_contrib[i] + ion_init_iconc[i];
-    }
-
-    ion.init_concentration();
-    test_ca->write_ions();
-    std::vector<double> ion_iconc = util::assign_from(ion.Xi_);
-    EXPECT_TRUE(testing::seq_almost_eq<double>(expected_iconc, ion_iconc));
 }
 
 TEST(fvm_lowered, gj_coords_simple) {

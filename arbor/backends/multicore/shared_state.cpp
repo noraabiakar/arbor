@@ -163,6 +163,143 @@ void shared_state::zero_currents() {
     }
 }
 
+void shared_state::update_ion_state(const std::vector<mechanism_ptr>& mechanisms) {
+    // update ion concentrations
+    ions_init_concentration();
+    std::unordered_map<std::string, array> Xi, Xo;
+
+    for (auto& data: ion_data) {
+        auto ion = data.first;
+        auto ion_state = data.second;
+        Xi.insert({ion, array(ion_state.node_index_.size(), 0, ion_state.alloc)});
+        Xo.insert({ion, array(ion_state.node_index_.size(), 0, ion_state.alloc)});
+    }
+
+    for (auto& m: mechanisms) {
+        auto ions = m->used_ions();
+        for (auto ion: ions) {
+            auto ion_iconc = m->internal_conc(ion);
+            auto ion_econc = m->external_conc(ion);
+            auto node_idx = m->node_index(ion);
+            auto size = m->index_size(ion);
+            for (unsigned i = 0; i < size; ++i) {
+                if (ion_iconc) Xi[ion][node_idx[i]] += ion_iconc[i];
+                if (ion_econc) Xo[ion][node_idx[i]] += ion_econc[i];
+            }
+        }
+    }
+
+    for (auto& data: ion_data) {
+        auto ion = data.first;
+        auto& ion_state = data.second;
+        for (unsigned i = 0; i < ion_state.iX_.size(); ++i) {
+            ion_state.Xi_[i] += Xi[ion][i];
+            ion_state.Xo_[i] += Xo[ion][i];
+        }
+    }
+}
+
+void shared_state::reduce_init_currents(const std::vector<mechanism_ptr>& mechanisms) {
+    auto curr = array(n_cv, 0, alloc);
+    auto cond = array(n_cv, 0, alloc);
+
+    //update current and conductivity
+    for (auto& m: mechanisms) {
+        auto mech_curr = m->current_density();
+        auto mech_cond = m->conductivity();
+        auto node_idx = m->node_index();
+        for (unsigned i = 0; i < m->index_size(); ++i) {
+            auto nid = node_idx[i];
+            if (!std::isnan(mech_curr[i])) curr[nid] += mech_curr[i];
+            if (!std::isnan(mech_cond[i])) cond[nid] += mech_cond[i];
+        }
+    }
+
+    for (unsigned i = 0; i < current_density.size(); ++i) {
+        current_density[i] += curr[i];
+        conductivity[i] += cond[i];
+    }
+
+    // update ion currents
+    std::unordered_map<std::string, array> iX;
+
+    for (auto& data: ion_data) {
+        auto ion = data.first;
+        auto ion_state = data.second;
+        iX.insert({ion, array(ion_state.node_index_.size(), 0, ion_state.alloc)});
+    }
+
+    for (auto& m: mechanisms) {
+        auto ions = m->used_ions();
+        for (auto ion: ions) {
+            auto ion_curr = m->current_density(ion);
+            auto node_idx = m->node_index(ion);
+            auto size = m->index_size(ion);
+            for (unsigned i = 0; i < size; ++i) {
+                if (ion_curr && !std::isnan(ion_curr[i]))  iX[ion][node_idx[i]] += ion_curr[i];
+            }
+        }
+    }
+
+    for (auto& data: ion_data) {
+        auto ion = data.first;
+        auto& ion_state = data.second;
+        for (unsigned i = 0; i < ion_state.iX_.size(); ++i) {
+            ion_state.iX_[i] += iX[ion][i];
+        }
+    }
+}
+
+void shared_state::reduce_currents(const std::vector<mechanism_ptr>& mechanisms) {
+    auto curr = array(n_cv, 0, alloc);
+    auto cond = array(n_cv, 0, alloc);
+
+    //update current and conductivity
+    for (auto& m: mechanisms) {
+        auto mech_curr = m->current_density();
+        auto mech_cond = m->conductivity();
+        auto node_idx = m->node_index();
+        for (unsigned i = 0; i < m->index_size(); ++i) {
+            auto nid = node_idx[i];
+            curr[nid] += mech_curr[i];
+            cond[nid] += mech_cond[i];
+        }
+    }
+
+    for (unsigned i = 0; i < current_density.size(); ++i) {
+        current_density[i] += curr[i];
+        conductivity[i] += cond[i];
+    }
+
+    // update ion currents
+    std::unordered_map<std::string, array> iX;
+
+    for (auto& data: ion_data) {
+        auto ion = data.first;
+        auto ion_state = data.second;
+        iX.insert({ion, array(ion_state.node_index_.size(), 0, ion_state.alloc)});
+    }
+
+    for (auto& m: mechanisms) {
+        auto ions = m->used_ions();
+        for (auto ion: ions) {
+            auto ion_curr = m->current_density(ion);
+            auto node_idx = m->node_index(ion);
+            auto size = m->index_size(ion);
+            for (unsigned i = 0; i < size; ++i) {
+                if (ion_curr)  iX[ion][node_idx[i]] += ion_curr[i];
+            }
+        }
+    }
+
+    for (auto& data: ion_data) {
+        auto ion = data.first;
+        auto& ion_state = data.second;
+        for (unsigned i = 0; i < ion_state.iX_.size(); ++i) {
+            ion_state.iX_[i] += iX[ion][i];
+        }
+    }
+}
 void shared_state::ions_init_concentration() {
     for (auto& i: ion_data) {
         i.second.init_concentration();

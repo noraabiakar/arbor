@@ -146,6 +146,10 @@ struct shared_state {
         array& sample_time,
         array& sample_value);
 
+    void update_ion_state(const std::vector<mechanism_ptr>& mechanisms);
+    void reduce_currents(const std::vector<mechanism_ptr>& mechanisms);
+    void reduce_init_currents(const std::vector<mechanism_ptr>& mechanisms);
+
     void reset();
 };
 
