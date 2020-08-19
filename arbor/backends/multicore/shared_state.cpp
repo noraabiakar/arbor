@@ -181,10 +181,12 @@ void shared_state::update_ion_state(const std::vector<mechanism_ptr>& mechanisms
             auto ion_iconc = m->internal_conc(ion);
             auto ion_econc = m->external_conc(ion);
             auto node_idx = m->node_index(ion);
+            auto weight   = m->weight();
             auto size = m->index_size(ion);
             for (unsigned i = 0; i < size; ++i) {
-                if (ion_iconc) Xi[ion][node_idx[i]] += ion_iconc[i];
-                if (ion_econc) Xo[ion][node_idx[i]] += ion_econc[i];
+                if (ion_iconc) std::cout << "\t" << node_idx[i] << " " << Xi[ion][node_idx[i]] << " " << ion_iconc[i] << std::endl;
+                if (ion_iconc) Xi[ion][node_idx[i]] += weight[i]*ion_iconc[i];
+                if (ion_econc) Xo[ion][node_idx[i]] += weight[i]*ion_econc[i];
             }
         }
     }
@@ -208,10 +210,11 @@ void shared_state::reduce_init_currents(const std::vector<mechanism_ptr>& mechan
         auto mech_curr = m->current_density();
         auto mech_cond = m->conductivity();
         auto node_idx = m->node_index();
+        auto weight   = m->weight();
         for (unsigned i = 0; i < m->index_size(); ++i) {
             auto nid = node_idx[i];
-            if (!std::isnan(mech_curr[i])) curr[nid] += mech_curr[i];
-            if (!std::isnan(mech_cond[i])) cond[nid] += mech_cond[i];
+            if (!std::isnan(mech_curr[i])) curr[nid] += weight[i]*mech_curr[i];
+            if (!std::isnan(mech_cond[i])) cond[nid] += weight[i]*mech_cond[i];
         }
     }
 
@@ -234,9 +237,10 @@ void shared_state::reduce_init_currents(const std::vector<mechanism_ptr>& mechan
         for (auto ion: ions) {
             auto ion_curr = m->current_density(ion);
             auto node_idx = m->node_index(ion);
-            auto size = m->index_size(ion);
+            auto size     = m->index_size(ion);
+            auto weight   = m->weight();
             for (unsigned i = 0; i < size; ++i) {
-                if (ion_curr && !std::isnan(ion_curr[i]))  iX[ion][node_idx[i]] += ion_curr[i];
+                if (ion_curr && !std::isnan(ion_curr[i]))  iX[ion][node_idx[i]] += weight[i]*ion_curr[i];
             }
         }
     }
@@ -259,10 +263,11 @@ void shared_state::reduce_currents(const std::vector<mechanism_ptr>& mechanisms)
         auto mech_curr = m->current_density();
         auto mech_cond = m->conductivity();
         auto node_idx = m->node_index();
+        auto weight   = m->weight();
         for (unsigned i = 0; i < m->index_size(); ++i) {
             auto nid = node_idx[i];
-            curr[nid] += mech_curr[i];
-            cond[nid] += mech_cond[i];
+            curr[nid] += weight[i]*mech_curr[i];
+            cond[nid] += weight[i]*mech_cond[i];
         }
     }
 
@@ -286,8 +291,9 @@ void shared_state::reduce_currents(const std::vector<mechanism_ptr>& mechanisms)
             auto ion_curr = m->current_density(ion);
             auto node_idx = m->node_index(ion);
             auto size = m->index_size(ion);
+            auto weight   = m->weight();
             for (unsigned i = 0; i < size; ++i) {
-                if (ion_curr)  iX[ion][node_idx[i]] += ion_curr[i];
+                if (ion_curr)  iX[ion][node_idx[i]] += weight[i]*ion_curr[i];
             }
         }
     }

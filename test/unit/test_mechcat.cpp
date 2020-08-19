@@ -90,6 +90,7 @@ struct common_impl: concrete_mechanism<B> {
     fvm_index_type* node_index(const char* ion) {return nullptr; }
     fvm_size_type   index_size(const char* ion) {return 0; }
     std::vector<const char*> used_ions() {return {}; }
+    const fvm_value_type* weight() {return nullptr; }
 
     std::size_t width_ = 0;
 

@@ -851,7 +851,7 @@ TEST(fvm_lowered, weighted_write_ion) {
             double test_ca_weight[3] = {0.25, 0., 1.};
 
             for (int i = 0; i<2; ++i) {
-             test_ca_cai[i] = cai_contrib[test_ca_ca_index[i]];
+                test_ca_cai[i] = cai_contrib[test_ca_ca_index[i]];
             }
 
             std::vector<double> expected_iconc(3);
@@ -860,7 +860,15 @@ TEST(fvm_lowered, weighted_write_ion) {
             }
 
             ion.init_concentration();
-            test_ca->write_ions();
+//            test_ca->write_ions();
+            std::vector<mechanism_ptr> mechs = {};
+            for (auto& mech: fvcell.*private_mechanisms_ptr) {
+                if (mech->internal_name()=="test_ca" || mech->internal_name()=="test_kinlva") {
+                    mechs.push_back(mechanism_ptr(mech.release()));
+                }
+            }
+            state.reduce_currents(mechs);
+            state.update_ion_state(mechs);
             std::vector<double> ion_iconc = util::assign_from(ion.Xi_);
             EXPECT_TRUE(testing::seq_almost_eq<double>(expected_iconc, ion_iconc));
             break;

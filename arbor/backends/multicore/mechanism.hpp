@@ -225,6 +225,10 @@ protected:
     fvm_size_type index_size(const char* ion) override {
         return width_;
     }
+
+    const fvm_value_type* weight() {
+        return weight_;
+    }
 };
 
 } // namespace multicore
