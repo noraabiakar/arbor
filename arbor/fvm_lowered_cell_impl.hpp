@@ -246,10 +246,12 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PE(advance_integrate_current_zero);
         state_->zero_currents();
         PL();
-        for (auto& m: mechanisms_) {
-            m->deliver_events();
-            m->nrn_current();
-        }
+
+        threading::parallel_for::apply(0, mechanisms_.size(), context_.thread_pool.get(),
+                                       [&](unsigned i) {
+                                           mechanisms_[i]->deliver_events();
+                                           mechanisms_[i]->nrn_current();
+                                       });
 
         state_->reduce_currents(mechanisms_);
 
@@ -285,9 +287,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Integrate mechanism state.
 
-        for (auto& m: mechanisms_) {
-            m->nrn_state();
-        }
+        threading::parallel_for::apply(0, mechanisms_.size(), context_.thread_pool.get(),
+                                       [&](unsigned i) {
+                                           mechanisms_[i]->nrn_state();
+                                       });
 
         // Update ion concentrations.
 
