@@ -164,6 +164,12 @@ void shared_state::zero_currents() {
 }
 
 void shared_state::update_ion_state(const std::vector<mechanism_ptr>& mechanisms) {
+    using simd::indirect;
+    using simd::assign;
+    using simd::add;
+    using simd::mul;
+    using simd::simd_cast;
+
     // update ion concentrations
     ions_init_concentration();
     std::unordered_map<std::string, array> Xi, Xo;
@@ -182,11 +188,21 @@ void shared_state::update_ion_state(const std::vector<mechanism_ptr>& mechanisms
             auto ion_econc = m->external_conc(ion);
             auto node_idx = m->node_index(ion);
             auto weight   = m->weight();
-            auto size = m->index_size(ion);
-            for (unsigned i = 0; i < size; ++i) {
-                if (ion_iconc) std::cout << "\t" << node_idx[i] << " " << Xi[ion][node_idx[i]] << " " << ion_iconc[i] << std::endl;
-                if (ion_iconc) Xi[ion][node_idx[i]] += weight[i]*ion_iconc[i];
-                if (ion_econc) Xo[ion][node_idx[i]] += weight[i]*ion_econc[i];
+            auto size     = m->index_size(ion);
+
+            auto& Xi_ptr = Xi[ion];
+            auto& Xo_ptr = Xo[ion];
+            for (unsigned i = 0; i < size; i+=simd_width) {
+                auto nid = simd_cast<simd_index_type>(indirect(node_idx + i, simd_width));
+                auto w   = simd_cast<simd_value_type>(indirect(weight + i, simd_width));
+
+                if(ion_iconc) indirect(Xi_ptr.data(), nid, simd_width) += mul(w, simd_cast<simd_value_type>(indirect(ion_iconc + i, simd_width)));
+                if(ion_econc) indirect(Xo_ptr.data(), nid, simd_width) += mul(w, simd_cast<simd_value_type>(indirect(ion_econc + i, simd_width)));
+
+                /*auto nid = node_idx[i];
+                auto w = weight[i];
+                if (ion_iconc) Xi_ptr[nid] += w*ion_iconc[i];
+                if (ion_econc) Xo_ptr[nid] += w*ion_econc[i];*/
             }
         }
     }
@@ -194,9 +210,17 @@ void shared_state::update_ion_state(const std::vector<mechanism_ptr>& mechanisms
     for (auto& data: ion_data) {
         auto ion = data.first;
         auto& ion_state = data.second;
-        for (unsigned i = 0; i < ion_state.iX_.size(); ++i) {
-            ion_state.Xi_[i] += Xi[ion][i];
-            ion_state.Xo_[i] += Xo[ion][i];
+
+        auto& Xi_ptr = Xi[ion];
+        auto& Xo_ptr = Xo[ion];
+        for (unsigned i = 0; i < ion_state.iX_.size(); i+=simd_width) {
+            indirect(ion_state.Xi_.data()+i, simd_width) = add(simd_cast<simd_value_type>(indirect(Xi_ptr.data()+i, simd_width)),
+                                                               simd_cast<simd_value_type>(indirect(ion_state.Xi_.data()+i, simd_width)));
+            indirect(ion_state.Xo_.data()+i, simd_width) = add(simd_cast<simd_value_type>(indirect(Xo_ptr.data()+i, simd_width)),
+                                                               simd_cast<simd_value_type>(indirect(ion_state.Xo_.data()+i, simd_width)));
+
+            /*ion_state.Xi_[i] += Xi_ptr[i];
+            ion_state.Xo_[i] += Xo_ptr[i];*/
         }
     }
 }
@@ -255,6 +279,12 @@ void shared_state::reduce_init_currents(const std::vector<mechanism_ptr>& mechan
 }
 
 void shared_state::reduce_currents(const std::vector<mechanism_ptr>& mechanisms) {
+    using simd::indirect;
+    using simd::assign;
+    using simd::add;
+    using simd::mul;
+    using simd::simd_cast;
+
     auto curr = array(n_cv, 0, alloc);
     auto cond = array(n_cv, 0, alloc);
 
@@ -264,16 +294,27 @@ void shared_state::reduce_currents(const std::vector<mechanism_ptr>& mechanisms)
         auto mech_cond = m->conductivity();
         auto node_idx = m->node_index();
         auto weight   = m->weight();
-        for (unsigned i = 0; i < m->index_size(); ++i) {
-            auto nid = node_idx[i];
+        for (unsigned i = 0; i < m->index_size(); i+=simd_width) {
+            auto nid = simd_cast<simd_index_type>(indirect(node_idx + i, simd_width));
+            auto w   = simd_cast<simd_value_type>(indirect(weight + i, simd_width));
+
+            indirect(curr.data(), nid, simd_width) += mul(w, simd_cast<simd_value_type>(indirect(mech_curr + i, simd_width)));
+            indirect(cond.data(), nid, simd_width) += mul(w, simd_cast<simd_value_type>(indirect(mech_cond + i, simd_width)));
+
+            /*auto nid = node_idx[i];
             curr[nid] += weight[i]*mech_curr[i];
-            cond[nid] += weight[i]*mech_cond[i];
+            cond[nid] += weight[i]*mech_cond[i];*/
         }
     }
 
-    for (unsigned i = 0; i < current_density.size(); ++i) {
-        current_density[i] += curr[i];
-        conductivity[i] += cond[i];
+    for (unsigned i = 0; i < current_density.size(); i+=simd_width) {
+        indirect(current_density.data()+i, simd_width) = add(simd_cast<simd_value_type>(indirect(curr.data()+i, simd_width)),
+                                                             simd_cast<simd_value_type>(indirect(current_density.data()+i, simd_width)));
+        indirect(conductivity.data()+i, simd_width)    = add(simd_cast<simd_value_type>(indirect(cond.data()+i, simd_width)),
+                                                             simd_cast<simd_value_type>(indirect(conductivity.data()+i, simd_width)));
+
+        /*current_density[i] += curr[i];
+        conductivity[i] += cond[i];*/
     }
 
     // update ion currents
@@ -292,8 +333,15 @@ void shared_state::reduce_currents(const std::vector<mechanism_ptr>& mechanisms)
             auto node_idx = m->node_index(ion);
             auto size = m->index_size(ion);
             auto weight   = m->weight();
-            for (unsigned i = 0; i < size; ++i) {
-                if (ion_curr)  iX[ion][node_idx[i]] += weight[i]*ion_curr[i];
+
+            auto& iX_ptr = iX[ion];
+            if(ion_curr) {
+                for (unsigned i = 0; i < size; i+=simd_width) {
+                    auto nid = simd_cast<simd_index_type>(indirect(node_idx + i, simd_width));
+                    indirect(iX_ptr.data(), nid, simd_width) += mul(simd_cast<simd_value_type>(indirect(weight + i, simd_width)),
+                                                                    simd_cast<simd_value_type>(indirect(ion_curr + i, simd_width)));
+//                    iX_ptr[node_idx[i]] += weight[i] * ion_curr[i];
+                }
             }
         }
     }
@@ -301,8 +349,12 @@ void shared_state::reduce_currents(const std::vector<mechanism_ptr>& mechanisms)
     for (auto& data: ion_data) {
         auto ion = data.first;
         auto& ion_state = data.second;
-        for (unsigned i = 0; i < ion_state.iX_.size(); ++i) {
-            ion_state.iX_[i] += iX[ion][i];
+
+        auto& iX_ptr = iX[ion];
+        for (unsigned i = 0; i < ion_state.iX_.size(); i+=simd_width) {
+            indirect(ion_state.iX_.data()+i, simd_width) = add(simd_cast<simd_value_type>(indirect(iX_ptr.data()+i, simd_width)),
+                                                               simd_cast<simd_value_type>(indirect(ion_state.iX_.data()+i, simd_width)));
+//            ion_state.iX_[i] += iX_ptr[i];
         }
     }
 }

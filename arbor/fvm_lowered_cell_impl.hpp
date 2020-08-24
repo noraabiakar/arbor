@@ -243,7 +243,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->deliverable_events.mark_until_after(state_->time);
         PL();
 
-        PE(advance_integrate_current_zero);
+        PE(advance_integrate_zero);
         state_->zero_currents();
         PL();
 
@@ -253,10 +253,19 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                                            mechanisms_[i]->nrn_current();
                                        });
 
-        state_->reduce_currents(mechanisms_);
+//        for (auto& m:mechanisms_) {
+//            m->deliver_events();
+//            m->nrn_current();
+//        }
 
+        PE(advance_integrate_reduce_currents);
+        state_->reduce_currents(mechanisms_);
+        PL();
+
+        PE(advance_integrate_gap-junctions);
         // Add current contribution from gap_junctions
         state_->add_gj_current();
+        PL();
 
         PE(advance_integrate_events);
         state_->deliverable_events.drop_marked_events();
@@ -292,9 +301,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                                            mechanisms_[i]->nrn_state();
                                        });
 
+//        for (auto& m:mechanisms_) {
+//            m->nrn_state();
+//        }
+
         // Update ion concentrations.
 
-        PE(advance_integrate_ionupdate);
+        PE(advance_integrate_reduce_ionupdate);
         state_->update_ion_state(mechanisms_);
         PL();
 

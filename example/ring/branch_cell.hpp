@@ -17,13 +17,13 @@ struct cell_parameters {
     cell_parameters() = default;
 
     //  Maximum number of levels in the cell (not including the soma)
-    unsigned max_depth = 5;
+    unsigned max_depth = 10;
 
     // The following parameters are described as ranges.
     // The first value is at the soma, and the last value is used on the last level.
     // Values at levels in between are found by linear interpolation.
     std::array<double,2> branch_probs = {1.0, 0.5}; //  Probability of a branch occuring.
-    std::array<unsigned,2> compartments = {20, 2};  //  Compartment count on a branch.
+    std::array<unsigned,2> compartments = {100, 2};  //  Compartment count on a branch.
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
 
     // The number of synapses per cell.
@@ -107,8 +107,9 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     arb::cable_cell cell(arb::morphology(tree), d);
 
-    cell.paint("soma", "hh");
-    cell.paint("dend", "pas");
+    cell.paint("soma", "pas");
+    cell.paint("dend", "hh");
+    cell.paint("dend", "kamt");
     cell.default_parameters.axial_resistivity = 100; // [Ω·cm]
 
     // Add spike threshold detector at the soma.
