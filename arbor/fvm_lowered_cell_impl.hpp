@@ -248,6 +248,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->deliver_events();
             m->nrn_current();
         }
+        state_->reduce();
 
         // Add current contribution from gap_junctions
         state_->add_gj_current();
@@ -520,7 +521,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
         auto minst = mech_instance(name);
         minst.mech->instantiate(mech_id++, *state_, minst.overrides, layout, offset);
         offset+= layout.cv.size();
-        
+
         mechptr_by_name[name] = minst.mech.get();
 
         for (auto& pv: config.param_values) {

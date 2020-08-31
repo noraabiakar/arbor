@@ -88,8 +88,8 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     vec_dt_   = shared.dt_cv.data();
 
     vec_v_    = shared.voltage.data();
-    vec_i_    = shared.current_density.data();
-    vec_g_    = shared.conductivity.data();
+    vec_i_    = shared.local_i.data();
+    vec_g_    = shared.local_g.data();
 
     temperature_degC_ = shared.temperature_degC.data();
     diam_um_  = shared.diam_um.data();

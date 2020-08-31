@@ -279,8 +279,7 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         }
     };
 
-    node_partition.push_back(0);
-    for (unsigned i = 1; i < n_cv; i++) {
+    for (unsigned i = 0; i < n_cv; i++) {
         auto it = std::lower_bound(mech_cv_props.begin(), mech_cv_props.end(), i, [](auto& lhs, auto& rhs) {return lhs.node_idx < rhs;});
         node_partition.push_back(it-mech_cv_props.begin());
     }
@@ -294,9 +293,26 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
 
     shuffle_index.reserve(mech_cv_props.size());
     for (auto p: mech_cv_props) {
-        shuffle_index.push_back(p.vec_idx)
+        shuffle_index.push_back(p.vec_idx);
     }
 
+    local_i.resize(shuffle_index.size());
+    local_g.resize(shuffle_index.size());
+}
+
+void shared_state::reduce() {
+    std::vector<fvm_value_type> reduced_values;
+    auto partition = util::partition_view(node_partition);
+    reduced_values.reserve(node_partition.size())
+
+    unsigned i = 0;
+    for (auto range: partition) {
+        auto sum_i = std::accumulate(local_i.begin() + range.first, local_i.begin() + range.second, 0.0);
+        auto sum_g = std::accumulate(local_g.begin() + range.first, local_g.begin() + range.second, 0.0);
+        current_density[i] += sum_i;
+        conductivity[i] += sum_g;
+        i++;
+    }
 }
 
 // (Debug interface only.)

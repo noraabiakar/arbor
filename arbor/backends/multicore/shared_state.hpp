@@ -91,6 +91,7 @@ struct shared_state {
     array voltage;            // Maps CV index to membrane voltage [mV].
     array current_density;    // Maps CV index to membrane current density contributions [A/m²].
     array conductivity;       // Maps CV index to membrane conductivity [kS/m²].
+    array local_i, local_g;
 
     array init_voltage;       // Maps CV index to initial membrane voltage [mV].
     array temperature_degC;   // Maps CV to local temperature (read only) [°C].
@@ -115,6 +116,8 @@ struct shared_state {
     );
 
     void build_cv_index(std::vector<std::pair<unsigned, std::vector<fvm_index_type>>> mech_cv);
+
+    void reduce();
 
     void add_ion(
         const std::string& ion_name,
