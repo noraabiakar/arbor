@@ -459,8 +459,10 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     // Keep track of mechanisms by name for probe lookup.
     std::unordered_map<std::string, mechanism*> mechptr_by_name;
+    std::vector<std::pair<unsigned, std::vector<fvm_index_type>>> mech_cv;
 
     unsigned mech_id = 0;
+    unsigned offset = 0;
     for (auto& m: mech_data.mechanisms) {
         auto& name = m.first;
         auto& config = m.second;
@@ -513,8 +515,12 @@ void fvm_lowered_cell_impl<Backend>::initialize(
             break;
         }
 
+        mech_cv.emplace_back(mech_id, layout.cv);
+
         auto minst = mech_instance(name);
-        minst.mech->instantiate(mech_id++, *state_, minst.overrides, layout);
+        minst.mech->instantiate(mech_id++, *state_, minst.overrides, layout, offset);
+        offset+= layout.cv.size();
+        
         mechptr_by_name[name] = minst.mech.get();
 
         for (auto& pv: config.param_values) {
@@ -528,6 +534,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
             mechanisms_.push_back(mechanism_ptr(minst.mech.release()));
         }
     }
+    state_->build_cv_index(mech_cv);
 
     // Collect detectors, probe handles.
 

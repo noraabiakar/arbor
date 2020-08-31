@@ -59,7 +59,7 @@ void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
 // these past-the-end values are given a weight of zero, and any corresponding
 // indices into shared state point to the last valid slot.
 
-void mechanism::instantiate(unsigned id, backend::shared_state& shared, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
+void mechanism::instantiate(unsigned id, backend::shared_state& shared, const mechanism_overrides& overrides, const mechanism_layout& pos_data, unsigned offset=0) {
     using util::make_range;
 
     // Assign global scalar parameters:
@@ -148,6 +148,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
     node_index_ = iarray(width_padded_, pad);
+    shuffle_index_ = shared.shuffle_index.data() + offset;
 
     copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);

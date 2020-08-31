@@ -239,6 +239,66 @@ void shared_state::take_samples(
     }
 }
 
+void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fvm_index_type>>> mech_cv) {
+    if (mech_cv.empty()) return;
+    struct cv_prop {
+        int node_idx;
+        int mech_id;
+        int vec_idx;
+    };
+
+    std::vector<unsigned> mech_partition;
+    mech_partition.push_back(0);
+    for (auto v: mech_cv) {
+        mech_partition.push_back(mech_partition.back()+= v.second.size());
+    }
+
+    std::vector<cv_prop> mech_cv_props;
+    mech_cv_props.reserve(mech_partition.back());
+
+    for(auto v:mech_cv) {
+        auto id  = v.first;
+        auto cvs = v.second;
+        mech_cv_props.reserve(cvs.size());
+
+        for (auto cv: cvs) {
+            mech_cv_props.emplace_back(cv, id, -1);
+        }
+    }
+
+    auto comp = [](auto& lhs, auto& rhs) {return std::tie(lhs.node_idx, lhs.mech_id, lhs.vec_idx) <
+                                                 std::tie(rhs.node_idx, rhs.mech_id, rhs.vec_idx);};
+
+    if (mech_partition.size() > 2) {
+        for (unsigned i = 2; i < mech_partition.size(); ++i) {
+            auto begin = mech_cv_props.begin();
+            auto middle = begin + mech_partition[i-1];
+            auto last   = begin + mech_partition[i];
+
+            std::inplace_merge(begin, middle, last, comp);
+        }
+    };
+
+    node_partition.push_back(0);
+    for (unsigned i = 1; i < n_cv; i++) {
+        auto it = std::lower_bound(mech_cv_props.begin(), mech_cv_props.end(), i, [](auto& lhs, auto& rhs) {return lhs.node_idx < rhs;});
+        node_partition.push_back(it-mech_cv_props.begin());
+    }
+    node_partition.push_back(mech_cv_props.size());
+
+    for (unsigned i = 0; i < mech_cv_props.size(); i++) {
+        mech_cv_props[i].vec_idx = i;
+    }
+
+    std::sort(mech_cv_props.begin(), mech_cv_props.end(), [](auto& lhs, auto& rhs) {return lhs.mech_id < rhs.mech_id;});
+
+    shuffle_index.reserve(mech_cv_props.size());
+    for (auto p: mech_cv_props) {
+        shuffle_index.push_back(p.vec_idx)
+    }
+
+}
+
 // (Debug interface only.)
 std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     using io::csv;
