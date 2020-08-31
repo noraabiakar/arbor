@@ -57,6 +57,7 @@ void run_test(std::string mech_name,
         layout.cv.push_back(i);
     }
 
+    shared_state->build_cv_index({{0, layout.cv}});
     test->instantiate(0, *shared_state, overrides, layout);
 
     for (auto a: assigned_variables) {

@@ -46,6 +46,7 @@ void run_celsius_test() {
         layout.cv.push_back(i);
     }
 
+    shared_state->build_cv_index({{0, layout.cv}});
     celsius_test->instantiate(0, *shared_state, overrides, layout);
     shared_state->reset();
 
@@ -95,7 +96,7 @@ void run_diam_test() {
     auto shared_state = std::make_unique<typename backend::shared_state>(
             ncell, cv_to_intdom, gj, vinit, temp, diam, celsius_test->data_alignment());
 
-
+    shared_state->build_cv_index({{0, layout.cv}});
     celsius_test->instantiate(0, *shared_state, overrides, layout);
     shared_state->reset();
 

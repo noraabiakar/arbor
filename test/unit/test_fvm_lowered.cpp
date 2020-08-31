@@ -623,6 +623,7 @@ TEST(fvm_lowered, ionic_concentrations) {
     auto shared_state = std::make_unique<typename backend::shared_state>(
             ncell, cv_to_intdom, gj, vinit, temp, diam, read_cai_mech->data_alignment());
     shared_state->add_ion("ca", 2, ion_config);
+    shared_state->build_cv_index({{0, layout.cv}, {1, layout.cv}});
 
     read_cai_mech->instantiate(0, *shared_state, overrides, layout);
     write_cai_mech->instantiate(1, *shared_state, overrides, layout);

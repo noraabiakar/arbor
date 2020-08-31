@@ -55,7 +55,7 @@ public:
         return s;
     }
 
-    void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&, unsigned offset=0) override;
+    void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
     void initialize() override;
 
     void deliver_events() override {

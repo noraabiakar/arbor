@@ -101,7 +101,7 @@ public:
     using backend = Backend;
 
     // Instantiation: allocate per-instance state; set views/pointers to shared data.
-    virtual void instantiate(unsigned  id, typename backend::shared_state&, const mechanism_overrides&, const mechanism_layout&, unsigned offset=0) = 0;
+    virtual void instantiate(unsigned  id, typename backend::shared_state&, const mechanism_overrides&, const mechanism_layout&) = 0;
 };
 
 

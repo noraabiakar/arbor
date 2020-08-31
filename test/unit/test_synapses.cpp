@@ -106,6 +106,7 @@ TEST(synapses, syn_basic_state) {
     std::vector<index_type> syn_mult(num_syn, 1);
     std::vector<value_type> syn_weight(num_syn, 1.0);
 
+    state.build_cv_index({{0, syn_cv},{1, syn_cv}});
     expsyn->instantiate(0, state, {}, {syn_cv, syn_weight, syn_mult});
     exp2syn->instantiate(1, state, {}, {syn_cv, syn_weight, syn_mult});
 

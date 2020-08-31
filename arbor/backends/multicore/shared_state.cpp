@@ -247,7 +247,6 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         int vec_idx;
     };
 
-    std::vector<unsigned> mech_partition;
     mech_partition.push_back(0);
     for (auto v: mech_cv) {
         mech_partition.push_back(mech_partition.back()+= v.second.size());
