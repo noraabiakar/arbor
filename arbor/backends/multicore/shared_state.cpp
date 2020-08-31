@@ -262,7 +262,7 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         mech_cv_props.reserve(cvs.size());
 
         for (auto cv: cvs) {
-            mech_cv_props.emplace_back(cv, id, -1);
+            mech_cv_props.push_back({cv, id, -1});
         }
     }
 
@@ -279,7 +279,7 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         }
     };
 
-    for (unsigned i = 0; i < n_cv; i++) {
+    for (int i = 0; i < n_cv; i++) {
         auto it = std::lower_bound(mech_cv_props.begin(), mech_cv_props.end(), i, [](auto& lhs, auto& rhs) {return lhs.node_idx < rhs;});
         node_partition.push_back(it-mech_cv_props.begin());
     }
@@ -303,7 +303,7 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
 void shared_state::reduce() {
     std::vector<fvm_value_type> reduced_values;
     auto partition = util::partition_view(node_partition);
-    reduced_values.reserve(node_partition.size())
+    reduced_values.reserve(node_partition.size());
 
     unsigned i = 0;
     for (auto range: partition) {

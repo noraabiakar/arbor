@@ -107,8 +107,8 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     arb::cable_cell cell(arb::morphology(tree), d);
 
-    cell.paint("soma", "hh");
-    cell.paint("dend", "pas");
+    cell.paint("soma", "pas");
+    cell.paint("dend", "hh");
     cell.default_parameters.axial_resistivity = 100; // [Ω·cm]
 
     // Add spike threshold detector at the soma.

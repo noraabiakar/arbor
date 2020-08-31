@@ -55,7 +55,7 @@ public:
         return s;
     }
 
-    void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&, unsigned offset) override;
+    void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&, unsigned offset=0) override;
     void initialize() override;
 
     void deliver_events() override {
@@ -89,7 +89,7 @@ protected:
     // Per-mechanism index and weight data, excepting ion indices.
 
     iarray node_index_;
-    iarray shuffle_index_;
+    const index_type* shuffle_index_;
     iarray multiplicity_;
     bool mult_in_place_;
     constraint_partition index_constraints_;

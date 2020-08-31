@@ -519,6 +519,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
         mech_cv.emplace_back(mech_id, layout.cv);
 
         auto minst = mech_instance(name);
+
         minst.mech->instantiate(mech_id++, *state_, minst.overrides, layout, offset);
         offset+= layout.cv.size();
 

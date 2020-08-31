@@ -59,7 +59,7 @@ void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
 // these past-the-end values are given a weight of zero, and any corresponding
 // indices into shared state point to the last valid slot.
 
-void mechanism::instantiate(unsigned id, backend::shared_state& shared, const mechanism_overrides& overrides, const mechanism_layout& pos_data, unsigned offset=0) {
+void mechanism::instantiate(unsigned id, backend::shared_state& shared, const mechanism_overrides& overrides, const mechanism_layout& pos_data, unsigned offset) {
     using util::make_range;
 
     // Assign global scalar parameters:

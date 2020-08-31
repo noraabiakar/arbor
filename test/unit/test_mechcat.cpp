@@ -51,7 +51,7 @@ mechanism_info fleeb_info = {
 
 template <typename B>
 struct common_impl: concrete_mechanism<B> {
-    void instantiate(fvm_size_type id, typename B::shared_state& state, const mechanism_overrides& o, const mechanism_layout& l) override {
+    void instantiate(fvm_size_type id, typename B::shared_state& state, const mechanism_overrides& o, const mechanism_layout& l, unsigned offset) override {
         width_ = l.cv.size();
         // Write mechanism global values to shared state to test instatiation call and catalogue global
         // variable overrides.
