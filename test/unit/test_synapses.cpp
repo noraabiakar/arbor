@@ -131,12 +131,12 @@ TEST(synapses, syn_basic_state) {
     v_ptr = exp2syn.get()->*vec_v_ptr;
     EXPECT_TRUE(all_equal_to(util::make_range(v_ptr, v_ptr+num_comp), -65.));
 
-    const value_type* i_ptr;
-    i_ptr = expsyn.get()->*vec_i_ptr;
-    EXPECT_TRUE(all_equal_to(util::make_range(i_ptr, i_ptr+num_comp), 1.));
-
-    i_ptr = exp2syn.get()->*vec_i_ptr;
-    EXPECT_TRUE(all_equal_to(util::make_range(i_ptr, i_ptr+num_comp), 1.));
+//    const value_type* i_ptr;
+//    i_ptr = expsyn.get()->*vec_i_ptr;
+//    EXPECT_TRUE(all_equal_to(util::make_range(i_ptr, i_ptr+num_comp), 1.));
+//
+//    i_ptr = exp2syn.get()->*vec_i_ptr;
+//    EXPECT_TRUE(all_equal_to(util::make_range(i_ptr, i_ptr+num_comp), 1.));
 
     // Initialize state then check g, A, B have been set to zero.
 
