@@ -379,7 +379,9 @@ TEST(fvm_lowered, stimulus) {
     // Test that no current is injected at t=0.
     memory::fill(J, 0.);
     memory::fill(T, 0.);
+    state.zero_locals();
     stim->nrn_current();
+    state.reduce();
 
     for (auto j: J) {
         EXPECT_EQ(j, 0.);
@@ -388,6 +390,7 @@ TEST(fvm_lowered, stimulus) {
     // Test that 0.1 nA current is injected at soma at t=1.
     memory::fill(J, 0.);
     memory::fill(T, 1.);
+    state.zero_locals();
     stim->nrn_current();
     state.reduce();
     constexpr double unit_factor = 1e-3; // scale A/m²·µm² to nA
@@ -395,6 +398,7 @@ TEST(fvm_lowered, stimulus) {
 
     // Test that 0.1 nA is again injected at t=1.5, for a total of 0.2 nA.
     memory::fill(T, 1.);
+    state.zero_locals();
     stim->nrn_current();
     state.reduce();
     EXPECT_DOUBLE_EQ(-0.2, J[soma_cv]*A[soma_cv]*unit_factor);
@@ -402,6 +406,7 @@ TEST(fvm_lowered, stimulus) {
     // Test that at t=10, no more current is injected at soma, and that
     // that 0.3 nA is injected at dendrite tip.
     memory::fill(T, 10.);
+    state.zero_locals();
     stim->nrn_current();
     state.reduce();
     EXPECT_DOUBLE_EQ(-0.2, J[soma_cv]*A[soma_cv]*unit_factor);

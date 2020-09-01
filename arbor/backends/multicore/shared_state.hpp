@@ -125,6 +125,7 @@ struct shared_state {
         const fvm_ion_config& ion_data);
 
     void zero_currents();
+    void zero_locals();
 
     void ions_init_concentration();
 

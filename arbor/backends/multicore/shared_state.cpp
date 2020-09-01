@@ -154,9 +154,13 @@ void shared_state::reset() {
     }
 }
 
-void shared_state::zero_currents() {
+void shared_state::zero_locals() {
     util::fill(local_i, 0);
     util::fill(local_g, 0);
+}
+
+void shared_state::zero_currents() {
+    zero_locals();
     util::fill(current_density, 0);
     util::fill(conductivity, 0);
     for (auto& i: ion_data) {
