@@ -271,8 +271,10 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         }
     }
 
-    auto comp = [](auto& lhs, auto& rhs) {return std::tie(lhs.node_idx, lhs.mech_id, lhs.vec_idx) <
-                                                 std::tie(rhs.node_idx, rhs.mech_id, rhs.vec_idx);};
+    auto comp     = [](auto& lhs, auto& rhs) {return std::tie(lhs.node_idx, lhs.mech_id, lhs.vec_idx) <
+                                                     std::tie(rhs.node_idx, rhs.mech_id, rhs.vec_idx);};
+    auto comp_rev = [](auto& lhs, auto& rhs) {return std::tie(lhs.mech_id, lhs.node_idx, lhs.vec_idx) <
+                                                     std::tie(rhs.mech_id, rhs.node_idx, rhs.vec_idx);};
 
     if (mech_partition.size() > 2) {
         for (unsigned i = 2; i < mech_partition.size(); ++i) {
@@ -294,7 +296,7 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         mech_cv_props[i].vec_idx = i;
     }
 
-    std::sort(mech_cv_props.begin(), mech_cv_props.end(), [](auto& lhs, auto& rhs) {return lhs.mech_id < rhs.mech_id;});
+    std::sort(mech_cv_props.begin(), mech_cv_props.end(), comp_rev);
 
     shuffle_index = iarray(mech_cv_props.size(), pad(alignment));
     for (unsigned i = 0; i < mech_cv_props.size(); i++) {
