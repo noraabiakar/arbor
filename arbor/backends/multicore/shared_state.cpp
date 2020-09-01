@@ -249,8 +249,14 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
 
     mech_partition.push_back(0);
     for (auto v: mech_cv) {
-        mech_partition.push_back(mech_partition.back()+= v.second.size());
+        mech_partition.push_back(mech_partition.back()+v.second.size());
     }
+
+    std::cout << "mech index " << std::endl;
+    for (auto i: mech_partition) {
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;
 
     std::vector<cv_prop> mech_cv_props;
     mech_cv_props.reserve(mech_partition.back());
@@ -290,13 +296,20 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
 
     std::sort(mech_cv_props.begin(), mech_cv_props.end(), [](auto& lhs, auto& rhs) {return lhs.mech_id < rhs.mech_id;});
 
-    shuffle_index.reserve(mech_cv_props.size());
-    for (auto p: mech_cv_props) {
-        shuffle_index.push_back(p.vec_idx);
+    shuffle_index = iarray(mech_cv_props.size(), pad(alignment));
+    for (unsigned i = 0; i < mech_cv_props.size(); i++) {
+        shuffle_index[i] = mech_cv_props[i].vec_idx;
     }
+    std::fill(shuffle_index.begin() + mech_cv_props.size(), shuffle_index.end(), shuffle_index.back());
 
-    local_i.resize(shuffle_index.size());
-    local_g.resize(shuffle_index.size());
+    local_i = array(mech_cv_props.size(), pad(alignment));
+    local_g = array(mech_cv_props.size(), pad(alignment));
+
+    std::cout << "shuffle index " << std::endl;
+    for (auto i: shuffle_index) {
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;
 }
 
 void shared_state::reduce() {

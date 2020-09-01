@@ -1262,12 +1262,6 @@ TEST(probe, multicore_##x) { \
 
 ARB_PP_FOREACH(RUN_MULTICORE, PROBE_TESTS)
 
-TEST(probe, fume) {
-    context ctx = make_context();
-    run_expsyn_g_probe_test<multicore::backend>(ctx);
-    run_expsyn_g_cell_probe_test<multicore::backend>(ctx);
-}
-
 #ifdef ARB_GPU_ENABLED
 
 #undef RUN_GPU

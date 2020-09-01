@@ -25,10 +25,11 @@ public:
         for (size_type i=0; i<n; ++i) {
             auto cv = node_index_[i];
             auto t = vec_t_[vec_ci_[cv]];
+            auto shuffle = shuffle_index_[i];
 
             if (t>=delay[i] && t<delay[i]+duration[i]) {
                 // Amplitudes are given as a current into a compartment, so subtract.
-                vec_i_[cv] -= weight_[i]*amplitude[i];
+                vec_i_[shuffle] -= weight_[i]*amplitude[i];
             }
         }
     }
