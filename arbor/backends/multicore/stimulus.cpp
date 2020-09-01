@@ -29,7 +29,9 @@ public:
 
             if (t>=delay[i] && t<delay[i]+duration[i]) {
                 // Amplitudes are given as a current into a compartment, so subtract.
-                vec_i_[shuffle] -= weight_[i]*amplitude[i];
+                vec_i_[shuffle] = -weight_[i]*amplitude[i];
+            } else {
+                vec_i_[shuffle] = 0;
             }
         }
     }

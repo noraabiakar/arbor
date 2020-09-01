@@ -252,12 +252,6 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         mech_partition.push_back(mech_partition.back()+v.second.size());
     }
 
-    std::cout << "mech index " << std::endl;
-    for (auto i: mech_partition) {
-        std::cout << i << " ";
-    }
-    std::cout << std::endl;
-
     std::vector<cv_prop> mech_cv_props;
     mech_cv_props.reserve(mech_partition.back());
 
@@ -304,12 +298,6 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
 
     local_i = array(mech_cv_props.size(), pad(alignment));
     local_g = array(mech_cv_props.size(), pad(alignment));
-
-    std::cout << "shuffle index " << std::endl;
-    for (auto i: shuffle_index) {
-        std::cout << i << " ";
-    }
-    std::cout << std::endl;
 }
 
 void shared_state::reduce() {
