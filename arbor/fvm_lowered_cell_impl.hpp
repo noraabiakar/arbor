@@ -248,7 +248,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->deliver_events();
             m->nrn_current();
         }
+        PE(advance_integrate_current_reduce);
         state_->reduce();
+        PL();
 
         // Add current contribution from gap_junctions
         state_->add_gj_current();
