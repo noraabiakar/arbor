@@ -38,6 +38,15 @@ void take_samples_impl(
     const multi_event_stream_state<raw_probe_info>& s,
     const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value);
 
+void reduce_impl(
+    const fvm_value_type* local_i,
+    const fvm_value_type* local_g,
+    fvm_value_type* global_i,
+    fvm_value_type* global_g,
+    const fvm_index_type* cv_index,
+    fvm_size_type ncv,
+    fvm_size_type ncontrib);
+
 void add_scalar(std::size_t n, fvm_value_type* data, fvm_value_type v);
 
 // GPU-side minmax: consider CUDA kernel replacement.
@@ -139,7 +148,13 @@ void shared_state::reset() {
     }
 }
 
+void shared_state::zero_locals() {
+    memory::fill(local_i, 0);
+    memory::fill(local_g, 0);
+}
+
 void shared_state::zero_currents() {
+    zero_locals();
     memory::fill(current_density, 0);
     memory::fill(conductivity, 0);
     for (auto& i: ion_data) {
@@ -175,6 +190,77 @@ std::pair<fvm_value_type, fvm_value_type> shared_state::voltage_bounds() const {
 
 void shared_state::take_samples(const sample_event_stream::state& s, array& sample_time, array& sample_value) {
     take_samples_impl(s, time.data(), sample_time.data(), sample_value.data());
+}
+
+void shared_state::reduce() {
+    reduce_impl(local_i.data(), local_g.data(), current_density.data(), conductivity.data(), node_partition.data(), n_cv, local_i.size());
+}
+
+void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fvm_index_type>>> mech_cv) {
+    if (mech_cv.empty()) return;
+    struct cv_prop {
+        int node_idx;
+        int mech_id;
+        int vec_idx;
+    };
+
+    std::vector<fvm_index_type> mech_part, node_part, shuffle_idx;
+    mech_part.push_back(0);
+    for (auto v: mech_cv) {
+        mech_part.push_back(mech_part.back()+v.second.size());
+    }
+
+    std::vector<cv_prop> mech_cv_props;
+    mech_cv_props.reserve(mech_part.back());
+
+    for(auto v:mech_cv) {
+        auto id  = v.first;
+        auto cvs = v.second;
+        mech_cv_props.reserve(cvs.size());
+
+        for (auto cv: cvs) {
+            mech_cv_props.push_back({cv, id, -1});
+        }
+    }
+
+    auto comp     = [](auto& lhs, auto& rhs) {return std::tie(lhs.node_idx, lhs.mech_id, lhs.vec_idx) <
+                                                     std::tie(rhs.node_idx, rhs.mech_id, rhs.vec_idx);};
+    auto comp_rev = [](auto& lhs, auto& rhs) {return std::tie(lhs.mech_id, lhs.node_idx, lhs.vec_idx) <
+                                                     std::tie(rhs.mech_id, rhs.node_idx, rhs.vec_idx);};
+
+    if (mech_part.size() > 2) {
+        for (unsigned i = 2; i < mech_part.size(); ++i) {
+            auto begin = mech_cv_props.begin();
+            auto middle = begin + mech_part[i-1];
+            auto last   = begin + mech_part[i];
+
+            std::inplace_merge(begin, middle, last, comp);
+        }
+    };
+
+    for (int i = 0; i < n_cv; i++) {
+        auto it = std::lower_bound(mech_cv_props.begin(), mech_cv_props.end(), i, [](auto& lhs, auto& rhs) {return lhs.node_idx < rhs;});
+        node_part.push_back(it-mech_cv_props.begin());
+    }
+    node_part.push_back(mech_cv_props.size());
+
+    for (unsigned i = 0; i < mech_cv_props.size(); i++) {
+        mech_cv_props[i].vec_idx = i;
+    }
+
+    std::sort(mech_cv_props.begin(), mech_cv_props.end(), comp_rev);
+
+    for (unsigned i = 0; i < mech_cv_props.size(); i++) {
+        shuffle_idx[i] = mech_cv_props[i].vec_idx;
+    }
+    std::fill(shuffle_idx.begin() + mech_cv_props.size(), shuffle_idx.end(), shuffle_idx.back());
+
+    shuffle_index = make_const_view(shuffle_idx);
+    node_partition = make_const_view(node_part);
+    mech_partition = make_const_view(mech_part);
+
+    local_i = array(mech_cv_props.size(), pad(alignment));
+    local_g = array(mech_cv_props.size(), pad(alignment));
 }
 
 // Debug interface

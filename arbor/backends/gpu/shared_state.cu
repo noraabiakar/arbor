@@ -84,6 +84,29 @@ __global__ void take_samples_impl(
     }
 }
 
+__global__ void reduce_impl(
+        const fvm_value_type* local_i,
+        const fvm_value_type* local_g,
+        fvm_value_type* global_i,
+        fvm_value_type* global_g,
+        const fvm_index_type* cv_index,
+        fvm_size_type ncv,
+        fvm_size_type ncontrib)
+{
+    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
+    if (i<ncv) {
+        auto first = cv_index[i];
+        auto last  = cv_index[i+1];
+        double sum_i = 0, sum_g = 0;
+        for (auto j = first; j < last; ++j) {
+            sum_i += local_i[j];
+            sum_g += local_g[j];
+        }
+        global_i[i] += sum_i;
+        global_g[i] += sum_g;
+    }
+}
+
 } // namespace kernel
 
 using impl::block_count;
@@ -139,5 +162,23 @@ void take_samples_impl(
     kernel::take_samples_impl<<<nblock, block_dim>>>(s, time, sample_time, sample_value);
 }
 
+
+void reduce_impl(
+    const fvm_value_type* local_i,
+    const fvm_value_type* local_g,
+    fvm_value_type* global_i,
+    fvm_value_type* global_g,
+    const fvm_index_type* cv_index,
+    fvm_size_type ncv,
+    fvm_size_type ncontrib)
+{
+    if (!ncontrib || !ncv) return;
+
+    constexpr int block_dim = 128;
+    const int nblock = block_count(ncv, block_dim);
+    kernel::reduce_impl<<<nblock, block_dim>>>(local_i, local_g, global_i, global_g, cv_index, ncv, ncontrib);
+}
+
+}
 } // namespace gpu
 } // namespace arb

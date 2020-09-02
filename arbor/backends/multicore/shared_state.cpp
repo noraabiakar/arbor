@@ -246,13 +246,6 @@ void shared_state::take_samples(
 }
 
 void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fvm_index_type>>> mech_cv) {
-   /* for (auto m: mech_cv) {
-        std::cout << m.first << " : ";
-        for (auto c: m.second) {
-            std::cout << c << " ";
-        }
-        std::cout << std::endl;
-    }*/
     if (mech_cv.empty()) return;
     struct cv_prop {
         int node_idx;
@@ -313,30 +306,10 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
 
     local_i = array(mech_cv_props.size(), pad(alignment));
     local_g = array(mech_cv_props.size(), pad(alignment));
-
-   /* std::cout << "shuffle : ";
-    for (auto a: shuffle_index) {
-        std::cout << a << " ";
-    }
-    std::cout << std::endl;
-
-    std::cout << "mech : ";
-    for (auto a: mech_partition) {
-        std::cout << a << " ";
-    }
-    std::cout << std::endl;
-
-    std::cout << "node : ";
-    for (auto a: node_partition) {
-        std::cout << a << " ";
-    }
-    std::cout << std::endl;*/
 }
 
 void shared_state::reduce() {
-    std::vector<fvm_value_type> reduced_values;
     auto partition = util::partition_view(node_partition);
-    reduced_values.reserve(node_partition.size());
 
     unsigned i = 0;
     fvm_value_type sum_i, sum_g;

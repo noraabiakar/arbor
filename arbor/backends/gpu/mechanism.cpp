@@ -89,8 +89,8 @@ void mechanism::instantiate(unsigned id,
     pp->vec_dt_   = shared.dt_cv.data();
 
     pp->vec_v_    = shared.voltage.data();
-    pp->vec_i_    = shared.current_density.data();
-    pp->vec_g_    = shared.conductivity.data();
+    pp->vec_i_    = shared.local_i.data();
+    pp->vec_g_    = shared.local_g.data();
 
     pp->temperature_degC_ = shared.temperature_degC.data();
     pp->diam_um_ = shared.diam_um.data();
@@ -148,7 +148,9 @@ void mechanism::instantiate(unsigned id,
     indices_ = iarray((num_elements)*width_padded_);
 
     memory::copy(make_const_view(pos_data.cv), device_view(indices_.data(), width_));
-    pp->node_index_ = indices_.data();
+    pp->node_index_    = indices_.data();
+    pp->shuffle_index_ = shared.shuffle_index.data() + shared.mech_partition[id];
+
 
     auto ion_index_tbl = ion_index_table();
     arb_assert(num_ions_==ion_index_tbl.size());

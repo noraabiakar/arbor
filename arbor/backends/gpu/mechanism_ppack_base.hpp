@@ -41,6 +41,7 @@ struct mechanism_ppack_base {
     const value_type* diam_um_;
 
     const index_type* node_index_;
+    const index_type* shuffle_index_;
     const index_type* multiplicity_;
 
     const value_type* weight_;

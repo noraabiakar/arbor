@@ -74,10 +74,13 @@ struct shared_state {
     array voltage;           // Maps CV index to membrane voltage [mV].
     array current_density;   // Maps CV index to current density [A/m²].
     array conductivity;      // Maps CV index to membrane conductivity [kS/m²].
+    array local_i, local_g;
 
     array init_voltage;      // Maps CV index to initial membrane voltage [mV].
     array temperature_degC;  // Maps CV to local temperature (read only) [°C].
     array diam_um;           // Maps CV to local diameter (read only) [µm].
+
+    iarray shuffle_index, node_partition, mech_partition;
 
     std::unordered_map<std::string, ion_state> ion_data;
 
@@ -95,12 +98,18 @@ struct shared_state {
         unsigned align
     );
 
+    void build_cv_index(std::vector<std::pair<unsigned, std::vector<fvm_index_type>>> mech_cv);
+
+    void reduce();
+
     void add_ion(
         const std::string& ion_name,
         int charge,
         const fvm_ion_config& ion_data);
 
     void zero_currents();
+
+    void zero_locals();
 
     void ions_init_concentration();
 
