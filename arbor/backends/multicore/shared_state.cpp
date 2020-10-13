@@ -377,6 +377,12 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
     }
     std::sort(shuffle.begin(), shuffle.end(), comp_rev);
 
+    auto it = shuffle.begin();
+    for (; it != shuffle.end(); ++it) {
+        if((*it).mech_id != -1) break;
+    }
+    shuffle.erase(shuffle.begin(), it);
+
     std::cout << "--------------\n";
 
     for (auto i: shuffle) {
@@ -385,6 +391,13 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
 
     std::cout << "--------------\n";
 
+
+    // Next we need the actual updated CVs to be stored somewhere,
+    // We need to calculate the limits for mech indices,
+    // We need to calculate how many vector additions per vector of CVs
+    // ex
+    // CV      : | 0 1 2 5 | 6 7 9 10 | 11 12 - - |
+    // num adds: |    3    |   2      | 1         |
     local_i = array(mech_cv_props.size(), pad(alignment));
     local_g = array(mech_cv_props.size(), pad(alignment));
 }
