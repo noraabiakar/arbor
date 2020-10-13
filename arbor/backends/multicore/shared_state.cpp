@@ -246,9 +246,10 @@ void shared_state::take_samples(
 }
 
 void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fvm_index_type>>> mech_cv) {
+    const int vsize = 4;
     if (mech_cv.empty()) return;
     struct cv_prop {
-        int node_idx;
+        int cv_idx;
         int mech_id;
         int vec_idx;
     };
@@ -271,11 +272,10 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         }
     }
 
-    auto comp     = [](auto& lhs, auto& rhs) {return std::tie(lhs.node_idx, lhs.mech_id, lhs.vec_idx) <
-                                                     std::tie(rhs.node_idx, rhs.mech_id, rhs.vec_idx);};
-    auto comp_rev = [](auto& lhs, auto& rhs) {return std::tie(lhs.mech_id, lhs.node_idx, lhs.vec_idx) <
-                                                     std::tie(rhs.mech_id, rhs.node_idx, rhs.vec_idx);};
-
+    auto comp     = [](auto& lhs, auto& rhs) {return std::tie(lhs.cv_idx, lhs.mech_id, lhs.vec_idx) <
+                                                     std::tie(rhs.cv_idx, rhs.mech_id, rhs.vec_idx);};
+    auto comp_rev = [](auto& lhs, auto& rhs) {return std::tie(lhs.mech_id, lhs.cv_idx, lhs.vec_idx) <
+                                                     std::tie(rhs.mech_id, rhs.cv_idx, rhs.vec_idx);};
     if (mech_partition.size() > 2) {
         for (unsigned i = 2; i < mech_partition.size(); ++i) {
             auto begin = mech_cv_props.begin();
@@ -286,23 +286,104 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         }
     };
 
-    for (int i = 0; i < n_cv; i++) {
-        auto it = std::lower_bound(mech_cv_props.begin(), mech_cv_props.end(), i, [](auto& lhs, auto& rhs) {return lhs.node_idx < rhs;});
-        node_partition.push_back(it-mech_cv_props.begin());
-    }
-    node_partition.push_back(mech_cv_props.size());
+    // GOOD SO FAR
 
-    for (unsigned i = 0; i < mech_cv_props.size(); i++) {
-        mech_cv_props[i].vec_idx = i;
+    std::vector<std::vector<int>> cv_idx_vectors, idx_partition_vectors;
+
+    std::vector<int> cv_vec;
+    int prev_cv=mech_cv_props.front().cv_idx;
+
+    for (unsigned i = 1; i < mech_cv_props.size(); ++i) {
+        const auto cv = mech_cv_props[i].cv_idx;
+        if (cv != prev_cv) {
+            cv_vec.push_back(prev_cv);
+            prev_cv = cv;
+        }
+        if (cv_vec.size() == vsize) {
+            cv_idx_vectors.push_back(std::move(cv_vec));
+            cv_vec.clear();
+            prev_cv = cv;
+        }
+    }
+    cv_vec.push_back(prev_cv);
+    cv_idx_vectors.push_back(std::move(cv_vec));
+
+    for (auto cv_idx: cv_idx_vectors) {
+        std::vector<int> idx_vec;
+        for (auto cv: cv_idx) {
+            auto it = std::lower_bound(mech_cv_props.begin(), mech_cv_props.end(), cv, [](auto& lhs, auto& rhs) { return lhs.cv_idx < rhs; });
+            idx_vec.push_back(it - mech_cv_props.begin());
+        }
+        auto it = std::upper_bound(mech_cv_props.begin(), mech_cv_props.end(), cv_idx.back(), [](auto& lhs, auto& rhs) { return lhs < rhs.cv_idx; });
+        while (idx_vec.size() < vsize+1) idx_vec.push_back(it - mech_cv_props.begin());
+        idx_partition_vectors.push_back(idx_vec);
+    }
+    
+    std::cout << "------HERE--------\n";
+
+    for (auto c: cv_idx_vectors) {
+        for (auto cv: c) {
+            std::cout << cv << " ";
+        }
+        std::cout << std::endl;
+    }
+    
+    std::cout << "------HERE--------\n";
+
+    for (auto c: idx_partition_vectors) {
+        for (auto cv: c) {
+            std::cout << cv << " ";
+        }
+        std::cout << std::endl;
     }
 
-    std::sort(mech_cv_props.begin(), mech_cv_props.end(), comp_rev);
+    // SURE 
 
-    shuffle_index = iarray(mech_cv_props.size(), pad(alignment));
-    for (unsigned i = 0; i < mech_cv_props.size(); i++) {
-        shuffle_index[i] = mech_cv_props[i].vec_idx;
+    std::vector<cv_prop> shuffle;
+    auto idx_ptr_vectors = idx_partition_vectors;
+
+    for (unsigned i = 0; i < idx_ptr_vectors.size(); ++i) {
+        auto& idx_ptr       = idx_ptr_vectors[i];
+        const auto& idx_cst = idx_partition_vectors[i];
+
+        std::set<unsigned> hit_idx;
+        while (true) {
+            std::vector<cv_prop> mini_shuffle;
+            for (unsigned j = 0; j < idx_ptr.size() - 1; ++j) {
+                auto& start_idx = idx_ptr[j];
+                auto end_idx = idx_cst[j + 1];
+                if (start_idx == end_idx) {
+                    hit_idx.insert(j);
+                    mini_shuffle.push_back({-1, -1, -1});
+                } else {
+                    mini_shuffle.push_back(mech_cv_props[start_idx++]);
+                }
+            }
+            if (hit_idx.size() == vsize) break;
+            std::move(mini_shuffle.begin(), mini_shuffle.end(), std::back_inserter(shuffle));
+        }
     }
-    std::fill(shuffle_index.begin() + mech_cv_props.size(), shuffle_index.end(), shuffle_index.back());
+
+    std::cout << "------HERE--------\n";
+
+    for (auto c: shuffle) {
+        std::cout << c.cv_idx << "\t" << c.mech_id << "\t" << c.vec_idx << std::endl;
+    }
+
+    // YEAH I GUESS ? Now fill and shuffle
+    int idx = 0;
+    for (auto& s: shuffle) {
+        s.vec_idx = idx++;
+    }
+    std::sort(shuffle.begin(), shuffle.end(), comp_rev);
+
+    std::cout << "--------------\n";
+
+    for (auto i: shuffle) {
+        std::cout << i.vec_idx << "\t" << i.mech_id << "\t" << i.cv_idx << std::endl;
+    }
+
+    std::cout << "--------------\n";
 
     local_i = array(mech_cv_props.size(), pad(alignment));
     local_g = array(mech_cv_props.size(), pad(alignment));

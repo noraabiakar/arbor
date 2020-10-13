@@ -468,7 +468,9 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     for (auto& m: mech_data.mechanisms) {
         auto& config = m.second;
         mech_cv.emplace_back(mech_id++, config.cv);
+        std::cout << m.first << "  ";
     }
+    std::cout << std::endl;
     state_->build_cv_index(mech_cv);
 
     mech_id = 0;

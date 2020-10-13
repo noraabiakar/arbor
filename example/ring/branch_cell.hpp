@@ -17,13 +17,13 @@ struct cell_parameters {
     cell_parameters() = default;
 
     //  Maximum number of levels in the cell (not including the soma)
-    unsigned max_depth = 10;
+    unsigned max_depth = 2;
 
     // The following parameters are described as ranges.
     // The first value is at the soma, and the last value is used on the last level.
     // Values at levels in between are found by linear interpolation.
-    std::array<double,2> branch_probs = {1.0, 0.5}; //  Probability of a branch occuring.
-    std::array<unsigned,2> compartments = {100, 2};  //  Compartment count on a branch.
+    std::array<double,2> branch_probs = {0.7, 0.1}; //  Probability of a branch occuring.
+    std::array<unsigned,2> compartments = {10, 2};  //  Compartment count on a branch.
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
 
     // The number of synapses per cell.
@@ -116,12 +116,12 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
 
     // Add a synapse to the mid point of the first dendrite.
-    cell.place(arb::mlocation{0, 0.5}, "expsyn");
+    //cell.place(arb::mlocation{0, 0.5}, "expsyn");
 
     // Add additional synapses that will not be connected to anything.
-    for (unsigned i=1u; i<params.synapses; ++i) {
-        cell.place(arb::mlocation{1, 0.5}, "expsyn");
-    }
+    //for (unsigned i=1u; i<params.synapses; ++i) {
+    //    cell.place(arb::mlocation{1, 0.5}, "expsyn");
+    //}
 
     // Make a CV between every sample in the sample tree.
     cell.default_parameters.discretization = arb::cv_policy_every_segment();
