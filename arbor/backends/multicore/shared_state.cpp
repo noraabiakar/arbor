@@ -305,42 +305,19 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         std::cout << std::endl;
     }
 
-    // GOOD SO FAR
-
-    // Create the vectors of size vsize containing unique cv indices
-    std::vector<std::vector<fvm_index_type>> cv_vectors;
-
-    std::vector<fvm_index_type> cv_idx;
-    std::transform(std::cbegin(mech_cv_props), std::cend(mech_cv_props), std::back_inserter(cv_idx),
-                   [](const auto& elem) { return elem.cv_idx; });
-
-    cv_idx.erase(std::unique(cv_idx.begin(),cv_idx.end()),cv_idx.end());
-
-    for(auto it = cv_idx.begin(); it < cv_idx.end(); it += vsize) {
-        auto size = (cv_idx.end() - it < vsize) ? cv_idx.end() - it : vsize;
-        cv_vectors.emplace_back(it, it+size);
-    }
-
-    std::cout << "------CV_IDX_VECTOR------------------------\n";
-
-    for (auto c: cv_vectors) {
-        for (auto cv: c) {
-            std::cout << cv << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    // Get the mech_cv_prop partition of each of the CVs in cv_vectors
+    // Get the mech_cv_prop partition of each of CV, partitioned in vectors of size `vsize`
     std::vector<std::vector<int>> idx_part_vectors;
 
-    for (const auto& cv_vec: cv_vectors) {
+    for (int cv_start = 0; cv_start < (int)n_cv; cv_start += vsize) {
         std::vector<int> idx_vec;
-        for (auto cv: cv_vec) {
+        int cv_end = cv_start + vsize;
+
+        for (int cv = cv_start; (cv < cv_end && cv < (int)n_cv); ++cv) {
             auto first = std::lower_bound(mech_cv_props.begin(), mech_cv_props.end(), cv, [](auto& lhs, auto& rhs) { return lhs.cv_idx < rhs; });
             idx_vec.push_back((int)(first - mech_cv_props.begin()));
         }
 
-        auto last = std::upper_bound(mech_cv_props.begin(), mech_cv_props.end(), cv_vec.back(), [](auto& lhs, auto& rhs) { return lhs < rhs.cv_idx; });
+        auto last = std::upper_bound(mech_cv_props.begin(), mech_cv_props.end(), cv_end-1, [](auto& lhs, auto& rhs) { return lhs < rhs.cv_idx; });
         while (idx_vec.size() < vsize+1) idx_vec.push_back((int)(last - mech_cv_props.begin()));
 
         idx_part_vectors.push_back(idx_vec);
@@ -361,6 +338,8 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
     // We want the following occupancy in the update vectors (let pas_x be the instance of pas on CV x)
     // pas_0 pas_1 nax_2 hh_3 | hh_0 hh_1 - - |
 
+    reduction_count = iarray(idx_part_vectors.size());
+
     std::vector<cv_prop> strided_cv_prop;
     strided_cv_prop.reserve(mech_cv_props.size());
 
@@ -372,6 +351,7 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         std::set<unsigned> hit_idx;
         std::vector<cv_prop> mini_shuffle(vsize);
 
+        int count = 0;
         while (true) {
             for (unsigned j = 0; j < vsize; ++j) {
                 auto& start_idx = idx_ptr[j];
@@ -387,7 +367,9 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
             }
             if (hit_idx.size() == vsize) break;
             std::move(mini_shuffle.begin(), mini_shuffle.end(), std::back_inserter(strided_cv_prop));
+            count++;
         }
+        reduction_count[i] = count;
     }
 
     std::cout << "------SHUFFLED_STRUCT_VECTOR---------------\n";
@@ -415,15 +397,38 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         std::cout << i.id << "\t" << i.mech_id << "\t" << i.cv_idx << std::endl;
     }
 
-    std::cout << "-----------DONE----------------------------\n\n\n";
+    shuffle_index = iarray(mech_cv_props.size(), pad(alignment));
+    for (unsigned i = 0; i < strided_cv_prop.size(); i++) {
+        shuffle_index[i] = strided_cv_prop[i].id;
+    }
+    std::fill(shuffle_index.begin() + strided_cv_prop.size(), shuffle_index.end(), shuffle_index.back());
 
-
-    // Next we need the actual updated CVs to be stored somewhere,
-    // We need to calculate the limits for mech indices,
-    // We need to calculate how many vector additions per vector of CVs
+    // We need the following to be saved in the shared state:
+    // 1- The node indices (shuffle_index)
+    // 2- The mech_id partitioning of the node indices (mech_partition)
+    // 3- The count of vector reductions per vector
     // ex
     // CV      : | 0 1 2 5 | 6 7 9 10 | 11 12 - - |
     // num adds: |    3    |   2      | 1         |
+
+    std::cout << "-----shuffle_index-------------------------\n";
+
+    for (auto i: shuffle_index) {
+        std::cout << i << std::endl;
+    }
+
+    std::cout << "-----mech_partition-------------------------\n";
+
+    for (auto i: mech_partition) {
+        std::cout << i << std::endl;
+    }
+
+    std::cout << "------reduction_count---------------\n";
+
+    for (auto c: reduction_count) {
+        std::cout << c << std::endl;
+    }
+
     local_i = array(mech_cv_props.size(), pad(alignment));
     local_g = array(mech_cv_props.size(), pad(alignment));
 }
