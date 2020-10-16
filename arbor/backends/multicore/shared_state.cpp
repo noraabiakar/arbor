@@ -257,7 +257,7 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         }
     }
 
-    const int vsize = 4;
+    const int vsize = simd_width;
     const int gapid = -1;
     if (mech_cv.empty()) return;
     struct cv_prop {
@@ -338,7 +338,7 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
     // We want the following occupancy in the update vectors (let pas_x be the instance of pas on CV x)
     // pas_0 pas_1 nax_2 hh_3 | hh_0 hh_1 - - |
 
-    reduction_count = iarray(idx_part_vectors.size());
+    std::vector<fvm_index_type> reduction_count(idx_part_vectors.size());
 
     std::vector<cv_prop> strided_cv_prop;
     strided_cv_prop.reserve(mech_cv_props.size());
@@ -369,8 +369,9 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
             std::move(mini_shuffle.begin(), mini_shuffle.end(), std::back_inserter(strided_cv_prop));
             count++;
         }
-        reduction_count[i] = count;
+        reduction_count[i] = count*vsize;
     }
+    util::make_partition(reduction_partition, reduction_count);
 
     std::cout << "------SHUFFLED_STRUCT_VECTOR---------------\n";
 
@@ -407,9 +408,6 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
     // 1- The node indices (shuffle_index)
     // 2- The mech_id partitioning of the node indices (mech_partition)
     // 3- The count of vector reductions per vector
-    // ex
-    // CV      : | 0 1 2 5 | 6 7 9 10 | 11 12 - - |
-    // num adds: |    3    |   2      | 1         |
 
     std::cout << "-----shuffle_index-------------------------\n";
 
@@ -425,29 +423,44 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
 
     std::cout << "------reduction_count---------------\n";
 
-    for (auto c: reduction_count) {
-        std::cout << c << std::endl;
+    for (auto c: util::partition_view(reduction_partition)) {
+        std::cout << c.first << " - > " << c.second << std::endl;
     }
 
     local_i = array(mech_cv_props.size(), pad(alignment));
     local_g = array(mech_cv_props.size(), pad(alignment));
+
+    std::fill(local_i.begin(), local_i.end(), 0.0);
+    std::fill(local_g.begin(), local_g.end(), 0.0);
 }
 
 void shared_state::reduce() {
-    auto partition = util::partition_view(node_partition);
+    using simd::add;
+    using simd::assign;
+    using simd::indirect;
 
-    unsigned i = 0;
-    fvm_value_type sum_i, sum_g;
-    for (auto range: partition) {
-        sum_i = 0.0;
-        sum_g = 0.0;
-        for (auto j = range.first; j < range.second; ++j) {
-            sum_i += local_i[j];
-            sum_g += local_g[j];
+    unsigned cv_idx = 0;
+    for (auto p : util::partition_view(reduction_partition)) {
+
+        simd_value_type sum_i, sum_g, tmp_i, tmp_g;
+
+        auto first = p.first;
+        auto last  = p.second;
+
+        assign(sum_i, indirect(local_i.data()+first, simd_width));
+        assign(sum_g, indirect(local_g.data()+last,  simd_width));
+
+        for (unsigned offset = first+simd_width; offset < last; offset+=simd_width) {
+            assign(tmp_i, indirect(local_i.data()+offset, simd_width));
+            assign(tmp_g, indirect(local_g.data()+offset, simd_width));
+
+            sum_i = add(sum_i, tmp_i);
+            sum_g = add(sum_g, tmp_g);
         }
-        current_density[i] += sum_i;
-        conductivity[i] += sum_g;
-        i++;
+
+        indirect(current_density.data()+cv_idx, simd_width) = sum_i;
+        indirect(conductivity.data()+cv_idx, simd_width) = sum_g;
+        cv_idx+=simd_width;
     }
 }
 

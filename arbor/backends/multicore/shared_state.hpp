@@ -97,7 +97,7 @@ struct shared_state {
     array temperature_degC;   // Maps CV to local temperature (read only) [°C].
     array diam_um;            // Maps CV to local diameter (read only) [µm].
 
-    iarray shuffle_index, reduction_count, mech_partition;
+    iarray shuffle_index, reduction_partition, mech_partition;
 
     std::unordered_map<std::string, ion_state> ion_data;
 
