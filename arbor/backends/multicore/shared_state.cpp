@@ -451,7 +451,7 @@ void shared_state::reduce() {
         auto last  = p.second;
 
         assign(sum_i, indirect(local_i.data()+first, simd_width));
-        assign(sum_g, indirect(local_g.data()+last,  simd_width));
+        assign(sum_g, indirect(local_g.data()+first, simd_width));
 
         for (unsigned offset = first+simd_width; offset < last; offset+=simd_width) {
             assign(tmp_i, indirect(local_i.data()+offset, simd_width));
