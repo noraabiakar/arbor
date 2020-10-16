@@ -385,6 +385,9 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         s.id = id++;
     }
 
+    // Save the total size of the local i and g vectors
+    auto local_size = strided_cv_prop.size();
+
     // Sort according to the mechanism index
     std::sort(strided_cv_prop.begin(), strided_cv_prop.end(), comp_rev);
 
@@ -427,8 +430,8 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         std::cout << c.first << " - > " << c.second << std::endl;
     }
 
-    local_i = array(mech_cv_props.size(), pad(alignment));
-    local_g = array(mech_cv_props.size(), pad(alignment));
+    local_i = array(local_size, pad(alignment));
+    local_g = array(local_size, pad(alignment));
 
     std::fill(local_i.begin(), local_i.end(), 0.0);
     std::fill(local_g.begin(), local_g.end(), 0.0);

@@ -116,7 +116,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
 
     // Add a synapse to the mid point of the first dendrite.
-    //cell.place(arb::mlocation{0, 0.5}, "expsyn");
+    cell.place(arb::mlocation{0, 0.5}, "expsyn");
 
     // Add additional synapses that will not be connected to anything.
     //for (unsigned i=1u; i<params.synapses; ++i) {
