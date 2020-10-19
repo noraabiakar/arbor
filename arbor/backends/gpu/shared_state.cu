@@ -179,6 +179,5 @@ void reduce_impl(
     kernel::reduce_impl<<<nblock, block_dim>>>(local_i, local_g, global_i, global_g, cv_index, ncv, ncontrib);
 }
 
-}
 } // namespace gpu
 } // namespace arb

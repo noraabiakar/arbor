@@ -80,7 +80,8 @@ struct shared_state {
     array temperature_degC;  // Maps CV to local temperature (read only) [°C].
     array diam_um;           // Maps CV to local diameter (read only) [µm].
 
-    iarray shuffle_index, node_partition, mech_partition;
+    iarray shuffle_index, node_partition;
+    std::vector<fvm_index_type> mech_partition;
 
     std::unordered_map<std::string, ion_state> ion_data;
 

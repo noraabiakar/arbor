@@ -204,14 +204,14 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         int vec_idx;
     };
 
-    std::vector<fvm_index_type> mech_part, node_part, shuffle_idx;
-    mech_part.push_back(0);
+    std::vector<fvm_index_type> node_part, shuffle_idx;
+    mech_partition.push_back(0);
     for (auto v: mech_cv) {
-        mech_part.push_back(mech_part.back()+v.second.size());
+        mech_partition.push_back(mech_partition.back()+v.second.size());
     }
 
     std::vector<cv_prop> mech_cv_props;
-    mech_cv_props.reserve(mech_part.back());
+    mech_cv_props.reserve(mech_partition.back());
 
     for(auto v:mech_cv) {
         auto id  = v.first;
@@ -228,11 +228,11 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
     auto comp_rev = [](auto& lhs, auto& rhs) {return std::tie(lhs.mech_id, lhs.node_idx, lhs.vec_idx) <
                                                      std::tie(rhs.mech_id, rhs.node_idx, rhs.vec_idx);};
 
-    if (mech_part.size() > 2) {
-        for (unsigned i = 2; i < mech_part.size(); ++i) {
+    if (mech_partition.size() > 2) {
+        for (unsigned i = 2; i < mech_partition.size(); ++i) {
             auto begin = mech_cv_props.begin();
-            auto middle = begin + mech_part[i-1];
-            auto last   = begin + mech_part[i];
+            auto middle = begin + mech_partition[i-1];
+            auto last   = begin + mech_partition[i];
 
             std::inplace_merge(begin, middle, last, comp);
         }
@@ -250,17 +250,20 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
 
     std::sort(mech_cv_props.begin(), mech_cv_props.end(), comp_rev);
 
+    shuffle_idx.resize(mech_cv_props.size());
     for (unsigned i = 0; i < mech_cv_props.size(); i++) {
         shuffle_idx[i] = mech_cv_props[i].vec_idx;
     }
     std::fill(shuffle_idx.begin() + mech_cv_props.size(), shuffle_idx.end(), shuffle_idx.back());
 
-    shuffle_index = make_const_view(shuffle_idx);
-    node_partition = make_const_view(node_part);
-    mech_partition = make_const_view(mech_part);
+    shuffle_index  = iarray(mech_cv_props.size());
+    node_partition = iarray(node_part.size());
 
-    local_i = array(mech_cv_props.size(), pad(alignment));
-    local_g = array(mech_cv_props.size(), pad(alignment));
+    memory::copy(shuffle_idx, shuffle_index);
+    memory::copy(node_part,   node_partition);
+
+    local_i = array(mech_cv_props.size());
+    local_g = array(mech_cv_props.size());
 }
 
 // Debug interface

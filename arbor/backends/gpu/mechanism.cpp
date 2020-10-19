@@ -151,7 +151,6 @@ void mechanism::instantiate(unsigned id,
     pp->node_index_    = indices_.data();
     pp->shuffle_index_ = shared.shuffle_index.data() + shared.mech_partition[id];
 
-
     auto ion_index_tbl = ion_index_table();
     arb_assert(num_ions_==ion_index_tbl.size());
 
