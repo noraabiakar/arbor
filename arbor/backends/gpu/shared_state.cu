@@ -89,18 +89,17 @@ __global__ void reduce_impl(
         const fvm_value_type* local_g,
         fvm_value_type* global_i,
         fvm_value_type* global_g,
-        const fvm_index_type* cv_index,
+        const fvm_index_type* reduction_partition,
         fvm_size_type ncv,
-        fvm_size_type ncontrib)
+        fvm_size_type warp_size)
 {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<ncv) {
-        auto first = cv_index[i];
-        auto last  = cv_index[i+1];
-        double sum_i = 0, sum_g = 0;
-        for (auto j = first; j < last; ++j) {
-            sum_i += local_i[j];
-            sum_g += local_g[j];
+        fvm_value_type sum_i, sum_g;
+        auto count = reduction_partition[i];
+        for (unsigned offset = 0; offset < count * warp_size; offset += warp_size) {
+            sum_i += local_i[i + offset];
+            sum_g += local_g[i + offset];
         }
         global_i[i] += sum_i;
         global_g[i] += sum_g;
@@ -168,15 +167,15 @@ void reduce_impl(
     const fvm_value_type* local_g,
     fvm_value_type* global_i,
     fvm_value_type* global_g,
-    const fvm_index_type* cv_index,
-    fvm_size_type ncv,
-    fvm_size_type ncontrib)
+    const fvm_index_type* reduction_part,
+    fvm_size_type ncv)
 {
-    if (!ncontrib || !ncv) return;
+    if (!ncv) return;
 
     constexpr int block_dim = 128;
+    constexpr int warp_size = impl::threads_per_warp();
     const int nblock = block_count(ncv, block_dim);
-    kernel::reduce_impl<<<nblock, block_dim>>>(local_i, local_g, global_i, global_g, cv_index, ncv, ncontrib);
+    kernel::reduce_impl<<<nblock, block_dim>>>(local_i, local_g, global_i, global_g, reduction_part, ncv, warp_size);
 }
 
 } // namespace gpu

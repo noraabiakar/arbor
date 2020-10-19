@@ -44,9 +44,8 @@ void reduce_impl(
     const fvm_value_type* local_g,
     fvm_value_type* global_i,
     fvm_value_type* global_g,
-    const fvm_index_type* cv_index,
-    fvm_size_type ncv,
-    fvm_size_type ncontrib);
+    const fvm_index_type* reduction_part,
+    fvm_size_type ncv);
 
 void add_scalar(std::size_t n, fvm_value_type* data, fvm_value_type v);
 
@@ -194,7 +193,7 @@ void shared_state::take_samples(const sample_event_stream::state& s, array& samp
 }
 
 void shared_state::reduce() {
-    reduce_impl(local_i.data(), local_g.data(), current_density.data(), conductivity.data(), node_partition.data(), n_cv, local_i.size());
+    reduce_impl(local_i.data(), local_g.data(), current_density.data(), conductivity.data(), reduction_partition.data(), n_cv);
 }
 
 void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fvm_index_type>>> mech_cv) {
@@ -323,9 +322,22 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
             std::move(mini_shuffle.begin(), mini_shuffle.end(), std::back_inserter(strided_cv_prop));
             count++;
         }
-        reduction_count[i] = count*vsize;
+        reduction_count[i] = count;
     }
-    util::make_partition(reduction_part, reduction_count);
+
+    // Create reduction_part
+    reduction_part.reserve(n_cv);
+    for (auto c: reduction_count) {
+        for (unsigned i = 0; i < vsize; ++i) {
+            reduction_part.push_back(c);
+        }
+    }
+
+    std::cout << "------REDUCTION_PART----------------------\n";
+
+    for (auto c: reduction_part) {
+        std::cout << c << std::endl;
+    }
 
     std::cout << "------SHUFFLED_STRUCT_VECTOR---------------\n";
 
