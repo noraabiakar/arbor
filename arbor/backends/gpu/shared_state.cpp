@@ -5,6 +5,7 @@
 #include <arbor/fvm_types.hpp>
 
 #include "backends/event.hpp"
+#include "backends/gpu/gpu_common.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/shared_state.hpp"
 #include "backends/multi_event_stream_state.hpp"
@@ -197,14 +198,27 @@ void shared_state::reduce() {
 }
 
 void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fvm_index_type>>> mech_cv) {
+    std::cout << "n_cv = " << n_cv << std::endl;
+
+    std::cout << "------INPUT-----------------------------\n";
+
+    for (auto c: mech_cv) {
+        std::cout << c.first << ": ";
+        for (auto e: c.second) {
+            std::cout << "\t" << e << std::endl;
+        }
+    }
+
+    const int vsize = impl::threads_per_warp();
+    const int gapid = -1;
     if (mech_cv.empty()) return;
     struct cv_prop {
-        int node_idx;
+        int cv_idx;
         int mech_id;
-        int vec_idx;
+        int id;
     };
 
-    std::vector<fvm_index_type> node_part, shuffle_idx;
+    std::vector<fvm_index_type> reduction_part, shuffle_idx;
     mech_partition.push_back(0);
     for (auto v: mech_cv) {
         mech_partition.push_back(mech_partition.back()+v.second.size());
@@ -219,14 +233,14 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         mech_cv_props.reserve(cvs.size());
 
         for (auto cv: cvs) {
-            mech_cv_props.push_back({cv, id, -1});
+            mech_cv_props.push_back({cv, (int)id, -1});
         }
     }
 
-    auto comp     = [](auto& lhs, auto& rhs) {return std::tie(lhs.node_idx, lhs.mech_id, lhs.vec_idx) <
-                                                     std::tie(rhs.node_idx, rhs.mech_id, rhs.vec_idx);};
-    auto comp_rev = [](auto& lhs, auto& rhs) {return std::tie(lhs.mech_id, lhs.node_idx, lhs.vec_idx) <
-                                                     std::tie(rhs.mech_id, rhs.node_idx, rhs.vec_idx);};
+    auto comp     = [](auto& lhs, auto& rhs) {return std::tie(lhs.cv_idx, lhs.mech_id, lhs.id) <
+                                                     std::tie(rhs.cv_idx, rhs.mech_id, rhs.id);};
+    auto comp_rev = [](auto& lhs, auto& rhs) {return std::tie(lhs.mech_id, lhs.cv_idx, lhs.id) <
+                                                     std::tie(rhs.mech_id, rhs.cv_idx, rhs.id);};
 
     if (mech_partition.size() > 2) {
         for (unsigned i = 2; i < mech_partition.size(); ++i) {
@@ -238,32 +252,148 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         }
     };
 
-    for (int i = 0; i < n_cv; i++) {
-        auto it = std::lower_bound(mech_cv_props.begin(), mech_cv_props.end(), i, [](auto& lhs, auto& rhs) {return lhs.node_idx < rhs;});
-        node_part.push_back(it-mech_cv_props.begin());
-    }
-    node_part.push_back(mech_cv_props.size());
+    std::cout << "------MECH_CV_PROPS------------------------\n";
 
-    for (unsigned i = 0; i < mech_cv_props.size(); i++) {
-        mech_cv_props[i].vec_idx = i;
+    for (auto c: mech_cv_props) {
+        std::cout << c.cv_idx << " " << c.mech_id << " " << c.id;
+        std::cout << std::endl;
     }
 
-    std::sort(mech_cv_props.begin(), mech_cv_props.end(), comp_rev);
+    // Get the mech_cv_prop partition of each of CV, partitioned in vectors of size `vsize`
+    std::vector<std::vector<int>> idx_part_vectors;
 
-    shuffle_idx.resize(mech_cv_props.size());
-    for (unsigned i = 0; i < mech_cv_props.size(); i++) {
-        shuffle_idx[i] = mech_cv_props[i].vec_idx;
+    for (int cv_start = 0; cv_start < (int)n_cv; cv_start += vsize) {
+        std::vector<int> idx_vec;
+        int cv_end = cv_start + vsize;
+
+        for (int cv = cv_start; (cv < cv_end && cv < (int)n_cv); ++cv) {
+            auto first = std::lower_bound(mech_cv_props.begin(), mech_cv_props.end(), cv, [](auto& lhs, auto& rhs) { return lhs.cv_idx < rhs; });
+            idx_vec.push_back((int)(first - mech_cv_props.begin()));
+        }
+
+        auto last = std::upper_bound(mech_cv_props.begin(), mech_cv_props.end(), cv_end-1, [](auto& lhs, auto& rhs) { return lhs < rhs.cv_idx; });
+        while (idx_vec.size() < vsize+1) idx_vec.push_back((int)(last - mech_cv_props.begin()));
+
+        idx_part_vectors.push_back(idx_vec);
     }
-    std::fill(shuffle_idx.begin() + mech_cv_props.size(), shuffle_idx.end(), shuffle_idx.back());
+    
+    std::cout << "------IDX_PARTITION_VECTOR-----------------\n";
 
-    shuffle_index  = iarray(mech_cv_props.size());
-    node_partition = iarray(node_part.size());
+    for (auto c: idx_part_vectors) {
+        for (auto cv: c) {
+            std::cout << cv << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    // Now we want to sort the elements from mech_cv_prop such that mech updates to the same cv
+    // are separated by a stride of vsize, while being optimally packed in the final update vector.
+    // e.g cvs 0,1 have pas, hh mechanisms; cv 2 has only nax; cv 3 has only hh
+    // We want the following occupancy in the update vectors (let pas_x be the instance of pas on CV x)
+    // pas_0 pas_1 nax_2 hh_3 | hh_0 hh_1 - - |
+
+    std::vector<fvm_index_type> reduction_count(idx_part_vectors.size());
+
+    std::vector<cv_prop> strided_cv_prop;
+    strided_cv_prop.reserve(mech_cv_props.size());
+
+    auto idx_ptr_vectors = idx_part_vectors;
+    for (unsigned i = 0; i < idx_ptr_vectors.size(); ++i) {
+        auto& idx_ptr       = idx_ptr_vectors[i];
+        const auto& idx_cst = idx_part_vectors[i];
+
+        std::set<unsigned> hit_idx;
+        std::vector<cv_prop> mini_shuffle(vsize);
+
+        int count = 0;
+        while (true) {
+            for (unsigned j = 0; j < vsize; ++j) {
+                auto& start_idx = idx_ptr[j];
+                auto end_idx = idx_cst[j + 1];
+
+                if (start_idx == end_idx) {
+                    hit_idx.insert(j);
+                    // insert a gap, indicated by mech_id/cv_idx = -1
+                    mini_shuffle[j] = {gapid, gapid, -1};
+                } else {
+                    mini_shuffle[j] = mech_cv_props.at(start_idx++);
+                }
+            }
+            if (hit_idx.size() == vsize) break;
+            std::move(mini_shuffle.begin(), mini_shuffle.end(), std::back_inserter(strided_cv_prop));
+            count++;
+        }
+        reduction_count[i] = count*vsize;
+    }
+    util::make_partition(reduction_part, reduction_count);
+
+    std::cout << "------SHUFFLED_STRUCT_VECTOR---------------\n";
+
+    for (auto c: strided_cv_prop) {
+        std::cout << c.cv_idx << "\t" << c.mech_id << "\t" << c.id << std::endl;
+    }
+
+    // Now that we have the correct occupancy of the update vectors we can populate their index
+    int id = 0;
+    for (auto& s: strided_cv_prop) {
+        s.id = id++;
+    }
+
+    // Save the total size of the local i and g vectors
+    auto local_size = strided_cv_prop.size();
+
+    // Sort according to the mechanism index
+    std::sort(strided_cv_prop.begin(), strided_cv_prop.end(), comp_rev);
+
+    // Erase all the first chunk of the vector with mech_idx = -1, which refer to the gaps inserted above
+    auto start = std::upper_bound(strided_cv_prop.begin(), strided_cv_prop.end(), gapid, [](auto& lhs, auto& rhs) { return lhs < rhs.mech_id; });
+    strided_cv_prop.erase(strided_cv_prop.begin(), start);
+
+    std::cout << "-----SORTED_SHUFFLED_STRUCT_VECTOR---------\n";
+
+    for (auto i: strided_cv_prop) {
+        std::cout << i.id << "\t" << i.mech_id << "\t" << i.cv_idx << std::endl;
+    }
+
+    shuffle_idx.resize(strided_cv_prop.size());
+    for (unsigned i = 0; i < strided_cv_prop.size(); i++) {
+        shuffle_idx[i] = strided_cv_prop[i].id;
+    }
+
+    // We need the following to be saved in the shared state:
+    // 1- The node indices (shuffle_idx)
+    // 2- The mech_id partitioning of the node indices (mech_partition)
+    // 3- The count of vector reductions per vector
+
+    std::cout << "-----shuffle_index-------------------------\n";
+
+    for (auto i: shuffle_idx) {
+        std::cout << i << std::endl;
+    }
+
+    std::cout << "-----mech_partition-------------------------\n";
+
+    for (auto i: mech_partition) {
+        std::cout << i << std::endl;
+    }
+
+    std::cout << "------reduction_count---------------\n";
+
+    for (auto c: util::partition_view(reduction_partition)) {
+        std::cout << c.first << " - > " << c.second << std::endl;
+    }
+
+    shuffle_index  = iarray(shuffle_idx.size());
+    reduction_partition = iarray(reduction_part.size());
 
     memory::copy(shuffle_idx, shuffle_index);
-    memory::copy(node_part,   node_partition);
+    memory::copy(reduction_part, reduction_partition);
 
-    local_i = array(mech_cv_props.size());
-    local_g = array(mech_cv_props.size());
+    local_i = array(local_size);
+    local_g = array(local_size);
+
+    memory::fill(local_i, 0.0);
+    memory::fill(local_g, 0.0);
 }
 
 // Debug interface

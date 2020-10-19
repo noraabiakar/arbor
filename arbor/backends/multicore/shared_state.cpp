@@ -401,7 +401,7 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
         std::cout << i.id << "\t" << i.mech_id << "\t" << i.cv_idx << std::endl;
     }
 
-    shuffle_index = iarray(mech_cv_props.size(), pad(alignment));
+    shuffle_index = iarray(strided_cv_prop.size(), pad(alignment));
     for (unsigned i = 0; i < strided_cv_prop.size(); i++) {
         shuffle_index[i] = strided_cv_prop[i].id;
     }
