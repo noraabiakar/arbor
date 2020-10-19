@@ -17,7 +17,7 @@ struct cell_parameters {
     cell_parameters() = default;
 
     //  Maximum number of levels in the cell (not including the soma)
-    unsigned max_depth = 5;
+    unsigned max_depth = 3;
 
     // The following parameters are described as ranges.
     // The first value is at the soma, and the last value is used on the last level.
