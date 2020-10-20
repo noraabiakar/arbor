@@ -322,16 +322,17 @@ void shared_state::build_cv_index(std::vector<std::pair<unsigned, std::vector<fv
             std::move(mini_shuffle.begin(), mini_shuffle.end(), std::back_inserter(strided_cv_prop));
             count++;
         }
-        reduction_count[i] = count;
+        reduction_count[i] = count*vsize;
     }
+    util::make_partition(reduction_part, reduction_count);
 
     // Create reduction_part
-    reduction_part.reserve(n_cv);
-    for (auto c: reduction_count) {
-        for (unsigned i = 0; i < vsize; ++i) {
-            reduction_part.push_back(c);
-        }
-    }
+    //reduction_part.reserve(n_cv);
+    //for (auto c: reduction_count) {
+    //    for (unsigned i = 0; i < vsize; ++i) {
+    //        reduction_part.push_back(c);
+    //    }
+    //}
 
     std::cout << "------REDUCTION_PART----------------------\n";
 

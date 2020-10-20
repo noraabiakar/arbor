@@ -85,24 +85,28 @@ __global__ void take_samples_impl(
 }
 
 __global__ void reduce_impl(
-        const fvm_value_type* local_i,
-        const fvm_value_type* local_g,
-        fvm_value_type* global_i,
-        fvm_value_type* global_g,
-        const fvm_index_type* reduction_partition,
+        const fvm_value_type* __restrict__ local_i,
+        const fvm_value_type* __restrict__ local_g,
+        fvm_value_type* __restrict__ global_i,
+        fvm_value_type* __restrict__ global_g,
+        const fvm_index_type* __restrict__ reduction_partition,
         fvm_size_type ncv,
         fvm_size_type warp_size)
 {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<ncv) {
-        fvm_value_type sum_i, sum_g;
-        auto count = reduction_partition[i];
-        for (unsigned offset = 0; offset < count * warp_size; offset += warp_size) {
-            sum_i += local_i[i + offset];
-            sum_g += local_g[i + offset];
+        fvm_value_type sum_i = 0, sum_g = 0;
+        unsigned warp     = i/warp_size;
+        unsigned warp_idx = i%warp_size; 
+        auto start = reduction_partition[warp];
+        auto end   = reduction_partition[warp+1];
+
+        for (unsigned offset = start; offset < end; offset += warp_size) {
+            sum_i += local_i[warp_idx + offset];
+            sum_g += local_g[warp_idx + offset];
         }
-        global_i[i] += sum_i;
-        global_g[i] += sum_g;
+        global_i[i] = sum_i;
+        global_g[i] = sum_g;
     }
 }
 
