@@ -29,6 +29,14 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
                 "Python error already thrown");
 }
 
+// The py::recipe::global_properties returns a pybind11::object, that is
+// unwrapped and copied into an std::any.
+std::any py_recipe_shim::get_global_properties(arb::cell_kind kind) const {
+    return try_catch_pyexception(
+                [&](){ return convert_gprop(impl_->global_properties(kind)); },
+                "Python error already thrown");
+}
+
 std::vector<arb::event_generator> convert_gen(std::vector<pybind11::object> pygens, arb::cell_gid_type gid) {
     using namespace std::string_literals;
     using pybind11::isinstance;
@@ -154,6 +162,9 @@ void register_recipe(pybind11::module& m) {
         .def("get_probes", &py_recipe::get_probes,
             "gid"_a,
             "The probes to allow monitoring.")
+        .def("global_properties", &py_recipe::global_properties,
+            "kind"_a,
+            "The global properties.")
         // TODO: py_recipe::global_properties
         .def("__str__",  [](const py_recipe&){return "<arbor.recipe>";})
         .def("__repr__", [](const py_recipe&){return "<arbor.recipe>";});

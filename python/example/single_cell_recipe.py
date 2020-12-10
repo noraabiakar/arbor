@@ -12,6 +12,8 @@ class single_recipe (arbor.recipe):
         arbor.recipe.__init__(self)
         self.the_cell = cell
         self.the_probes = probes
+        self.the_props =  arbor.cable_global_properties()
+        self.the_props.set_neuron_default_properties()
 
     def num_cells(self):
         return 1
@@ -27,6 +29,9 @@ class single_recipe (arbor.recipe):
 
     def get_probes(self, gid):
         return self.the_probes
+
+    def global_properties(self, kind):
+        return self.the_props
 
 # (2) Create a cell.
 

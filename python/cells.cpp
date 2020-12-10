@@ -60,6 +60,13 @@ arb::util::unique_any convert_cell(pybind11::object o) {
                       + "\" which does not describe a known Arbor cell type");
 }
 
+// Convert global properties inside a Python object to a
+// std::any, as required by the recipe interface.
+std::any convert_gprop(pybind11::object o) {
+    auto shim = pybind11::cast<global_props_shim>(o);
+    return shim.props;
+}
+
 //
 //  proxies
 //
@@ -415,9 +422,9 @@ void register_cells(pybind11::module& m) {
             " cm:    membrane capacitance [F/m²].\n"
             " rL:    axial resistivity [Ω·cm].\n"
             " tempK: temperature [Kelvin].")
-        .def("foo", [](global_props_shim& G, double x, pybind11::object method) {
-                        std::cout << "foo(" << x << ", " << method << ")\n";},
-                    "x"_a, "method"_a=pybind11::none())
+        .def("set_neuron_default_properties", [](global_props_shim& G) {
+            G.props.default_parameters = arb::neuron_parameter_defaults;
+        })
         // add/modify ion species
         .def("set_ion",
             [](global_props_shim& G, const char* ion,
