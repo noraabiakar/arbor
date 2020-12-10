@@ -97,7 +97,7 @@ class ring_recipe (arbor.recipe):
             return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
         return []
 
-    def get_probes(self, gid):
+    def probes(self, gid):
         return [arbor.cable_probe_membrane_voltage('(location 0 0)')]
 
     def global_properties(self, kind):

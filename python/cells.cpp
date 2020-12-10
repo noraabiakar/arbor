@@ -63,6 +63,10 @@ arb::util::unique_any convert_cell(pybind11::object o) {
 // Convert global properties inside a Python object to a
 // std::any, as required by the recipe interface.
 std::any convert_gprop(pybind11::object o) {
+    if (o.is(pybind11::none())) {
+        return {};
+    }
+
     auto shim = pybind11::cast<global_props_shim>(o);
     return shim.props;
 }

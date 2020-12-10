@@ -51,10 +51,12 @@ public:
     virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const {
         return {};
     }
-    virtual std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const {
+    virtual std::vector<arb::probe_info> probes(arb::cell_gid_type gid) const {
         return {};
     }
-    virtual pybind11::object global_properties(arb::cell_kind kind) const {return pybind11::none();};
+    virtual pybind11::object global_properties(arb::cell_kind kind) const {
+        return pybind11::none();
+    };
 };
 
 class py_recipe_trampoline: public py_recipe {
@@ -95,8 +97,8 @@ public:
         PYBIND11_OVERLOAD(std::vector<arb::gap_junction_connection>, py_recipe, gap_junctions_on, gid);
     }
 
-    std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(std::vector<arb::probe_info>, py_recipe, get_probes, gid);
+    std::vector<arb::probe_info> probes(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERLOAD(std::vector<arb::probe_info>, py_recipe, probes, gid);
     }
 
     pybind11::object global_properties(arb::cell_kind kind) const override {
@@ -156,7 +158,7 @@ public:
     }
 
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception([&](){ return impl_->get_probes(gid); }, msg);
+        return try_catch_pyexception([&](){ return impl_->probes(gid); }, msg);
     }
 
     std::any get_global_properties(arb::cell_kind kind) const override;

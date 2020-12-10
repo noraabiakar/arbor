@@ -159,7 +159,7 @@ void register_recipe(pybind11::module& m) {
         .def("gap_junctions_on", &py_recipe::gap_junctions_on,
             "gid"_a,
             "A list of the gap junctions connected to gid, [] by default.")
-        .def("get_probes", &py_recipe::get_probes,
+        .def("probes", &py_recipe::probes,
             "gid"_a,
             "The probes to allow monitoring.")
         .def("global_properties", &py_recipe::global_properties,

@@ -27,11 +27,11 @@ class single_recipe (arbor.recipe):
     def cell_description(self, gid):
         return self.the_cell
 
-    def get_probes(self, gid):
+    def probes(self, gid):
         return self.the_probes
 
-    def global_properties(self, kind):
-        return self.the_props
+    #def global_properties(self, kind):
+     #   return self.the_props
 
 # (2) Create a cell.
 
