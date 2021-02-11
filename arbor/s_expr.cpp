@@ -8,9 +8,9 @@
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
+#include <arbor/s_expr.hpp>
 
 #include "util/strprintf.hpp"
-#include "s_expr.hpp"
 namespace arb {
 
 inline bool is_alphanumeric(char c) {
