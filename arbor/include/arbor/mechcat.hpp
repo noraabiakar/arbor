@@ -127,6 +127,7 @@ private:
 const mechanism_catalogue& global_default_catalogue();
 const mechanism_catalogue& global_allen_catalogue();
 const mechanism_catalogue& global_bbp_catalogue();
+const mechanism_catalogue& global_arborio_starfish_catalogue();
 
 // Load catalogue from disk.
 

@@ -25,9 +25,18 @@ make_catalogue(
   ARBOR "${PROJECT_SOURCE_DIR}"
   STANDALONE FALSE)
 
+make_catalogue(
+  NAME arborio_starfish
+  SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/arborio_starfish"
+  OUTPUT "CAT_ARBORIO_STARFISH_SOURCES"
+  MECHS BK ca_conc cacc cah cal h k kca kdr leak na_a na_s
+  ARBOR "${PROJECT_SOURCE_DIR}"
+  STANDALONE FALSE)
+
 # Join sources
 set(arbor_mechanism_sources
   ${CAT_BBP_SOURCES}
+  ${CAT_ARBORIO_STARFISH_SOURCES}
   ${CAT_ALLEN_SOURCES}
   ${CAT_DEFAULT_SOURCES}
   PARENT_SCOPE)
