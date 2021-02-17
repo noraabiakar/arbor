@@ -50,8 +50,7 @@ struct token {
 
 std::ostream& operator<<(std::ostream&, const token&);
 
-inline
-token nil_token(src_location l={}) {
+inline token nil_token(src_location l={}) {
     return token{l, tok::nil, "()"};
 }
 

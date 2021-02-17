@@ -55,8 +55,8 @@ struct cable_cell_impl {
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
         provider(m, labels),
-        dictionary(labels),
-        decorations(decorations)
+        decorations(decorations),
+        dictionary(labels)
     {
         init(decorations);
     }

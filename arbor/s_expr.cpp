@@ -395,56 +395,35 @@ s_expr::operator bool() const {
 std::ostream& pr(std::ostream& o, const s_expr& x, int indent) {
     std::string in(std::string::size_type(2*indent), ' ');
     if (x.is_atom()) {
-        o << x.atom();
+       return o << x.atom();
     }
-    else {
-        bool first=true;
-        o << "(";
-        auto it = std::begin(x);
-        auto end = std::end(x);
-        while (it!=end) {
-            if (!first && !it->is_atom() && length(*it)>=0) {
+    auto it = std::begin(x);
+    auto end = std::end(x);
+    bool first=true;
+    o << "(";
+    while (it!=end) {
+        if (!first && !it->is_atom() && length(*it)>=0) {
+            o << "\n" << in;
+            pr(o, *it, indent+1);
+            ++it;
+            if (it!=end && it->is_atom()) {
                 o << "\n" << in;
-                pr(o, *it, indent+1);
-                ++it;
-                if (it!=end && it->is_atom()) {
-                    o << "\n" << in;
-                }
             }
-            else {
-                pr(o, *it, indent+1);
-                if (++it!=end) {
-                    o << " ";
-                }
-            }
-
-            first = false;
         }
-        o << ")";
+        else {
+            pr(o, *it, indent+1);
+            if (++it!=end) {
+                o << " ";
+            }
+        }
+        first = false;
     }
-    return o;
+    return o << ")";
 }
 
 std::ostream& operator<<(std::ostream& o, const s_expr& x) {
     return pr(o, x, 1);
 }
-
-/*
-std::ostream& operator<<(std::ostream& o, const s_expr& x) {
-    if (x.is_atom()) return o << x.atom();
-#if 1
-    o << "(";
-    bool first = true;
-    for (auto& e: x) {
-        o << (first? "": " ") << e;
-        first = false;
-    }
-    return o << ")";
-#else
-    return o << "(" << x.head() << " . " << x.tail() << ")";
-#endif
-}
-*/
 
 std::size_t length(const s_expr& l) {
     // The length of an atom is 1.
