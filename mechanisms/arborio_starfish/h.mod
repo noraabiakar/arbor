@@ -11,8 +11,7 @@ ENDCOMMENT
 
 NEURON {
     SUFFIX h
-    USEION h WRITE ih VALENCE 1 ? Assuming valence = 1; TODO check this!!
-    
+    NONSPECIFIC_CURRENT ih
     RANGE gion                           
     RANGE gmax                              : Will be changed when ion channel mechanism placed on cell!
     RANGE conductance                       : parameter

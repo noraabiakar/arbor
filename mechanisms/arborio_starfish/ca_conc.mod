@@ -14,11 +14,11 @@ NEURON {
     USEION ca READ cao, ica WRITE cai VALENCE 2
     RANGE cai
     RANGE cao
-    GLOBAL initialConcentration
     GLOBAL initialExtConcentration
     RANGE restingConc                       : parameter
     RANGE decayConstant                     : parameter
     RANGE rho                               : parameter
+    RANGE surfaceArea                       : parameter
 }
 
 UNITS {
@@ -39,35 +39,36 @@ UNITS {
     
 }
 
+CONSTANT {
+   pi = 3.14159
+}
+
 PARAMETER {
     restingConc = 0 (mM)
     decayConstant = 13.333334 (ms)
     rho = 300000 (mM m2 /A /s)
+    diam
 }
 
 ASSIGNED {
-    diam (um)
-    area (um2)
     rate_concentration (mM/ms)
-    initialConcentration (mM)
     initialExtConcentration (mM)
-    
+    surfaceArea 
 }
 
 STATE {
-    concentration (mM) 
     extConcentration (mM) 
     cai
     
 }
 
 INITIAL {
-    initialConcentration = cai
+    cai = 3.7152
     initialExtConcentration = cao
+    surfaceArea = pi*diam*diam/4   
+
     rates(ica)
     rates(ica) ? To ensure correct initialisation.
-    
-    concentration = initialConcentration
     
     extConcentration = initialExtConcentration
     
@@ -77,8 +78,8 @@ BREAKPOINT {
     
     SOLVE states METHOD cnexp
     
-    if (concentration  < 0) {
-        concentration = 0 ? standard OnCondition
+    if (cai  < 0) {
+        cai = 0 ? standard OnCondition
     }
     
     
@@ -86,17 +87,15 @@ BREAKPOINT {
 
 DERIVATIVE states {
     rates(ica)
-    concentration' = rate_concentration
-    cai = concentration 
+    cai' = rate_concentration
     
 }
 
 PROCEDURE rates(ica) {
-    LOCAL surfaceArea, iCa
-    surfaceArea = area   : surfaceArea has units (um2), area (built in to NEURON) is in um^2...
-    
+    LOCAL iCa
+
     iCa = -1 * (0.01) * ica * surfaceArea :   iCa has units (nA) ; ica (built in to NEURON) has units (mA/cm2)...
     
-    rate_concentration = (iCa/surfaceArea) *  rho  - ((  concentration   -   restingConc  ) /   decayConstant  ) ? Note units of all quantities used here need to be consistent!
+    rate_concentration = (iCa/surfaceArea) *  rho  - ((  cai   -   restingConc  ) /   decayConstant  ) ? Note units of all quantities used here need to be consistent!
 }
 

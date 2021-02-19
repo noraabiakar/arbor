@@ -12,8 +12,7 @@ ENDCOMMENT
 NEURON {
     SUFFIX kca
     USEION ca READ cai,cao VALENCE 2
-    USEION k WRITE ik VALENCE 1 ? Assuming valence = 1; TODO check this!!
-    
+    NONSPECIFIC_CURRENT ik 
     RANGE gion                           
     RANGE gmax                              : Will be changed when ion channel mechanism placed on cell!
     RANGE conductance                       : parameter

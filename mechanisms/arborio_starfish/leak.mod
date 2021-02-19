@@ -11,7 +11,7 @@ ENDCOMMENT
 
 NEURON {
     SUFFIX leak
-    USEION leak WRITE ileak VALENCE 1 ? Assuming valence = 1; TODO check this!!
+    NONSPECIFIC_CURRENT ileak
     
     RANGE gion                           
     RANGE gmax                              : Will be changed when ion channel mechanism placed on cell!
