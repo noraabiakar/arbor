@@ -6,11 +6,10 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/label_parse.hpp>
+#include <arbor/s_expr.hpp>
 #include <arbor/util/any_visitor.hpp>
 
 #include <arborio/cableio.hpp>
-
-#include "s_expr.hpp"
 
 namespace arborio{
 using namespace arb;
