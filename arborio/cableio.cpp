@@ -1,3 +1,4 @@
+#include <iostream>
 #include <functional>
 #include <sstream>
 #include <numeric>
@@ -15,13 +16,16 @@
 
 namespace arborio{
 using namespace arb;
-using namespace s_expr_literals;
 
 // Errors
-
 format_parse_error::format_parse_error(const std::string& msg):
     arb::arbor_exception(msg)
 {}
+
+// Helpers
+inline symbol operator "" _symbol(const char* chars, size_t size) {
+    return {chars};
+}
 
 // Write s-expr
 
@@ -125,7 +129,6 @@ s_expr mksexp(const decor& d) {
 
 // Label dictionary
 s_expr mksexp(const label_dict& dict) {
-    using namespace arb::s_expr_literals;
     auto round_trip = [] (auto& x) {
       std::stringstream s;
       s << x;
@@ -183,7 +186,7 @@ std::ostream& write_s_expr(std::ostream& o, const cable_cell& c) {
 // Read s-expr
 
 // Anonymous namespace containing helper functions and types
-namespace {
+/*namespace {
 
 // Test whether a value wrapped in std::any can be converted to a target type
 template <typename T>
@@ -288,9 +291,7 @@ struct define_call {
     }
 };
 
-} // anonymous namespace
-
-struct nil_tag {};
+}*/ // anonymous namespace
 
 struct label_pair {
     std::string label;
@@ -336,6 +337,7 @@ parse_hopefully<label_pair> eval_dict(const s_expr& e) {
 
 parse_hopefully<label_dict> parse_label_dict(const std::string& str) {
     auto s = parse_s_expr(str);
+    std::cout << length(s) << std::endl;
     if (!s.head().is_atom()) {
         throw format_parse_error("Expected atom at head");
     }
@@ -379,7 +381,5 @@ parse_hopefully<label_dict> parse_label_dict(const std::string& str) {
 
     return d;
 }
-
 */
-
 } // namespace arborio

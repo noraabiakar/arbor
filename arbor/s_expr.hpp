@@ -50,22 +50,10 @@ struct token {
 
 std::ostream& operator<<(std::ostream&, const token&);
 
-inline token nil_token(src_location l={}) {
-    return token{l, tok::nil, "()"};
-}
-
 struct symbol {
     std::string str;
     operator std::string() const { return str; }
-    bool friend operator< (const symbol& lhs, const symbol& rhs) { return lhs.str<rhs.str; }
-    bool friend operator==(const symbol& lhs, const symbol& rhs) { return lhs.str==rhs.str; }
 };
-
-namespace s_expr_literals {
-    inline symbol operator "" _symbol(const char* chars, size_t size) {
-        return {chars};
-    }
-}
 
 struct s_expr {
     template <typename U>
@@ -214,7 +202,7 @@ struct s_expr {
     // with a std::unique_ptr via value_wrapper.
 
     using pair_type = s_pair<value_wrapper<s_expr>>;
-    std::variant<token, pair_type> state = nil_token();
+    std::variant<token, pair_type> state = token{{0,0}, tok::nil, "nil"};
 
     s_expr(const s_expr& s): state(s.state) {}
     s_expr() = default;
@@ -255,35 +243,16 @@ struct s_expr {
     friend std::ostream& operator<<(std::ostream& o, const s_expr& x);
 };
 
-struct bad_s_expr_get: arbor_exception {
-    bad_s_expr_get(const std::string& msg):
-        arbor_exception("bad_s_expr_get: "+msg)
-    {}
-};
-
-template <typename T>
-T get(const s_expr&) {
-    throw bad_s_expr_get("no cast to type possible");
-}
-
-template <>
-double get<double>(const s_expr& e);
+std::ostream& operator<<(std::ostream&, const s_expr&);
 
 // Helper function for programmatically building lists
-//
-//   slist(1, 2, "hello world", "banjax@cat/3"_symbol);
-//
-// Would produce the following s-expression:
-//
-//   (1 2 "hello world" banjax@cat/3)
-//
-// And can be nested:
-//
-//   slist(1, slist(2, 3), 4, 5 );
-//
+//     slist(1, 2, "hello world", "banjax@cat/3"_symbol);
+// Produces the following s-expression:
+//     (1 2 "hello world" banjax@cat/3)
+// Can be nested:
+//     slist(1, slist(2, 3), 4, 5 );
 // Produces:
-//
-//   (1 (2 3) 4 5)
+//     (1 (2 3) 4 5)
 
 template <typename T>
 s_expr slist(T v) {
@@ -310,10 +279,13 @@ s_expr slist_range(const Range& range) {
     return slist_range(std::begin(range), std::end(range));
 }
 
-std::size_t length(const s_expr& l);
-src_location location(const s_expr& l);
-
+// Build s-expr from string
 s_expr parse_s_expr(const std::string& line);
 
+// Length of the s-expr
+std::size_t length(const s_expr& l);
+
+// Location of the head of the s-expr
+src_location location(const s_expr& l);
 } // namespace arb
 

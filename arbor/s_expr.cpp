@@ -516,36 +516,4 @@ s_expr parse_s_expr(const std::string& line) {
     }
     return result;
 }
-
-template <>
-double get<double>(const s_expr& e) {
-    if (e.is_atom() && (e.atom().kind==tok::real || e.atom().kind==tok::integer)) {
-        return std::stod(e.atom().spelling);
-    }
-    throw bad_s_expr_get("unable to cast to double");
-}
-
-template <>
-int get<int>(const s_expr& e) {
-    if (e.is_atom() && e.atom().kind==tok::integer) {
-        return std::stoi(e.atom().spelling);
-    }
-    throw bad_s_expr_get("unable to cast to int");
-}
-
-template <>
-std::string get<std::string>(const s_expr& e) {
-    if (e.is_atom() && e.atom().kind==tok::string) {
-        return e.atom().spelling;
-    }
-    throw bad_s_expr_get("unable to cast to string");
-}
-
-template <>
-symbol get<symbol>(const s_expr& e) {
-    if (e.is_atom() && e.atom().kind==tok::symbol) {
-        return {e.atom().spelling};
-    }
-    throw bad_s_expr_get("unable to cast to symbol");
-}
 } // namespace arb
