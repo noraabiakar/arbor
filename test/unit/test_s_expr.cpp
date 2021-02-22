@@ -6,8 +6,8 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/label_parse.hpp>
-#include <arbor/s_expr.hpp>
 
+#include "s_expr.hpp"
 #include "util/strprintf.hpp"
 
 using namespace arb;

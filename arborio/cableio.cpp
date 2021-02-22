@@ -1,29 +1,29 @@
 #include <functional>
 #include <sstream>
+#include <numeric>
 
 #include <arbor/cable_cell.hpp>
-#include <arbor/morph/io.hpp>
-#include <arbor/s_expr.hpp>
+#include <arbor/util/any_visitor.hpp>
 
+#include <arborio/cableio.hpp>
+
+#include "s_expr.hpp"
 #include "util/span.hpp"
 #include "util/transform.hpp"
 
-namespace arb {
-
-// Helper functions that convert types into s-expressions.
-
-// The paintables, placeables, defaultables...
-
+namespace arborio{
+using namespace arb;
 using namespace s_expr_literals;
 
-//
-// OUTPUT: converting cell descriptions to s-expressions.
-//
+// Write s-expr
 
+// Helper functions that convert types into s-expressions.
 template <typename U, typename V>
 s_expr mksexp(const std::pair<U, V>& p) {
     return slist(p.first, p.second);
 }
+s_expr mksexp(const mechanism_desc&);
+s_expr mksexp(const msegment&);
 
 struct as_s_expr {
     template <typename T>
@@ -32,61 +32,68 @@ struct as_s_expr {
     }
 };
 
+// Defaultable and paintable
 s_expr mksexp(const init_membrane_potential& p) {
     return slist("membrane-potential"_symbol, p.value);
 }
-
 s_expr mksexp(const axial_resistivity& r) {
     return slist("axial-resistivity"_symbol, r.value);
 }
-
 s_expr mksexp(const temperature_K& t) {
     return slist("temperature-kelvin"_symbol, t.value);
 }
-
 s_expr mksexp(const membrane_capacitance& c) {
     return slist("membrane-capacitance"_symbol, c.value);
 }
-
 s_expr mksexp(const init_int_concentration& c) {
     return slist("ion-internal-concentration"_symbol, c.ion, c.value);
 }
-
 s_expr mksexp(const init_ext_concentration& c) {
     return slist("ion-external-concentration"_symbol, c.ion, c.value);
 }
-
 s_expr mksexp(const init_reversal_potential& e) {
     return slist("ion-reversal-potential"_symbol, e.ion, e.value);
 }
+s_expr mksexp(const initial_ion_data& s) {
+    std::vector<s_expr> ion_data;
+    if (auto iconc = s.initial.init_int_concentration) {
+        ion_data.push_back(slist("ion-internal-concentration"_symbol, s.ion, iconc.value()));
+    }
+    if (auto econc = s.initial.init_ext_concentration) {
+        ion_data.push_back(slist("ion-external-concentration"_symbol, s.ion, econc.value()));
+    }
+    if (auto revpot = s.initial.init_reversal_potential) {
+        ion_data.push_back(slist("ion-reversal-potential"_symbol, s.ion, revpot.value()));
+    }
+    return slist_range(ion_data);
+}
 
-s_expr mksexp(const mechanism_desc& d); // forward declaration
+// Defaultable
 s_expr mksexp(const ion_reversal_potential_method& e) {
     return slist("ion-reversal-potential-method"_symbol, e.ion, mksexp(e.method));
 }
-
-s_expr mksexp(const i_clamp& c) {
-    return slist("current-clamp"_symbol, c.amplitude, c.delay, c.duration);
+s_expr mksexp(const cv_policy& c) {
+    return s_expr();
 }
 
-s_expr mksexp(const threshold_detector& d) {
-    return slist("threshold-detector"_symbol, d.threshold);
-}
-
-s_expr mksexp(const gap_junction_site& s) {
-    return slist("gap-junction-site"_symbol);
-}
-
-s_expr mksexp(const initial_ion_data& s) {
-    return slist("todo--ion-data"_symbol);
-}
-
+// Paintable
 s_expr mksexp(const mechanism_desc& d) {
     using util::transform_view;
     return s_expr{"mechanism"_symbol, slist(d.name(), slist_range(transform_view(d.values(), as_s_expr())))};
 }
 
-// decorations on a cell
+// Placeable
+s_expr mksexp(const i_clamp& c) {
+    return slist("current-clamp"_symbol, c.amplitude, c.delay, c.duration);
+}
+s_expr mksexp(const threshold_detector& d) {
+    return slist("threshold-detector"_symbol, d.threshold);
+}
+s_expr mksexp(const gap_junction_site& s) {
+    return slist("gap-junction-site"_symbol);
+}
+
+// Decor
 s_expr mksexp(const decor& d) {
     auto round_trip = [] (auto& x) {
       std::stringstream s;
@@ -94,19 +101,19 @@ s_expr mksexp(const decor& d) {
       return parse_s_expr(s.str());
     };
     s_expr lst = slist();
-    for (const auto& p: d.defaults.serialize()) {
+    for (const auto& p: d.defaults().serialize()) {
         lst = {std::visit([&](auto& x) {return slist("default"_symbol, mksexp(x));}, p), std::move(lst)};
     }
-    for (const auto& p: d.paintings) {
+    for (const auto& p: d.paintings()) {
         lst = {std::visit([&](auto& x) {return slist("paint"_symbol, round_trip(p.first), mksexp(x));}, p.second), std::move(lst)};
     }
-    for (const auto& p: d.placements) {
+    for (const auto& p: d.placements()) {
         lst = {std::visit([&](auto& x) {return slist("place"_symbol, round_trip(p.first), mksexp(x));}, p.second), std::move(lst)};
     }
     return {"decorations"_symbol, std::move(lst)};
 }
 
-// label dictionary
+// Label dictionary
 s_expr mksexp(const label_dict& dict) {
     using namespace arb::s_expr_literals;
     auto round_trip = [] (auto& x) {
@@ -126,14 +133,13 @@ s_expr mksexp(const label_dict& dict) {
     return {"label-dict"_symbol, std::move(defs)};
 }
 
+// Morphology
 s_expr mksexp(const mpoint& p) {
     return slist("point"_symbol, p.x, p.y, p.z, p.radius);
 }
-
 s_expr mksexp(const msegment& seg) {
     return slist("segment"_symbol, (int)seg.id, mksexp(seg.prox), mksexp(seg.dist), seg.tag);
 }
-
 s_expr mksexp(const morphology& morph) {
     // Range of morphology branches represented as s-expressions from an input morphology
     auto branches = [] (auto& m) {
@@ -154,29 +160,26 @@ s_expr mksexp(const morphology& morph) {
 std::ostream& write_s_expr(std::ostream& o, const label_dict& dict) {
     return o << mksexp(dict);
 }
-
 std::ostream& write_s_expr(std::ostream& o, const decor& decorations) {
     return o << mksexp(decorations);
 }
-
+std::ostream& write_s_expr(std::ostream& o, const morphology& morphology) {
+    return o << mksexp(morphology);
+}
 std::ostream& write_s_expr(std::ostream& o, const cable_cell& c) {
     return o << s_expr{"cable-cell"_symbol, slist(mksexp(c.morphology()), mksexp(c.labels()), mksexp(c.decorations()))};
 }
 
-//
-// INPUT: parsing s-expressions of cell dynamics.
-//
+// Read s-expr
 
-// Put helper functions and types in an anonymous namespace
+// Anonymous namespace containing helper functions and types
 namespace {
 
 // Test whether a value wrapped in std::any can be converted to a target type
-
 template <typename T>
 bool match(const std::type_info& info) {
     return info == typeid(T);
 }
-
 template <>
 bool match<double>(const std::type_info& info) {
     return info == typeid(double) || info == typeid(int);
@@ -187,8 +190,7 @@ bool match<double>(const std::type_info& info) {
 //
 // For example, the following would return true:
 //
-//  match_args<int, int, string>(vector<any(4), any(12), any(string("hello")))
-
+//  call_match<int, int, string>(vector<any(4), any(12), any(string("hello"))>)
 template <typename... Args>
 struct call_match {
     template <std::size_t I, typename T, typename Q, typename... Rest>
@@ -214,12 +216,10 @@ struct call_match {
 };
 
 // Convert a value wrapped in a std::any to target type.
-
 template <typename T>
 T eval_cast(std::any arg) {
     return std::move(std::any_cast<T&>(arg));
 }
-
 template <>
 double eval_cast<double>(std::any arg) {
     if (arg.type()==typeid(int)) return std::any_cast<int>(arg);
@@ -228,7 +228,6 @@ double eval_cast<double>(std::any arg) {
 
 // Evaluate a call to a function where the arguments are provided as a std::vector<std::any>.
 // The arguments are expanded and converted to the correct types, as specified by Args.
-
 template <typename... Args>
 struct call_eval {
     using ftype = std::function<std::any(Args...)>;

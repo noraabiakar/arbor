@@ -11,6 +11,8 @@
 #include <variant>
 #include <vector>
 
+#include "arbor/arbexcept.hpp"
+
 namespace arb {
 
 struct src_location {
@@ -47,6 +49,24 @@ struct token {
 };
 
 std::ostream& operator<<(std::ostream&, const token&);
+
+inline
+token nil_token(src_location l={}) {
+    return token{l, tok::nil, "()"};
+}
+
+struct symbol {
+    std::string str;
+    operator std::string() const { return str; }
+    bool friend operator< (const symbol& lhs, const symbol& rhs) { return lhs.str<rhs.str; }
+    bool friend operator==(const symbol& lhs, const symbol& rhs) { return lhs.str==rhs.str; }
+};
+
+namespace s_expr_literals {
+    inline symbol operator "" _symbol(const char* chars, size_t size) {
+        return {chars};
+    }
+}
 
 struct s_expr {
     template <typename U>
@@ -112,7 +132,9 @@ struct s_expr {
         s_expr_iterator_impl(reference e):
             inner_(&e)
         {
-            if (inner_->is_atom()) {
+            // We can't iterate over an atom, unless the atom is
+            // nil, which is both an atom and an empty list.
+            if (inner_->is_atom() && inner_->atom().kind!=tok::nil) {
                 throw std::runtime_error("Attempt to create s_expr_iterator on an atom.");
             }
             if (finished()) inner_ = nullptr;
@@ -193,7 +215,7 @@ struct s_expr {
     // with a std::unique_ptr via value_wrapper.
 
     using pair_type = s_pair<value_wrapper<s_expr>>;
-    std::variant<token, pair_type> state = token{{0,0}, tok::nil, "nil"};
+    std::variant<token, pair_type> state = nil_token();
 
     s_expr(const s_expr& s): state(s.state) {}
     s_expr() = default;
@@ -201,6 +223,17 @@ struct s_expr {
     s_expr(s_expr l, s_expr r):
         state(pair_type(std::move(l), std::move(r)))
     {}
+
+    s_expr(std::string s):
+        s_expr(token{{0,0}, tok::string, std::move(s)}) {}
+    s_expr(const char* s):
+        s_expr(token{{0,0}, tok::string, s}) {}
+    s_expr(double x):
+        s_expr(token{{0,0}, tok::real, std::to_string(x)}) {}
+    s_expr(int x):
+        s_expr(token{{0,0}, tok::integer, std::to_string(x)}) {}
+    s_expr(symbol s):
+        s_expr(token{{0,0}, tok::symbol, s}) {}
 
     bool is_atom() const;
 
@@ -222,6 +255,62 @@ struct s_expr {
 
     friend std::ostream& operator<<(std::ostream& o, const s_expr& x);
 };
+
+struct bad_s_expr_get: arbor_exception {
+    bad_s_expr_get(const std::string& msg):
+        arbor_exception("bad_s_expr_get: "+msg)
+    {}
+};
+
+template <typename T>
+T get(const s_expr&) {
+    throw bad_s_expr_get("no cast to type possible");
+}
+
+template <>
+double get<double>(const s_expr& e);
+
+// Helper function for programatically building lists
+//
+//   slist(1, 2, "hello world", "banjax@cat/3"_symbol);
+//
+// Would produce the following s-expression:
+//
+//   (1 2 "hello world" banjax@cat/3)
+//
+// And can be nested:
+//
+//   slist(1, slist(2, 3), 4, 5 );
+//
+// Produces:
+//
+//   (1 (2 3) 4 5)
+
+template <typename T>
+s_expr slist(T v) {
+    return {v, {}};
+}
+
+template <typename T, typename... Args>
+s_expr slist(T v, Args... args) {
+    return {v, slist(args...)};
+}
+
+inline
+s_expr slist() {
+    return {};
+}
+
+template <typename I, typename S>
+s_expr slist_range(I b, S e) {
+    return b==e ? s_expr{}
+                : s_expr{*b, slist_range(++b,e)};
+}
+
+template <typename Range>
+s_expr slist_range(const Range& range) {
+    return slist_range(std::begin(range), std::end(range));
+}
 
 std::size_t length(const s_expr& l);
 src_location location(const s_expr& l);

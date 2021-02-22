@@ -4,6 +4,7 @@ set(arborio-sources
 if(ARB_WITH_NEUROML)
     list(APPEND arborio-sources
             arbornml.cpp
+            cableio.cpp
             parse_morphology.cpp
             with_xml.cpp
             xmlwrap.cpp
@@ -30,7 +31,7 @@ else ()
     target_link_libraries(arborio PUBLIC arbor arborio-public-headers)
 endif()
 
-target_link_libraries(arborio PRIVATE arbor-config-defs arborio-private-deps)
+target_link_libraries(arborio PRIVATE arbor-config-defs arborio-private-deps arbor-private-headers)
 
 install(DIRECTORY include/arborio
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}

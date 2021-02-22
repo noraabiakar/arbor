@@ -4,7 +4,6 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/string_literals.hpp>
-#include <arbor/s_expr.hpp>
 
 using namespace arb;
 using namespace arb::literals;

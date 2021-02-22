@@ -8,9 +8,10 @@
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/s_expr.hpp>
 
+#include "s_expr.hpp"
 #include "util/strprintf.hpp"
+
 namespace arb {
 
 inline bool is_alphanumeric(char c) {
@@ -390,6 +391,45 @@ s_expr::operator bool() const {
     return !(is_atom() && atom().kind==tok::nil);
 }
 
+// assume that stream indented and ready to go at location to start printing.
+std::ostream& pr(std::ostream& o, const s_expr& x, int indent) {
+    std::string in(std::string::size_type(2*indent), ' ');
+    if (x.is_atom()) {
+        o << x.atom();
+    }
+    else {
+        bool first=true;
+        o << "(";
+        auto it = std::begin(x);
+        auto end = std::end(x);
+        while (it!=end) {
+            if (!first && !it->is_atom() && length(*it)>=0) {
+                o << "\n" << in;
+                pr(o, *it, indent+1);
+                ++it;
+                if (it!=end && it->is_atom()) {
+                    o << "\n" << in;
+                }
+            }
+            else {
+                pr(o, *it, indent+1);
+                if (++it!=end) {
+                    o << " ";
+                }
+            }
+
+            first = false;
+        }
+        o << ")";
+    }
+    return o;
+}
+
+std::ostream& operator<<(std::ostream& o, const s_expr& x) {
+    return pr(o, x, 1);
+}
+
+/*
 std::ostream& operator<<(std::ostream& o, const s_expr& x) {
     if (x.is_atom()) return o << x.atom();
 #if 1
@@ -404,6 +444,7 @@ std::ostream& operator<<(std::ostream& o, const s_expr& x) {
     return o << "(" << x.head() << " . " << x.tail() << ")";
 #endif
 }
+*/
 
 std::size_t length(const s_expr& l) {
     // The length of an atom is 1.
@@ -497,4 +538,35 @@ s_expr parse_s_expr(const std::string& line) {
     return result;
 }
 
+template <>
+double get<double>(const s_expr& e) {
+    if (e.is_atom() && (e.atom().kind==tok::real || e.atom().kind==tok::integer)) {
+        return std::stod(e.atom().spelling);
+    }
+    throw bad_s_expr_get("unable to cast to double");
+}
+
+template <>
+int get<int>(const s_expr& e) {
+    if (e.is_atom() && e.atom().kind==tok::integer) {
+        return std::stoi(e.atom().spelling);
+    }
+    throw bad_s_expr_get("unable to cast to int");
+}
+
+template <>
+std::string get<std::string>(const s_expr& e) {
+    if (e.is_atom() && e.atom().kind==tok::string) {
+        return e.atom().spelling;
+    }
+    throw bad_s_expr_get("unable to cast to string");
+}
+
+template <>
+symbol get<symbol>(const s_expr& e) {
+    if (e.is_atom() && e.atom().kind==tok::symbol) {
+        return {e.atom().spelling};
+    }
+    throw bad_s_expr_get("unable to cast to symbol");
+}
 } // namespace arb

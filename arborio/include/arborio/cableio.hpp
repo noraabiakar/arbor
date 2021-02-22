@@ -4,10 +4,11 @@
 
 #include <arbor/cable_cell.hpp>
 
-namespace arb {
+namespace arborio {
 
-std::ostream& write_s_expr(std::ostream&, const cable_cell&);
-std::ostream& write_s_expr(std::ostream&, const label_dict&);
-std::ostream& write_s_expr(std::ostream&, const decor&);
+std::ostream& write_s_expr(std::ostream&, const arb::cable_cell&);
+std::ostream& write_s_expr(std::ostream&, const arb::label_dict&);
+std::ostream& write_s_expr(std::ostream&, const arb::decor&);
+std::ostream& write_s_expr(std::ostream&, const arb::morphology&);
 
 } // namespace arb
