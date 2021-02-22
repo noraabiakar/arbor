@@ -1,10 +1,10 @@
 set(arborio-sources
     swcio.cpp
+    cableio.cpp
 )
 if(ARB_WITH_NEUROML)
     list(APPEND arborio-sources
             arbornml.cpp
-            cableio.cpp
             parse_morphology.cpp
             with_xml.cpp
             xmlwrap.cpp

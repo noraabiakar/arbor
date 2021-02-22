@@ -269,7 +269,7 @@ T get(const s_expr&) {
 template <>
 double get<double>(const s_expr& e);
 
-// Helper function for programatically building lists
+// Helper function for programmatically building lists
 //
 //   slist(1, 2, "hello world", "banjax@cat/3"_symbol);
 //
@@ -295,8 +295,7 @@ s_expr slist(T v, Args... args) {
     return {v, slist(args...)};
 }
 
-inline
-s_expr slist() {
+inline s_expr slist() {
     return {};
 }
 

@@ -3,17 +3,25 @@
 #include <numeric>
 
 #include <arbor/cable_cell.hpp>
+#include <arbor/morph/label_parse.hpp>
 #include <arbor/util/any_visitor.hpp>
 
 #include <arborio/cableio.hpp>
 
 #include "s_expr.hpp"
 #include "util/span.hpp"
+#include "util/strprintf.hpp"
 #include "util/transform.hpp"
 
 namespace arborio{
 using namespace arb;
 using namespace s_expr_literals;
+
+// Errors
+
+format_parse_error::format_parse_error(const std::string& msg):
+    arb::arbor_exception(msg)
+{}
 
 // Write s-expr
 
@@ -22,6 +30,8 @@ template <typename U, typename V>
 s_expr mksexp(const std::pair<U, V>& p) {
     return slist(p.first, p.second);
 }
+
+// Forward declarations
 s_expr mksexp(const mechanism_desc&);
 s_expr mksexp(const msegment&);
 
@@ -280,16 +290,75 @@ struct define_call {
 
 } // anonymous namespace
 
-/*
-std::tuple<std::string, region>
-parse_region_definition(const s_expr& e) {
-    auto f = [](std::string name, region reg) {
-        return std::tuple{std::move(name), std::move(name)};
+struct nil_tag {};
+
+struct label_pair {
+    std::string label;
+    std::variant<region, locset> desc;
+};
+
+parse_hopefully<label_pair> eval_dict(const s_expr& e) {
+    if (e.is_atom()) {
+        return util::unexpected(format_parse_error("eval_dict expected atom"));
     }
+    if (e.head().is_atom()) {
+        auto& name = e.head().atom().spelling;
+        if (name != "region-def" && name != "locset-def") {
+            return util::unexpected(format_parse_error("eval_dict expected region-def or locset-def"));
+        }
+        auto args = e.tail();
+        if (!args.head().is_atom() || args.head().atom().kind != tok::string) {
+            return util::unexpected(format_parse_error("eval_dict arg expected string atom"));
+        }
+        if (args.tail().is_atom()) {
+            return util::unexpected(format_parse_error("eval_dict arg did not expect string atom"));
+        }
+        if (!args.tail().tail().is_atom() || args.tail().tail().atom().kind != tok::nil) {
+            return util::unexpected(format_parse_error("eval_dict expected bahh"));
+        }
+        label_pair p;
+        p.label = args.head().atom().spelling;
+        if (auto desc = parse_label_expression(args.tail().head())) {
+            if (desc->type() == typeid(locset) && name == "locset-def") {
+                p.desc = std::any_cast<locset&>(*desc);
+                return p;
+            }
+            if (desc->type() == typeid(region) && name == "region-def") {
+                p.desc = std::any_cast<region&>(*desc);
+                return p;
+            }
+        } else {
+            throw desc.error();
+        }
+    }
+    return util::unexpected(format_parse_error("expected something else"));
 }
 
-label_dict parse_label_dict(const s_expr& e) {
+parse_hopefully<label_dict> parse_label_dict(const std::string& str) {
+    auto s = parse_s_expr(str);
+    if (!s.head().is_atom()) {
+        throw format_parse_error("Expected atom at head");
+    }
+    if (s.head().atom().kind != tok::symbol) {
+        throw format_parse_error("Expected symbol at head");
+    }
+    if (s.head().atom().spelling != "label-dict") {
+        throw format_parse_error("Expected label-dict symbol at head");
+    }
     label_dict d;
+    for (const auto& t: s.tail()) {
+        if (auto e = eval_dict(t)) {
+            if (auto eval = std::get_if<region>(&e->desc)) d.set(e->label, *eval);
+            if (auto eval = std::get_if<locset>(&e->desc)) d.set(e->label, *eval);
+        }
+        else {
+            throw e.error();
+        }
+    }
+    return d;
+}
+/*
+{    label_dict d;
     for (auto& entry: e) {
         auto it = std::begin(entry);
         std::string kind = get<symbol>(*it);
@@ -310,6 +379,7 @@ label_dict parse_label_dict(const s_expr& e) {
 
     return d;
 }
+
 */
 
-} // namespace arb
+} // namespace arborio
