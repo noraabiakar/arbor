@@ -19,7 +19,7 @@
 // 3. A map taking mechanism names x back-end class -> mechanism implementation
 //    prototype object.
 //
-// Implementations for a backend `B` are represented by a pointer to a 
+// Implementations for a backend `B` are represented by a pointer to a
 // `concrete_mechanism<B>` object.
 //
 // References to mechanism_info and mechanism_fingerprint objects are invalidated
@@ -125,6 +125,7 @@ private:
 const mechanism_catalogue& global_default_catalogue();
 const mechanism_catalogue& global_allen_catalogue();
 const mechanism_catalogue& global_bbp_catalogue();
+const mechanism_catalogue& global_dbbs_catalogue();
 
 // Load catalogue from disk.
 
