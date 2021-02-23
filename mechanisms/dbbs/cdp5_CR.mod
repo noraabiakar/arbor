@@ -259,7 +259,6 @@ KINETIC state {
 
 
 	cai = ca
-	mgi = mg
 }
 
 FUNCTION ssBuff1() (mM) {
