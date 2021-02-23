@@ -73,57 +73,52 @@ ASSIGNED {
 }
 
 INITIAL {
-	rate(v)
+	rate(v, celsius)
 	s = s_inf
 	u = u_inf
 }
 
 BREAKPOINT {
-	SOLVE states METHOD derivimplicit 
+	SOLVE states METHOD cnexp
 	g = gcabar*s*s*u
 	ica = g*(v - eca)
-	alpha_s = alp_s(v)
-	beta_s = bet_s(v)
-	alpha_u = alp_u(v)
-	beta_u = bet_u(v)
+	alpha_s = alp_s(v, celsius)
+	beta_s = bet_s(v, celsius)
+	alpha_u = alp_u(v, celsius)
+	beta_u = bet_u(v, celsius)
 }
 
 DERIVATIVE states {
-	rate(v)
+	rate(v, celsius)
 	s' =(s_inf - s)/tau_s
 	u' =(u_inf - u)/tau_u
 }
 
-FUNCTION alp_s(v(mV))(/ms) { LOCAL Q10
-	Q10 = 3^((celsius-20(degC))/10(degC))
+FUNCTION alp_s(v(mV), celsius)(/ms) { LOCAL Q10
+	Q10 = 3^((celsius-20)/10)
 	alp_s = Q10*Aalpha_s*exp((v-V0alpha_s)/Kalpha_s)
 }
 
-FUNCTION bet_s(v(mV))(/ms) { LOCAL Q10
-	Q10 = 3^((celsius-20(degC))/10(degC))
+FUNCTION bet_s(v(mV), celsius)(/ms) { LOCAL Q10
+	Q10 = 3^((celsius-20)/10)
 	bet_s = Q10*Abeta_s*exp((v-V0beta_s)/Kbeta_s)
 }
 
-FUNCTION alp_u(v(mV))(/ms) { LOCAL Q10
-	Q10 = 3^((celsius-20(degC))/10(degC))
+FUNCTION alp_u(v(mV), celsius)(/ms) { LOCAL Q10
+	Q10 = 3^((celsius-20)/10)
 	alp_u = Q10*Aalpha_u*exp((v-V0alpha_u)/Kalpha_u)
 }
 
-FUNCTION bet_u(v(mV))(/ms) { LOCAL Q10
-	Q10 = 3^((celsius-20(degC))/10(degC))
+FUNCTION bet_u(v(mV), celsius)(/ms) { LOCAL Q10
+	Q10 = 3^((celsius-20)/10)
 	bet_u = Q10*Abeta_u*exp((v-V0beta_u)/Kbeta_u)
 }
 
-PROCEDURE rate(v (mV)) {LOCAL a_s, b_s, a_u, b_u
-	TABLE s_inf, tau_s, u_inf, tau_u
-	DEPEND Aalpha_s, Kalpha_s, V0alpha_s,
-	       Abeta_s, Kbeta_s, V0beta_s,
-               Aalpha_u, Kalpha_u, V0alpha_u,
-               Abeta_u, Kbeta_u, V0beta_u, celsius FROM -100 TO 30 WITH 13000
-	a_s = alp_s(v)
-	b_s = bet_s(v)
-	a_u = alp_u(v)
-	b_u = bet_u(v)
+PROCEDURE rate(v (mV), celsius) {LOCAL a_s, b_s, a_u, b_u
+	a_s = alp_s(v, celsius)
+	b_s = bet_s(v, celsius)
+	a_u = alp_u(v, celsius)
+	b_u = bet_u(v, celsius)
 	s_inf = a_s/(a_s + b_s)
 	tau_s = 1/(a_s + b_s)
 	u_inf = a_u/(a_u + b_u)

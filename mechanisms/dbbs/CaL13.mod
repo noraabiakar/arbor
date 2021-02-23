@@ -7,18 +7,18 @@ UNITS {
 	(S) = (siemens)
 	(molar) = (1/liter)
 	(mM) = (millimolar)
-	FARADAY = (faraday) (coulomb)
-	R = (k-mole) (joule/degC)
 }
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__CaL13__0
+	SUFFIX CaL13
 	USEION cal READ cali, calo WRITE ical VALENCE 2
 	RANGE pcaLbar, ical, mshift, hshift, qfact, hqfact
 }
 
 PARAMETER {
 	pcaLbar = 1.7e-6    (cm/s)	: hold at vh = -100 mv, step to -30 mv
+	FARADAY = 96485.3 (coulomb)
+	R = 8.314 (joule/degC)
 
 	mvhalf = -33	(mV)		: match to Xu 2001 Figure 1D with mslope from churchill
 	mslope = -6.7	(mV)		: Churchill 1998, fig 5
@@ -27,7 +27,7 @@ PARAMETER {
 	vm = -8.124  	(mV)		: Kasai 1992, fig 15
 	k = 9.005   	(mV)		: Kasai 1992, fig 15
 	kpr = 31.4   	(mV)		: Kasai 1992, fig 15
-	c = 0.0398   	(/ms-mV)	: Kasai 1992, fig 15
+	c = 0.0398   	(/ms/mV)	: Kasai 1992, fig 15
 	cpr = 0.99		(/ms)		: Kasai 1992, fig 15
 
 	hvhalf = -13.4	(mV)		: Bell 2001, fig 2
@@ -42,12 +42,9 @@ PARAMETER {
 
 ASSIGNED {
     v 		(mV)
-    ical 	(mA/cm2)
     ecal 	(mV)
 
     celsius	(degC)
-    cali		(mM)
-    calo		(mM)
 
     minf
     mtau 	(ms)
@@ -78,9 +75,6 @@ DERIVATIVE states {
 
 PROCEDURE settables( v (mV) ) {
 	LOCAL malpha, mbeta
-
-	TABLE minf, mtau, hinf DEPEND mshift, hshift
-		FROM -100 TO 100 WITH 201
 
 		minf = 1  /  ( 1 + exp( (v-mvhalf-mshift) / mslope) )
 		hinf = 1  /  ( 1 + exp( (v-hvhalf-hshift) / hslope) )
