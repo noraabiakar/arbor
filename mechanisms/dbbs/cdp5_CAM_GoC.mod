@@ -42,6 +42,7 @@ UNITS {
 CONSTANT {
   FARADAY = 96520 : Farady constant (coulomb/mol)
   PI = 3.14
+  cao = 2	(mM)
 }
 
 PARAMETER {
@@ -122,8 +123,6 @@ ASSIGNED {
 	vrat	(1)
   icazz (nA)
 }
-
-CONSTANT { cao = 2	(mM) }
 
 STATE {
 	: ca[0] is equivalent to cai
