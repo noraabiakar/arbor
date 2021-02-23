@@ -50,7 +50,6 @@ PARAMETER {
 
 	v (mV)
 	gcabar= 0.00046 (mho/cm2)
-	eca = 129.33 (mV)
 	celsius = 30 (degC)
 }
 
@@ -60,7 +59,6 @@ STATE {
 }
 
 ASSIGNED {
-	ica (mA/cm2)
 	s_inf
 	u_inf
 	tau_s (ms)
