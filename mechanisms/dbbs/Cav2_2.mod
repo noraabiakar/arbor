@@ -12,6 +12,12 @@ UNITS {
 
 }
 
+CONSTANT {
+	FARADAY = 96520 (coul)
+	R = 8.3134 (joule/degC)
+	KTOMV = .0853 (mV/degC)
+}
+
 PARAMETER {
 	v (mV)
 	celsius 		(degC)
@@ -24,9 +30,6 @@ PARAMETER {
 	zetam = 2
 	vhalfm = -14
 	gmm=0.1
-	FARADAY = 96520 (coul)
-	R = 8.3134 (joule/degC)
-	KTOMV = .0853 (mV/degC)
 }
 
 
