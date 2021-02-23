@@ -19,10 +19,8 @@ Contact: Sungho Hong (shhong@oist.jp)
 
 ENDCOMMENT
 
-INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
-
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Cav2_1__0
+    SUFFIX Cav2_1
     USEION ca READ cai, cao WRITE ica
     RANGE pcabar, ica, gk, vhalfm, cvm, vshift, taum, minf
 }
@@ -50,9 +48,6 @@ PARAMETER {
     v (mV)
     celsius (degC)
 
-    cai (mM)
-    cao (mM)
-
     vhalfm = -29.458 (mV)
     cvm = 8.429(mV)
     vhalfh = -11.039 (mV)
@@ -64,7 +59,6 @@ PARAMETER {
 
 ASSIGNED {
     qt
-    ica (mA/cm2)
     minf
     taum (ms)
     gk (coulombs/cm3)
@@ -76,9 +70,9 @@ ASSIGNED {
 STATE { m }
 
 INITIAL {
-    qt = q10^((celsius-23 (degC))/10 (degC))
+    qt = q10^((celsius-23)/10)
     T = kelvinfkt( celsius )
-    rates(v)
+    rates(v, cai, cao)
     m = minf
 }
 
@@ -89,7 +83,7 @@ BREAKPOINT {
 }
 
 DERIVATIVE states {
-    rates(v)
+    rates(v, cai, cao)
     m' = (minf-m)/taum
 }
 
@@ -104,7 +98,7 @@ FUNCTION ghk( v (mV), ci (mM), co (mM), z )  (coulombs/cm3) {
     }
 }
 
-PROCEDURE rates( v (mV) ) {
+PROCEDURE rates( v (mV), cai, cao ) {
 
     minf = 1 / ( 1 + exp(-(v-vhalfm-vshift)/cvm) )
 

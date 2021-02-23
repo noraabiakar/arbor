@@ -8,7 +8,7 @@ COMMENT
 ENDCOMMENT
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Ca__granule_cell
+  SUFFIX Ca_granule
 	USEION ca READ eca WRITE ica
 	RANGE gcabar, ica, g, alpha_s, beta_s, alpha_u, beta_u
 	RANGE Aalpha_s, Kalpha_s, V0alpha_s
