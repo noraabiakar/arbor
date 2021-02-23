@@ -4,7 +4,7 @@
 : Suffix from kpkj to Kv3_4
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Kv3_4__0
+	SUFFIX Kv3_4
 	USEION k READ ek WRITE ik
 	RANGE gkbar, ik
 	RANGE minf, hinf, mtau, htau
@@ -20,28 +20,26 @@ CONSTANT {
 }
 
 PARAMETER {
+	celsius (degC)
 	v (mV)
 
 	gkbar = .004	(mho/cm2)
 
 	mivh = -24	(mV)
 	mik = 15.4	(1)
-	mty0 = .00012851 	
+	mty0 = .00012851
 	mtvh1 = 100.7	(mV)
 	mtk1 = 12.9	(1)
 	mtvh2 = -56.0	(mV)
 	mtk2 = -23.1	(1)
-	
-	hiy0 = .31	
+
+	hiy0 = .31
 	hiA = .69
 	hivh = -5.802	(mV)
 	hik = 11.2	(1)
-
-	ek
 }
 
 ASSIGNED {
-	ik		(mA/cm2)
 	minf
 	mtau		(ms)
 	hinf
@@ -59,7 +57,7 @@ INITIAL {
 	m = minf
 	h = hinf
 
-	qt = q10^((celsius-37 (degC))/10 (degC))
+	qt = q10^((celsius-37)/10)
 }
 
 BREAKPOINT {
@@ -74,12 +72,12 @@ DERIVATIVE states {
 }
 
 PROCEDURE rates( Vm (mV)) {
-	LOCAL v
-	v = Vm + 11	: Account for Junction Potential
-	minf = 1/(1+exp(-(v-mivh)/mik)) 
-	mtau = (1000) * mtau_func(v) /qt
-	hinf = hiy0 + hiA/(1+exp((v-hivh)/hik))
-	htau = 1000 * htau_func(v) / qt
+	LOCAL v_
+	v_ = Vm + 11	: Account for Junction Potential
+	minf = 1/(1+exp(-(v_-mivh)/mik))
+	mtau = (1000) * mtau_func(v_) /qt
+	hinf = hiy0 + hiA/(1+exp((v_-hivh)/hik))
+	htau = 1000 * htau_func(v_) / qt
 }
 
 FUNCTION mtau_func (v (mV)) (ms) {
@@ -97,4 +95,3 @@ FUNCTION htau_func(Vm (mV)) (ms) {
 		htau_func = 1.2202e-05 + .012 * exp(-((Vm-(-56.3))/49.6)^2)
 	}
 }
-	

@@ -30,8 +30,7 @@ ENDCOMMENT
 
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Kv3_3__0
-    THREADSAFE
+  SUFFIX Kv3_3
 	USEION k READ ek WRITE ik
 	NONSPECIFIC_CURRENT i
 	RANGE gbar, g, ik, i, igate, nc
@@ -50,7 +49,7 @@ UNITS {
 	(pS) = (picosiemens)
 	(um) = (micron)
 	(molar) = (1/liter)
-	(mM) = (millimolar)		
+	(mM) = (millimolar)
 }
 
 CONSTANT {
@@ -63,26 +62,23 @@ CONSTANT {
 	cb = 0.22 (1/ms)
 	cvb = 16 (mV)
 	ckb = 26.5 (mV)
-	
+
 	zn = 1.9196 (1)		: valence of n-gate
 }
 
 PARAMETER {
 	gateCurrent = 0 (1)	: gating currents ON = 1 OFF = 0
-	
+
 	gbar = 0.005 (S/cm2)   <0,1e9>
-	gunit = 16 (pS)		: unitary conductance 
+	gunit = 16 (pS)		: unitary conductance
 }
 
 ASSIGNED {
 	celsius (degC)
 	v (mV)
-	
-	ik (mA/cm2)
+
 	igate (mA/cm2)
-	i (mA/cm2)
- 
-	ek (mV)
+
 	g (S/cm2)
 	nc (1/cm2)
 	qt (1)
@@ -97,18 +93,18 @@ STATE { n }
 
 INITIAL {
 	nc = (1e12) * gbar / gunit
-	qt = q10^((celsius-22 (degC))/10 (degC))
+	qt = q10^((celsius-22)/10)
 	rateConst(v)
 	n = ninf
 }
 
 BREAKPOINT {
 	SOLVE state METHOD cnexp
-      g = gbar * n^4 
+      g = gbar * n^4
 	ik = g * (v - ek)
 	igate = nc * (1e6) * e0 * 4 * zn * ngateFlip()
 
-	if (gateCurrent != 0) { 
+	if (gateCurrent != 0) {
 		i = igate
 	}
 }
@@ -121,12 +117,12 @@ DERIVATIVE state {
 PROCEDURE rateConst(v (mV)) {
 	alpha = qt * alphaFkt(v)
 	beta = qt * betaFkt(v)
-	ninf = alpha / (alpha + beta) 
+	ninf = alpha / (alpha + beta)
 	taun = 1 / (alpha + beta)
 }
 
 FUNCTION alphaFkt(v (mV)) (1/ms) {
-	alphaFkt = ca * exp(-(v+cva)/cka) 
+	alphaFkt = ca * exp(-(v+cva)/cka)
 }
 
 FUNCTION betaFkt(v (mV)) (1/ms) {
@@ -134,7 +130,5 @@ FUNCTION betaFkt(v (mV)) (1/ms) {
 }
 
 FUNCTION ngateFlip() (1/ms) {
-	ngateFlip = (ninf-n)/taun 
+	ngateFlip = (ninf-n)/taun
 }
-
-

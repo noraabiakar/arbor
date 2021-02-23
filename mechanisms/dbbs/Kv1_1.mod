@@ -33,8 +33,7 @@ ENDCOMMENT
 
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Kv1_1__0
-    THREADSAFE
+  SUFFIX Kv1_1
 	USEION k READ ek WRITE ik
 	NONSPECIFIC_CURRENT i
 	RANGE g, gbar, ik, i , igate, nc
@@ -52,7 +51,7 @@ UNITS {
 	(pS) = (picosiemens)
 	(um) = (micron)
 	(molar) = (1/liter)
-	(mM) = (millimolar)		
+	(mM) = (millimolar)
 }
 
 CONSTANT {
@@ -65,30 +64,27 @@ CONSTANT {
 
 	cb = 0.12889 (1/ms)
       cvb = 45 (mV)
-	ckb = 12.42101 (mV) 
+	ckb = 12.42101 (mV)
 
-	zn = 2.7978 (1)		: valence of n-gate         
+	zn = 2.7978 (1)		: valence of n-gate
 }
 
 PARAMETER {
 	gateCurrent = 0 (1)	: gating currents ON = 1 OFF = 0
-	
+
 	gbar = 0.004 (S/cm2)   <0,1e9>
-	gunit = 16 (pS)		: unitary conductance 
+	gunit = 16 (pS)		: unitary conductance
 }
 
 
 ASSIGNED {
  	celsius (degC)
-	v (mV)	
+	v (mV)
 
-	ik (mA/cm2)
-	i (mA/cm2)
-	igate (mA/cm2) 
-	ek (mV)
+	igate (mA/cm2)
 	g  (S/cm2)
 	nc (1/cm2)			: membrane density of channel
-	
+
 	ninf (1)
 	taun (ms)
 	alphan (1/ms)
@@ -100,36 +96,36 @@ STATE { n }
 
 INITIAL {
 	nc = (1e12) * gbar / gunit
-	qt = q10^((celsius-22 (degC))/10 (degC))
+	qt = q10^((celsius-22)/10)
 	rates(v)
 	n = ninf
 }
 
 BREAKPOINT {
 	SOLVE states METHOD cnexp
-      g = gbar * n^4 
+      g = gbar * n^4
 	ik = g * (v - ek)
 	igate = nc * (1e6) * e0 * 4 * zn * ngateFlip()
 
-	if (gateCurrent != 0) { 
+	if (gateCurrent != 0) {
 		i = igate
 	}
 }
 
 DERIVATIVE states {
 	rates(v)
-	n' = (ninf-n)/taun 
+	n' = (ninf-n)/taun
 }
 
 PROCEDURE rates(v (mV)) {
 	alphan = alphanfkt(v)
 	betan = betanfkt(v)
-	ninf = alphan/(alphan+betan) 
-	taun = 1/(qt*(alphan + betan))       
+	ninf = alphan/(alphan+betan)
+	taun = 1/(qt*(alphan + betan))
 }
 
 FUNCTION alphanfkt(v (mV)) (1/ms) {
-	alphanfkt = ca * exp(-(v+cva)/cka) 
+	alphanfkt = ca * exp(-(v+cva)/cka)
 }
 
 FUNCTION betanfkt(v (mV)) (1/ms) {
@@ -137,8 +133,5 @@ FUNCTION betanfkt(v (mV)) (1/ms) {
 }
 
 FUNCTION ngateFlip() (1/ms) {
-	ngateFlip = (ninf-n)/taun 
+	ngateFlip = (ninf-n)/taun
 }
-
-
-

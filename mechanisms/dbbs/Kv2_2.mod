@@ -6,9 +6,9 @@
 :Reference :Molecular identification of a component of delayed rectifier current in gastrointestinal smooth muscles. Am. J. Physiol., 1998, 274, G901-11
 
 NEURON	{
-SUFFIX glia__dbbs_mod_collection__Kv2_2__0
+	SUFFIX Kv2_2
 	USEION k READ ek WRITE ik
-	RANGE gKv2_2bar, gKv2_2, ik, BBiD 
+	RANGE gKv2_2bar, gKv2_2, ik, BBiD
 }
 
 UNITS	{
@@ -18,14 +18,12 @@ UNITS	{
 }
 
 PARAMETER	{
-	gKv2_2bar = 0.00001 (S/cm2) 
-	BBiD = 10 
+	gKv2_2bar = 0.00001 (S/cm2)
+	BBiD = 10
 }
 
 ASSIGNED	{
 	v	(mV)
-	ek	(mV)
-	ik	(mA/cm2)
 	gKv2_2	(S/cm2)
 	mInf
 	mTau
@@ -33,7 +31,7 @@ ASSIGNED	{
 	hTau
 }
 
-STATE	{ 
+STATE	{
 	m
 	h
 }
@@ -45,22 +43,22 @@ BREAKPOINT	{
 }
 
 DERIVATIVE states	{
-	rates()
+	rates(v)
 	m' = (mInf-m)/mTau
 	h' = (hInf-h)/hTau
 }
 
 INITIAL{
-	rates()
+	rates(v)
 	m = mInf
 	h = hInf
 }
 
-PROCEDURE rates(){
-	UNITSOFF 
-		mInf = 1/(1+exp(((v -(5.000))/(-12.000)))) 
-		mTau = 130.000/(1+exp(((v -(-46.560))/(-44.140)))) 
-		hInf = 1/(1+exp(((v -(-16.300))/(4.800)))) 
+PROCEDURE rates(v){
+	UNITSOFF
+		mInf = 1/(1+exp(((v -(5.000))/(-12.000))))
+		mTau = 130.000/(1+exp(((v -(-46.560))/(-44.140))))
+		hInf = 1/(1+exp(((v -(-16.300))/(4.800))))
 		hTau = 10000.000/(1+exp(((v -(-46.560))/(-44.140))))
 	UNITSON
 }
