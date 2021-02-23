@@ -21,9 +21,8 @@ ENDCOMMENT
 
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__cdp5__0
-  USEION ca READ cao, cai, ica WRITE cai
-  RANGE ica_pmp
+  SUFFIX cdp5
+  USEION ca READ cao, ica WRITE cai
   RANGE Nannuli, Buffnull2, rf3, rf4, vrat
   RANGE TotalPump
 
@@ -36,14 +35,17 @@ UNITS {
 	(mM)    = (millimolar)
 	(um)    = (micron)
 	(mA)    = (milliamp)
-	FARADAY = (faraday)  (10000 coulomb)
-	PI      = (pi)       (1)
+}
+
+CONSTANT {
+  FARADAY = 96520 : Farady constant (coulomb/mol)
+  PI = 3.14
 }
 
 PARAMETER {
 	Nannuli = 10.9495 (1)
 	celsius (degC)
-        
+
 	cainull = 45e-6 (mM)
         mginull =.59    (mM)
 
@@ -83,22 +85,19 @@ PARAMETER {
         p1    = 0.8           (/ms mM)
         p2    = 2.5e-2                (/ms)
 
-  	kpmp1    = 3e-3       (/mM-ms)
+  	kpmp1    = 3e-3       (/mM/ms)
   	kpmp2    = 1.75e-5   (/ms)
   	kpmp3    = 7.255e-5  (/ms)
-	TotalPump = 1e-9	(mol/cm2)	
+	TotalPump = 1e-9	(mol/cm2)
 
 }
 
 ASSIGNED {
 	diam      (um)
-	ica       (mA/cm2)
-	ica_pmp   (mA/cm2)
 	parea     (um)     : pump area per unit length
 	parea2	  (um)
-	cai       (mM)
 	mgi	(mM)
-	vrat	(1)	
+	vrat	(1)
 }
 
 CONSTANT { cao = 2	(mM) }
@@ -108,10 +107,10 @@ STATE {
 	: ca[] are very small, so specify absolute tolerance
 	: let it be ~1.5 - 2 orders of magnitude smaller than baseline level
 
-	ca		(mM)    <1e-3>
-	mg		(mM)	<1e-6>
-	
-	Buff1		(mM)	
+	ca		(mM) : <1e-3>
+	mg		(mM) : <1e-6>
+
+	Buff1		(mM)
 	Buff1_ca	(mM)
 
 	Buff2		(mM)
@@ -121,7 +120,7 @@ STATE {
 	BTC_ca		(mM)
 
 	DMNPE		(mM)
-	DMNPE_ca	(mM)	
+	DMNPE_ca	(mM)
 
         :CB		(mM)
         :CB_f_ca		(mM)
@@ -131,9 +130,9 @@ STATE {
         PV		(mM)
         PV_ca		(mM)
         PV_mg		(mM)
-	
-	pump		(mol/cm2) <1e-15>
-	pumpca		(mol/cm2) <1e-15>
+
+	pump		(mol/cm2) : <1e-15>
+	pumpca		(mol/cm2) : <1e-15>
 
 }
 
@@ -141,14 +140,12 @@ BREAKPOINT {
 	SOLVE state METHOD sparse
 }
 
-LOCAL factors_done
-
 INITIAL {
 		factors()
 
 		ca = cainull
 		mg = mginull
-		
+
 		Buff1 = ssBuff1()
 		Buff1_ca = ssBuff1ca()
 
@@ -156,12 +153,12 @@ INITIAL {
 		Buff2_ca = ssBuff2ca()
 
 		BTC = ssBTC()
-		BTC_ca = ssBTCca()		
+		BTC_ca = ssBTCca()
 
 		DMNPE = ssDMNPE()
 		DMNPE_ca = ssDMNPEca()
 
-		:CB = ssCB( kdf(), kds())   
+		:CB = ssCB( kdf(), kds())
 	        :CB_f_ca = ssCBfast( kdf(), kds())
        	 	:CB_ca_s = ssCBslow( kdf(), kds())
         	:CB_ca_ca = ssCBca( kdf(), kds())
@@ -170,15 +167,12 @@ INITIAL {
         	PV_ca = ssPVca(kdc(), kdm())
         	PV_mg = ssPVmg(kdc(), kdm())
 
-		
+
   	parea = PI*diam
 	parea2 = PI*(diam-0.2)
-	ica = 0
-	ica_pmp = 0
-:	ica_pmp_last = 0
 	pump = TotalPump
 	pumpca = 0
-	
+
 	cai = ca
 }
 
@@ -191,10 +185,9 @@ PROCEDURE factors() {
 }
 
 
-LOCAL dsq, dsqvol  : can't define local variable in KINETIC block
-                   :   or use in COMPARTMENT statement
 
 KINETIC state {
+  LOCAL dsq, dsqvol
   COMPARTMENT diam*diam*vrat {ca mg Buff1 Buff1_ca Buff2 Buff2_ca BTC BTC_ca DMNPE DMNPE_ca PV PV_ca PV_mg}
   COMPARTMENT (1e10)*parea {pump pumpca}
 
@@ -203,11 +196,10 @@ KINETIC state {
 	~ ca + pump <-> pumpca  (kpmp1*parea*(1e10), kpmp2*parea*(1e10))
 	~ pumpca <-> pump   (kpmp3*parea*(1e10), 0)
   	CONSERVE pump + pumpca = TotalPump * parea * (1e10)
-	
-	ica_pmp = 2*FARADAY*(f_flux - b_flux)/parea	
+
 	: all currents except pump
 	: ica is Ca efflux
-	~ ca << (-ica*PI*diam/(2*FARADAY))
+	~ ca <-> (0, -ica*PI*diam/(2*FARADAY))
 
 	:RADIAL DIFFUSION OF ca, mg and mobile buffers
 
@@ -217,7 +209,7 @@ KINETIC state {
 		~ ca + Buff2 <-> Buff2_ca (rf3*dsqvol, rf4*dsqvol)
 		~ ca + BTC <-> BTC_ca (b1*dsqvol, b2*dsqvol)
 		~ ca + DMNPE <-> DMNPE_ca (c1*dsqvol, c2*dsqvol)
-		:Calbindin	
+		:Calbindin
 		:~ ca + CB <-> CB_ca_s (nf1*dsqvol, nf2*dsqvol)
 	       	:~ ca + CB <-> CB_f_ca (ns1*dsqvol, ns2*dsqvol)
         	:~ ca + CB_f_ca <-> CB_ca_ca (nf1*dsqvol, nf2*dsqvol)
@@ -285,12 +277,12 @@ FUNCTION kdc() (1) {
 FUNCTION kdm() (1) {
 	kdm = (mginull*p1)/p2
 }
-FUNCTION ssPV( kdc(), kdm()) (mM) {
-	ssPV = PVnull/(1+kdc()+kdm())
+FUNCTION ssPV(kdc_0, kdm_0) (mM) {
+	ssPV = PVnull/(1+kdc_0+kdm_0)
 }
-FUNCTION ssPVca( kdc(), kdm()) (mM) {
-	ssPVca = (PVnull*kdc())/(1+kdc()+kdm())
+FUNCTION ssPVca(kdc_0, kdm_0) (mM) {
+	ssPVca = (PVnull*kdc_0)/(1+kdc_0+kdm_0)
 }
-FUNCTION ssPVmg( kdc(), kdm()) (mM) {
-	ssPVmg = (PVnull*kdm())/(1+kdc()+kdm())
+FUNCTION ssPVmg(kdc_0, kdm_0) (mM) {
+	ssPVmg = (PVnull*kdm_0)/(1+kdc_0+kdm_0)
 }
