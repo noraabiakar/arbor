@@ -11,17 +11,17 @@ From Golgi_hcn1 to HCN1
 ENDCOMMENT
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__HCN1__golgi
+	SUFFIX HCN1_golgi
 	NONSPECIFIC_CURRENT ih
 	RANGE Q10_diff,Q10_channel,gbar_Q10, ic
 	RANGE o_fast_inf, o_slow_inf, tau_f, tau_s, Erev
-	RANGE gbar,r,g, o
-}       
-        
+	RANGE gbar, g, o
+}
+
 UNITS {
         (mA) = (milliamp)
 	(mV) = (millivolt)
-	(S)  = (siemens)        
+	(S)  = (siemens)
 }
 
 
@@ -34,7 +34,7 @@ PARAMETER {
 
 	Ehalf = -72.49 (mV)
 	c = 0.11305	(/mV)
-	
+
 	rA = 0.002096 (/mV)
         rB = 0.97596  (1)
         tCf = 0.01371 (1)
@@ -46,23 +46,22 @@ PARAMETER {
 }
 
 ASSIGNED {
-	ih		(mA/cm2)
-        v               (mV)
-	g		(S/cm2)
+  v 							(mV)
+	g								(S/cm2)
 	o_fast_inf
-        o_slow_inf
-        tau_f           (ms)
-	tau_s           (ms)       
-	gbar_Q10 (mho/cm2)
-	Q10 (1)
+  o_slow_inf
+  tau_f           (ms)
+	tau_s           (ms)
+	gbar_Q10 				(mho/cm2)
+	Q10 						(1)
 	ic
 	o
-    }
+}
 
 
 INITIAL {
 	gbar_Q10 = gbar*(Q10_diff^((celsius-23)/10))
-	rate(v)
+	rate(v, celsius)
 	o_fast = o_fast_inf
 	o_slow = o_slow_inf
 
@@ -79,8 +78,8 @@ BREAKPOINT {
 	o = o_fast + o_slow
 }
 
-DERIVATIVE state {	
-	rate(v)
+DERIVATIVE state {
+	rate(v, celsius)
 	o_fast' = (o_fast_inf - o_fast) / tau_f
 	o_slow' = (o_slow_inf - o_slow) / tau_s
 }
@@ -92,33 +91,31 @@ FUNCTION r(potential (mV))  { 	:fraction of fast component in double exponential
         UNITSON
 }
 
-FUNCTION tau_fast(potential (mV),t1,t2,t3) (ms) {
+FUNCTION tau_fast(potential (mV),t1,t2,t3, celsius) (ms) {
 	UNITSOFF
-	Q10 = Q10_channel^((celsius -23(degC)) / 10(degC))
+	Q10 = Q10_channel^((celsius -23) / 10)
         tau_fast = exp(((t1 * potential) - t2)*t3) / Q10
 	UNITSON
 }
-    
-    FUNCTION tau_slow(potential (mV),t1,t2,t3) (ms) {
+
+FUNCTION tau_slow(potential (mV),t1,t2,t3, celsius) (ms) {
 	UNITSOFF
-	Q10 = Q10_channel^((celsius -23(degC)) / 10(degC))
-        tau_slow = exp(((t1 * potential) - t2)*t3) / Q10
+	Q10 = Q10_channel^((celsius -23) / 10)
+  tau_slow = exp(((t1 * potential) - t2)*t3) / Q10
 	UNITSON
 }
 
 
-FUNCTION o_inf(potential (mV), Ehalf, c)  { 
+FUNCTION o_inf(potential (mV), Ehalf, c)  {
 	UNITSOFF
         o_inf = 1 / (1 + exp((potential - Ehalf) * c))
         UNITSON
 }
 
-PROCEDURE rate(v (mV)) { 
-	TABLE o_fast_inf, o_slow_inf, tau_f, tau_s
-	DEPEND celsius FROM -100 TO 30 WITH 13000
+PROCEDURE rate(v (mV), celsius) {
 	: r(v) is the fraction of fast component in double exponential
 	o_fast_inf = r(v) * o_inf(v,Ehalf,c)
 	o_slow_inf = (1 - r(v)) * o_inf(v,Ehalf,c)
-	tau_f =  tau_fast(v,tCf,tDf,tEf)
-	tau_s =  tau_slow(v,tCs,tDs,tEs)
+	tau_f =  tau_fast(v,tCf,tDf,tEf, celsius)
+	tau_s =  tau_slow(v,tCs,tDs,tEs, celsius)
 }
