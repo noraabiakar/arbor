@@ -3,15 +3,20 @@
 #include <ostream>
 
 #include <arbor/cable_cell.hpp>
+#include <arbor/morph/label_parse.hpp>
 
 namespace arborio {
 
-struct format_parse_error: arb::arbor_exception {
-    format_parse_error(const std::string& msg);
+struct cableio_parse_error: arb::arbor_exception {
+    cableio_parse_error(const std::string& msg, const arb::src_location& loc);
+};
+struct cableio_unexpected_symbol: cableio_parse_error {
+    explicit cableio_unexpected_symbol(const std::string& sym, const arb::src_location& loc);
 };
 
+
 template <typename T>
-using parse_hopefully = arb::util::expected<T, format_parse_error>;
+using parse_hopefully = arb::util::expected<T, cableio_parse_error>;
 
 std::ostream& write_s_expr(std::ostream&, const arb::label_dict&);
 std::ostream& write_s_expr(std::ostream&, const arb::decor&);

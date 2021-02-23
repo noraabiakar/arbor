@@ -109,15 +109,15 @@ int main(int argc, char** argv) {
 //        for (auto entry: traces.at(0)) {
 //            std::cout << entry.t << ", " << entry.v << "\n";
 //        }
-        std::string s = "(label-dict (region-def \"soma\" (tag 1)) \n"
-                        "            (region-def \"dend\" (join (join (tag 3) (tag 4)) (tag 42))))";
-        if (auto v = arborio::parse_label_dict(s)) {
-            arborio::write_s_expr(std::cout, *v);
-            std::cout << std::endl;
-        }
-        else {
-            throw v.error();
-        }
+//        std::string s = "(label-dict (region-def \"soma\" (tag 1)) \n"
+//                        "            (region-def \"dend\" (join (join (tag 3) (tag 4)) (tag 42))))";
+//        if (auto v = arborio::parse_label_dict(s)) {
+//            arborio::write_s_expr(std::cout, *v);
+//            std::cout << std::endl;
+//        }
+//        else {
+//            throw v.error();
+//        }
     }
     catch (std::exception& e) {
         std::cerr << "caught exception: " << e.what() << "\n";

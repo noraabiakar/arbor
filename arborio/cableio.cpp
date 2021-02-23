@@ -5,9 +5,9 @@
 #include <numeric>
 
 #include <arbor/cable_cell.hpp>
-#include <arbor/morph/label_parse.hpp>
 #include <arbor/s_expr.hpp>
 #include <arbor/util/any_visitor.hpp>
+#include <arbor/util/pp_util.hpp>
 
 #include <arborio/cableio.hpp>
 
@@ -15,9 +15,11 @@ namespace arborio{
 using namespace arb;
 
 // Errors
-format_parse_error::format_parse_error(const std::string& msg):
-    arb::arbor_exception(msg)
+cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_location& loc):
+    arb::arbor_exception(msg+" at :"+std::to_string(loc.line)+":"+std::to_string(loc.column))
 {}
+cableio_unexpected_symbol::cableio_unexpected_symbol(const std::string& sym, const arb::src_location& loc):
+    cableio_parse_error("Unexpected symbol "+sym, loc) {}
 
 // Helpers
 inline symbol operator "" _symbol(const char* chars, size_t size) {
@@ -89,11 +91,12 @@ s_expr mksexp(const cv_policy& c) {
 
 // Paintable
 s_expr mksexp(const mechanism_desc& d) {
-    std::vector<s_expr> params;
+    std::vector<s_expr> mech;
+    mech.push_back(d.name());
     for (const auto& p: d.values()) {
-        params.push_back(mksexp(p));
+        mech.push_back(slist("param"_symbol, p.first, p.second));
     }
-    return s_expr{"mechanism"_symbol, slist(d.name(), slist_range(params))};
+    return s_expr{"mechanism"_symbol, slist_range(mech)};
 }
 
 // Placeable
@@ -185,7 +188,47 @@ std::ostream& write_s_expr(std::ostream& o, const cable_cell& c) {
 // Read s-expr
 
 // Anonymous namespace containing helper functions and types
-/*namespace {
+namespace {
+
+// Define makers for defaultables, paintables and placeables
+#define ARB_DEFINE_MAKERS(name) arb::name make_##name(double val) { return arb::name{val}; }
+ARB_PP_FOREACH(ARB_DEFINE_MAKERS, init_membrane_potential, temperature_K, axial_resistivity, membrane_capacitance, threshold_detector)
+#undef ARB_DEFINE_MAKERS
+
+#define ARB_DEFINE_MAKERS(name) arb::name make_##name(const std::string& ion, double val) { return arb::name{ion, val};}
+ARB_PP_FOREACH(ARB_DEFINE_MAKERS, init_int_concentration, init_ext_concentration, init_reversal_potential)
+#undef ARB_DEFINE_MAKERS
+
+arb::mechanism_desc make_mechanism_desc(const std::vector<std::any>& params) {
+    try {
+        auto name = std::any_cast<std::string>(params.front());
+        arb::mechanism_desc mech(name);
+
+        for (auto it = params.begin()+1; it != params.end(); ++it) {
+            auto p = std::any_cast<std::pair<std::string, double>>(*it);
+            mech.set(p.first, p.second);
+        }
+        return mech;
+    }
+    catch (const std::bad_any_cast& e) {
+        throw cableio_parse_error("Something went wrong when parsing mechanism_desc: "+std::string(e.what()), {});
+    }
+}
+
+arb::i_clamp make_i_clamp(double delay, double duration, double amplitude) {
+    return arb::i_clamp(delay, duration, amplitude);
+}
+arb::gap_junction_site make_gap_junction_site() {
+    return arb::gap_junction_site{};
+}
+arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std::string& ion, const arb::mechanism_desc& mech) {
+    return ion_reversal_potential_method{ion, mech};
+}
+
+using param_pair = std::pair<std::string, double>;
+param_pair make_param_pair(std::string param, double val) {
+    return std::make_pair(param, val);
+}
 
 // Test whether a value wrapped in std::any can be converted to a target type
 template <typename T>
@@ -195,6 +238,17 @@ bool match(const std::type_info& info) {
 template <>
 bool match<double>(const std::type_info& info) {
     return info == typeid(double) || info == typeid(int);
+}
+
+// Convert a value wrapped in a std::any to target type.
+template <typename T>
+T eval_cast(std::any arg) {
+    return std::move(std::any_cast<T&>(arg));
+}
+template <>
+double eval_cast<double>(std::any arg) {
+    if (arg.type()==typeid(int)) return std::any_cast<int>(arg);
+    return std::any_cast<double>(arg);
 }
 
 // Test whether a list of arguments passed as a std::vector<std::any> can be converted
@@ -227,17 +281,6 @@ struct call_match {
     }
 };
 
-// Convert a value wrapped in a std::any to target type.
-template <typename T>
-T eval_cast(std::any arg) {
-    return std::move(std::any_cast<T&>(arg));
-}
-template <>
-double eval_cast<double>(std::any arg) {
-    if (arg.type()==typeid(int)) return std::any_cast<int>(arg);
-    return std::any_cast<double>(arg);
-}
-
 // Evaluate a call to a function where the arguments are provided as a std::vector<std::any>.
 // The arguments are expanded and converted to the correct types, as specified by Args.
 template <typename... Args>
@@ -261,27 +304,27 @@ struct evaluator {
     using eval_fn = std::function<std::any(any_vec)>;
     using args_fn = std::function<bool(const any_vec&)>;
 
-    eval_fn function;
+    eval_fn eval;
     args_fn match_args;
     const char* message;
 
     evaluator(eval_fn f, args_fn a, const char* m):
-        function(std::move(f)),
+        eval(std::move(f)),
         match_args(std::move(a)),
         message(m)
     {}
 
     std::any operator()(any_vec args) {
-        return function(std::move(args));
+        return eval(std::move(args));
     }
 };
 
 template <typename... Args>
-struct define_call {
+struct make_call {
     evaluator state;
 
     template <typename F>
-    define_call(F&& f, const char* msg="call"):
+    make_call(F&& f, const char* msg="call"):
         state(call_eval<Args...>(std::forward<F>(f)), call_match<Args...>(), msg)
     {}
 
@@ -289,10 +332,105 @@ struct define_call {
         return state;
     }
 };
+} // anonymous namespace
 
-}*/ // anonymous namespace
+struct nil_tag{};
+using eval_map = std::unordered_multimap<std::string, evaluator>;
+//threshold_detector
+eval_map decor_eval_map {
+    // Functions that return defaultables, placeables and paintables
+    {"init-membrane-potential",   make_call<double>(make_init_membrane_potential,
+                                  "'init-membrane-potential' with 1 argument")},
+    {"temperature-kelvin",        make_call<double>(make_temperature_K,
+                                  "'temperature-kelvin' with 1 argument")},
+    {"axial-resistivity",         make_call<double>(make_axial_resistivity,
+                                  "'axial-resistivity' with 1 argument")},
+    {"membrane-capacitance",      make_call<double>(make_membrane_capacitance,
+                                  "'membrane-capacitance' with 1 argument")},
+    {"ion-internal-concentration",make_call<std::string, double>(make_init_int_concentration,
+                                  "'ion_internal_concentration' with 2 arguments")},
+    {"ion-external-concentration",make_call<std::string, double>(make_init_ext_concentration,
+                                  "'ion_external_concentration' with 2 arguments")},
+    {"ion-reversal-potential",    make_call<std::string, double>(make_init_reversal_potential,
+                                  "'ion_reversal_potential' with 2 arguments")},
+    {"current-clamp",      make_call<double, double, double>(make_i_clamp,
+                           "'current-clamp' with 3 arguments")},
+    {"threshold-detector", make_call<double>(make_threshold_detector,
+                           "'threshold-detector' with 1 argument")},
+    {"gap-junction-site",  make_call<>(make_gap_junction_site,
+                           "'gap-junction-site' with 0 arguments")},
+    {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>(make_ion_reversal_potential_method,
+                                      "'ion-reversal-potential-method' with 2 arguments")},
+    {"param", make_call<std::string, double>(make_param_pair,
+                                             "'param' with 2 arguments")},
+    {"mechanism", make_call<std::vector<std::any>>(make_mechanism_desc,
+                                                         "'mechanism' with at least one argument")},
+};
 
-struct label_pair {
+parse_hopefully<std::any> eval(const s_expr&, const eval_map&);
+
+parse_hopefully<std::vector<std::any>> eval_args(const s_expr& e, const eval_map& map) {
+    if (!e) return {std::vector<std::any>{}}; // empty argument list
+    std::vector<std::any> args;
+    for (auto& h: e) {
+        if (auto arg=eval(h, map)) {
+            args.push_back(std::move(*arg));
+        }
+        else {
+            return util::unexpected(std::move(arg.error()));
+        }
+    }
+    return args;
+}
+
+parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
+    if (e.is_atom()) {
+        auto& t = e.atom();
+        switch (t.kind) {
+        case tok::integer:
+            return {std::stoi(t.spelling)};
+        case tok::real:
+            return {std::stod(t.spelling)};
+        case tok::nil:
+            return {nil_tag()};
+        case tok::string:
+            return std::any{std::string(t.spelling)};
+            // An arbitrary symbol in a region/locset expression is an error, and is
+            // often a result of not quoting a label correctly.
+        case tok::symbol:
+            return util::unexpected(cableio_unexpected_symbol(e.atom().spelling, location(e)));
+        case tok::error:
+            return util::unexpected(cableio_parse_error(e.atom().spelling, location(e)));
+        default:
+            return util::unexpected(cableio_parse_error("Unexpected term "+e.atom().spelling, location(e)));
+        }
+    }
+    if (e.head().is_atom()) {
+        // This must be a function evaluation, where head is the function name, and
+        // tail is a list of arguments.
+
+        // Evaluate the arguments, and return error state if an error ocurred.
+        auto args = eval_args(e.tail(), map);
+        if (!args) {
+            return args.error();
+        }
+
+        // Find all candidate functions that match the name of the function.
+        auto& name = e.head().atom().spelling;
+        auto matches = map.equal_range(name);
+
+        // Search for a candidate that matches the argument list.
+        for (auto i=matches.first; i!=matches.second; ++i) {
+            if (i->second.match_args(*args)) { // found a match: evaluate and return.
+                return i->second.eval(*args);
+            }
+        }
+        return util::unexpected(cableio_parse_error("No matches for "+name, location(e)));
+    }
+    return util::unexpected(cableio_parse_error("expression is neither integer, real expression of the form (op <args>)", location(e)));
+}
+
+/*struct label_pair {
     std::string label;
     std::variant<region, locset> desc;
 };
@@ -336,7 +474,6 @@ parse_hopefully<label_pair> eval_dict(const s_expr& e) {
 
 parse_hopefully<label_dict> parse_label_dict(const std::string& str) {
     auto s = parse_s_expr(str);
-    std::cout << length(s) << std::endl;
     if (!s.head().is_atom()) {
         throw format_parse_error("Expected atom at head");
     }
@@ -357,7 +494,7 @@ parse_hopefully<label_dict> parse_label_dict(const std::string& str) {
         }
     }
     return d;
-}
+}*/
 /*
 {    label_dict d;
     for (auto& entry: e) {
