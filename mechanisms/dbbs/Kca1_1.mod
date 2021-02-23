@@ -18,45 +18,45 @@ Contact: Sungho Hong (shhong@oist.jp)
 ENDCOMMENT
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Kca1_1__0
+  SUFFIX Kca1_1
   USEION k READ ek WRITE ik
   USEION ca READ cai
   RANGE g, gbar, ik
 
 }
 
-UNITS { 
+UNITS {
     (mV) = (millivolt)
     (S) = (siemens)
     (molar) = (1/liter)
     (mM) = (millimolar)
-    FARADAY = (faraday) (kilocoulombs)
-    R = (k-mole) (joule/degC)
 }
 
 CONSTANT {
-    q10 = 3
+  FARADAY = 96520 : Farady constant (coulomb/mol)
+  R = 8.3134 : gas constant (J/K.mol)
+  q10 = 3
 }
 
 PARAMETER {
     gbar = 0.01 (S/cm2)
-    
+
     Qo = 0.73
     Qc = -0.67
-    
+
     k1 = 1.0e3 (/mM)
     onoffrate = 1 (/ms)
-    
+
     L0 = 1806
     Kc = 11.0e-3 (mM)
     Ko = 1.1e-3 (mM)
-    
+
     pf0 = 2.39e-3  (/ms)
     pf1 = 7.0e-3  (/ms)
     pf2 = 40e-3   (/ms)
     pf3 = 295e-3  (/ms)
     pf4 = 557e-3  (/ms)
-    
+
     pb0 = 3936e-3 (/ms)
     pb1 = 1152e-3 (/ms)
     pb2 = 659e-3  (/ms)
@@ -93,11 +93,8 @@ ASSIGNED {
     b2     (/ms)
     b3     (/ms)
     b4     (/ms)
-    
+
     v            (mV)
-    cai          (mM)
-    ek           (mV)
-    ik           (milliamp/cm2)
     g            (S/cm2)
     celsius      (degC)
 }
@@ -146,11 +143,11 @@ KINETIC activation {
 CONSERVE C0 + C1 + C2 + C3 + C4 + O0 + O1 + O2 + O3 + O4 = 1
 }
 
-PROCEDURE rates(v(mV), ca (mM)) { 
+PROCEDURE rates(v(mV), ca (mM)) {
     LOCAL qt, alpha, beta
-    
-    qt = q10^((celsius-23 (degC))/10 (degC))
-    
+
+    qt = q10^((celsius-23)/10)
+
     c01 = 4*ca*k1*onoffrate*qt
     c12 = 3*ca*k1*onoffrate*qt
     c23 = 2*ca*k1*onoffrate*qt
@@ -159,7 +156,7 @@ PROCEDURE rates(v(mV), ca (mM)) {
     o12 = 3*ca*k1*onoffrate*qt
     o23 = 2*ca*k1*onoffrate*qt
     o34 = 1*ca*k1*onoffrate*qt
-    
+
     c10 = 1*Kc*k1*onoffrate*qt
     c21 = 2*Kc*k1*onoffrate*qt
     c32 = 3*Kc*k1*onoffrate*qt
@@ -168,16 +165,16 @@ PROCEDURE rates(v(mV), ca (mM)) {
     o21 = 2*Ko*k1*onoffrate*qt
     o32 = 3*Ko*k1*onoffrate*qt
     o43 = 4*Ko*k1*onoffrate*qt
-    
+
     alpha = exp(Qo*FARADAY*v/R/(273.15 + celsius))
     beta  = exp(Qc*FARADAY*v/R/(273.15 + celsius))
-    
+
     f0  = pf0*alpha*qt
     f1  = pf1*alpha*qt
     f2  = pf2*alpha*qt
     f3  = pf3*alpha*qt
     f4  = pf4*alpha*qt
-    
+
     b0  = pb0*beta*qt
     b1  = pb1*beta*qt
     b2  = pb2*beta*qt

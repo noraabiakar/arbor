@@ -7,8 +7,8 @@ We call it HCN1 as PC express only HCN1 Santoro et al. 2000
 ENDCOMMENT
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__HCN1__0
-	USEION h READ eh WRITE ih VALENCE 1 
+	SUFFIX HCN1
+	USEION h READ eh WRITE ih VALENCE 1
 	RANGE gbar, hinf,tauh,ratetau,ih
 	RANGE hinf,tauh,eh
 }
@@ -25,7 +25,7 @@ CONSTANT {
 
 PARAMETER {
     v 		(mV)
-    : eh  =-34.4	(mV)        
+    : eh  =-34.4	(mV)
     gbar=.0001 	(mho/cm2)
     ratetau = 1 (ms)
     rec_temp = 23 (deg) : we set it here at room temperature as in Angelo et al. they forogot tp mention the recording temperature
@@ -44,9 +44,7 @@ STATE {
 }
 
 ASSIGNED {
-    eh (mV)
-    ih (mA/cm2)
-    hinf      
+    hinf
     tauh
     celsius (deg)
     v_inf_half (mV)
@@ -59,11 +57,11 @@ INITIAL {
     rate(v)
     h=hinf
     : ADD Q10 correction!!!!! FATTO!!!
-    qt = q10^((celsius-37 (degC))/10 (degC))
+    qt = q10^((celsius-37)/10)
     v_inf_half = (v_inf_half_noljp - ljp)
     v_tau_half1 = (v_tau_half1_noljp - ljp)
     v_tau_half2 = (v_tau_half2_noljp - ljp)
-    
+
 }
 
 BREAKPOINT {
@@ -71,7 +69,7 @@ BREAKPOINT {
     ih = h*gbar*(v-eh)
 }
 
-DERIVATIVE states {  
+DERIVATIVE states {
     rate(v)
     h' =  (hinf - h)/tauh
 }
@@ -82,19 +80,3 @@ PROCEDURE rate(v (mV)) {
     hinf = 1 / (1+exp( (v-v_inf_half) / v_inf_k) )
     tauh = (ratetau / (v_tau_const * ( exp( (v-v_tau_half1) / v_tau_k1) + exp( (v-v_tau_half2) / v_tau_k2) )))/qt
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

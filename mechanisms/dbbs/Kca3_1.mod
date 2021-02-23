@@ -7,8 +7,7 @@ TITLE Calcium dependent potassium channel
 :Suffix from Kca3 to Kca3_1
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Kca3_1__0
-    THREADSAFE
+  SUFFIX Kca3_1
 	USEION k READ ek WRITE ik
 	USEION ca READ cai
 	RANGE gkbar, ik, Yconcdep, Yvdep
@@ -22,18 +21,16 @@ UNITS {
 	(mM) = (millimolar)
 }
 
-INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
-
 CONSTANT {
 	q10 = 3
 }
 
 PARAMETER {
+  celsius  (degC)
 	v (mV)
 	dt (ms)
 	gkbar= 0.120 (mho/cm2) <0,1e9>
 	Ybeta = 0.05 (/ms)
-	cai (mM) := 1e-5 (mM)
 }
 
 
@@ -42,21 +39,18 @@ STATE {
 }
 
 ASSIGNED {
-	ik (mA/cm2)
 	Yalpha   (/ms)
-	Yvdep    
+	Yvdep
 	Yconcdep (/ms)
 	tauY (ms)
 	Y_inf
-	ek (mV)
-
 	qt
 }
 
 INITIAL {
 	rate(v,cai)
 	Y = Yalpha/(Yalpha + Ybeta)
-	qt = q10^((celsius-37 (degC))/10 (degC))
+	qt = q10^((celsius-37)/10)
 }
 
 BREAKPOINT {
@@ -78,15 +72,13 @@ PROCEDURE rate(v(mV),cai(mM)) {
 }
 
 PROCEDURE vdep(v(mV)) {
-	TABLE Yvdep FROM -100 TO 100 WITH 100
-	Yvdep = exp((v*1(/mV)+70)/27)
+	Yvdep = exp((v+70)/27)
 }
 
 PROCEDURE concdep(cai(mM)) {
-	TABLE Yconcdep FROM 0 TO 0.01 WITH 1000
 	if (cai < 0.01) {
-		Yconcdep = 500(/ms)*( 0.015-cai*1(/mM) )/( exp((0.015-cai*1(/mM))/0.0013) -1 )
+		Yconcdep = 500*( 0.015-cai )/(exp((0.015-cai)/0.0013) - 1)
 	} else {
-		Yconcdep = 500(/ms)*0.005/( exp(0.005/0.0013) -1 )
+		Yconcdep = 500*0.005/(exp(0.005/0.0013) - 1)
 	}
 }
