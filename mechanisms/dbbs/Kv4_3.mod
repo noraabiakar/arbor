@@ -10,7 +10,7 @@ COMMENT
 ENDCOMMENT
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Kv4_3__0
+  SUFFIX Kv4_3
 	USEION k READ ek WRITE ik
 	RANGE gkbar, ik, g, alpha_a, beta_a, alpha_b, beta_b
 	RANGE Aalpha_a, Kalpha_a, V0alpha_a

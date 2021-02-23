@@ -8,7 +8,7 @@ COMMENT
 ENDCOMMENT
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Leak__GABA
+	SUFFIX Leak_GABA
 	NONSPECIFIC_CURRENT il
 	RANGE egaba, ggaba, i
 }

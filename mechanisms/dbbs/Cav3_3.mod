@@ -14,10 +14,9 @@ ENDCOMMENT
 
 
  NEURON	{
-SUFFIX glia__dbbs_mod_collection__Cav3_3__0
-        : CaT--alpha 1I CaV3.3
-	USEION ca READ cai, cao WRITE ica
-	RANGE gCav3_3bar, pcabar, ica, tau_l, tau_n, n_inf, l_inf
+  SUFFIX Cav3_3
+  USEION ca READ cai, cao WRITE ica
+  RANGE gCav3_3bar, pcabar, ica, tau_l, tau_n, n_inf, l_inf
 }
 
 UNITS	{

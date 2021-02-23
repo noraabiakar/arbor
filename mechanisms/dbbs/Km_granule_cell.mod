@@ -9,7 +9,7 @@ COMMENT
 ENDCOMMENT
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Km__granule_cell
+  SUFFIX Km_granule_cell
 	USEION k READ ek WRITE ik
 	RANGE gkbar, ik, g, alpha_n, beta_n
 	RANGE Aalpha_n, Kalpha_n, V0alpha_n

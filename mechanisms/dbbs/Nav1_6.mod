@@ -19,7 +19,7 @@ Contact: akemann@brain.riken.jp
 ENDCOMMENT
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Nav1_6__0
+  SUFFIX Nav1_6
   USEION na READ ena WRITE ina
   RANGE g, gbar, ina, f0O, fin, fip
 
