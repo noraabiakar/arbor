@@ -1,7 +1,7 @@
 TITLE Non-resurgent sodium channel in Purkinje cells
 
 COMMENT
-Non-resurgent sodium channel from Nav1.1 and Nav1.2 units with updated kinetic parameters from Raman and Bean  
+Non-resurgent sodium channel from Nav1.1 and Nav1.2 units with updated kinetic parameters from Raman and Bean
 
 This channel was derived from the Narsg channel of Khaliq et al., J. Neurosci. 23(2003)4899
 by modifing the following rate constants:
@@ -9,7 +9,7 @@ a) epsilon = 1e-12 1/ms (from epsilon = 1.75 1/ms in Narsg)
 b) Oon = 2.3 1/ms (from Oon = 0.75 1/ms in Narsg)
 c) gbar = 0.008 mho/cm2 (from 0.015 mho/cm2)
 d) by introducing qt-correction (see Hille) to all rate constants
-e) by including gating current 
+e) by including gating current
 
 Reference: Akemann et al. Biophys. J. (2009) 96: 3959-3976
 
@@ -23,14 +23,14 @@ Contact: akemann@brain.riken.jp
 ENDCOMMENT
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Nav1_1__0
+	SUFFIX Nav1_1
 	USEION na READ ena WRITE ina
 	NONSPECIFIC_CURRENT i
 	RANGE g, gbar, ina, i, igate, nc
 	GLOBAL gateCurrent, gunit
 }
 
-UNITS { 
+UNITS {
 	(mV) = (millivolt)
 	(mA) = (milliamp)
 	(nA) = (nanoamp)
@@ -41,7 +41,7 @@ UNITS {
 	(pS) = (picosiemens)
 	(um) = (micron)
 	(molar) = (1/liter)
-	(mM) = (millimolar)	
+	(mM) = (millimolar)
 }
 
 CONSTANT {
@@ -50,12 +50,12 @@ CONSTANT {
 }
 
 PARAMETER {
-	gateCurrent = 0			: gating currents ON = 1 OFF = 0 
+	gateCurrent = 0			: gating currents ON = 1 OFF = 0
 
 	gbar = 0.008 (S/cm2)
 
 	zgate = 2.5435 (1)		: charge valence of activation gates
-	
+
 	gunit = 15 (pS)			: unitary conductance
 
 	: kinetic parameters
@@ -81,19 +81,19 @@ PARAMETER {
 
 ASSIGNED {
 	v	(mV)
-	celsius	(degC)	
+	celsius	(degC)
  	ena	(mV)
-	
+
 	ina	(mA/cm2)
 	i	(mA/cm2)
 	igate	(mA/cm2)
 	g	(S/cm2)
-	
+
 	qt	(1)				: preexponential temperature correction
 	alfac	(1)   			: microscopic reversibility factors
 	btfac	(1)
 
-	nc	(1/cm2)			: membrane density of channels				
+	nc	(1/cm2)			: membrane density of channels
 
 	: rates
 	f01  		(/ms)
@@ -155,13 +155,13 @@ BREAKPOINT {
 	ina = g * (v - ena)
 	igate = nc * (1e6) * e0 * zgate * gateFlip()
 
-	if (gateCurrent != 0) { 
+	if (gateCurrent != 0) {
 		i = igate
 	}
-} 
+}
 
 INITIAL {
-	nc = (1e12) * gbar / gunit	
+	nc = (1e12) * gbar / gunit
 	qt = q10^((celsius-22 (degC))/10 (degC))
 	rates(v)
  	:SOLVE seqinitial
@@ -205,14 +205,14 @@ CONSERVE C1 + C2 + C3 + C4 + C5 + O + B + I1 + I2 + I3 + I4 + I5 + I6 = 1
  :~ I2*f12 + C3*fi3 + I4*bi3 - I3*(b12+bi3+f13) = 0
  :~ I3*f13 + C4*fi4 + I5*b14 - I4*(b13+bi4+f14) = 0
  :~ I4*f14 + C5*fi5 + I6*b1n - I5*(b14+bi5+f1n) = 0
- 
+
  :~ C1 + C2 + C3 + C4 + C5 + O + B + I1 + I2 + I3 + I4 + I5 + I6 = 1
 :}
 
 PROCEDURE rates(v(mV) )
 {
  alfac = (Oon/Con)^(1/4)
- btfac = (Ooff/Coff)^(1/4) 
+ btfac = (Ooff/Coff)^(1/4)
  f01 = 4 * alpha * exp(v/x1) * qt
  f02 = 3 * alpha * exp(v/x1) * qt
  f03 = 2 * alpha * exp(v/x1) * qt
@@ -254,9 +254,3 @@ FUNCTION gateFlip() (1/ms) {
 	gateFlip = f01 * C1 + (f02-b01) * C2 + (f03-b02) * C3 + (f04-b03) * C4 - b04 * C5
 	gateFlip = gateFlip + f11 * I1 + (f12-b11) * I2	+ (f13-b12) * I3 + (f14-b13) * I4 - b14 * I5
 }
-
-
-
-
-
-

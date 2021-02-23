@@ -2,10 +2,10 @@ TITLE resurgent sodium channel
 
 COMMENT
 Neuron implementation of a resurgent sodium channel (with blocking particle)
-Based om updated kinetic parameters from Raman and Bean, Biophys.J. 80 (2001) 729  
+Based om updated kinetic parameters from Raman and Bean, Biophys.J. 80 (2001) 729
 
 Modified from Khaliq et al., J.Neurosci. 23(2003)4899
-by qt-correction of all rate constants 
+by qt-correction of all rate constants
 
 Laboratory for Neuronal Circuit Dynamics
 RIKEN Brain Science Institute, Wako City, Japan
@@ -25,7 +25,7 @@ SUFFIX glia__dbbs_mod_collection__Nav1_6__0
 
 }
 
-UNITS { 
+UNITS {
 	(mV) = (millivolt)
 	(S) = (siemens)
 }
@@ -61,7 +61,7 @@ PARAMETER {
 
 ASSIGNED {
 	alfac   				: microscopic reversibility factors
-	btfac				
+	btfac
 
 	: rates
 	f01  		(/ms)
@@ -99,10 +99,8 @@ ASSIGNED {
 	bi4 		(/ms)
 	bi5 		(/ms)
 	bin 		(/ms)
-	
+
 	v					(mV)
- 	ena					(mV)
-	ina 					(milliamp/cm2)
 	g					(S/cm2)
 	qt
 }
@@ -130,7 +128,7 @@ BREAKPOINT {
 }
 
 INITIAL {
-	qt = q10^((celsius-22 (degC))/10 (degC))
+	qt = q10^((celsius-22)/10)
 	rates(v)
 }
 
@@ -162,7 +160,7 @@ CONSERVE C1 + C2 + C3 + C4 + C5 + O + B + I1 + I2 + I3 + I4 + I5 + I6 = 1
 PROCEDURE rates(v(mV) )
 {
  alfac = (Oon/Con)^(1/4)
- btfac = (Ooff/Coff)^(1/4) 
+ btfac = (Ooff/Coff)^(1/4)
  f01 = 4 * alpha * exp(v/x1) * qt
  f02 = 3 * alpha * exp(v/x1) * qt
  f03 = 2 * alpha * exp(v/x1) * qt
@@ -199,4 +197,3 @@ PROCEDURE rates(v(mV) )
  bi5 = Coff * btfac^4 * qt
  bin = Ooff * qt
 }
-
