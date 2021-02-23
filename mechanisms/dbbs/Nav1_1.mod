@@ -82,10 +82,6 @@ PARAMETER {
 ASSIGNED {
 	v	(mV)
 	celsius	(degC)
- 	ena	(mV)
-
-	ina	(mA/cm2)
-	i	(mA/cm2)
 	igate	(mA/cm2)
 	g	(S/cm2)
 
@@ -162,7 +158,7 @@ BREAKPOINT {
 
 INITIAL {
 	nc = (1e12) * gbar / gunit
-	qt = q10^((celsius-22 (degC))/10 (degC))
+	qt = q10^((celsius-22)/10)
 	rates(v)
  	:SOLVE seqinitial
 }
@@ -251,6 +247,7 @@ PROCEDURE rates(v(mV) )
 }
 
 FUNCTION gateFlip() (1/ms) {
-	gateFlip = f01 * C1 + (f02-b01) * C2 + (f03-b02) * C3 + (f04-b03) * C4 - b04 * C5
-	gateFlip = gateFlip + f11 * I1 + (f12-b11) * I2	+ (f13-b12) * I3 + (f14-b13) * I4 - b14 * I5
+	LOCAL flip
+  flip = f01 * C1 + (f02-b01) * C2 + (f03-b02) * C3 + (f04-b03) * C4 - b04 * C5
+	gateFlip = flip + f11 * I1 + (f12-b11) * I2	+ (f13-b12) * I3 + (f14-b13) * I4 - b14 * I5
 }
