@@ -10,9 +10,6 @@ UNITS {
 	(mA) = (milliamp)
 	(mV) = (millivolt)
 
-	FARADAY = 96520 (coul)
-	R = 8.3134 (joule/degC)
-	KTOMV = .0853 (mV/degC)
 }
 
 PARAMETER {
@@ -20,8 +17,6 @@ PARAMETER {
 	celsius 		(degC)
 	gcanbar=.0003 (mho/cm2)
 	ki=.001 (mM)
-	cai=50.e-6 (mM)
-	cao = 2  (mM)
 	q10=5
 	mmin = 0.2
 	hmin = 3
@@ -29,14 +24,17 @@ PARAMETER {
 	zetam = 2
 	vhalfm = -14
 	gmm=0.1
+	FARADAY = 96520 (coul)
+	R = 8.3134 (joule/degC)
+	KTOMV = .0853 (mV/degC)
 }
 
 
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Cav2_2__0
+	SUFFIX Cav2_2
 	USEION ca READ cai,cao WRITE ica
-        RANGE gcanbar, ica, gcan
-        RANGE hinf,minf,taum,tauh
+  RANGE gcanbar, ica, gcan
+  RANGE hinf,minf,taum,tauh
 }
 
 STATE {
@@ -44,7 +42,6 @@ STATE {
 }
 
 ASSIGNED {
-	ica (mA/cm2)
         gcan  (mho/cm2)
         minf
         hinf
@@ -53,7 +50,7 @@ ASSIGNED {
 }
 
 INITIAL {
-        rates(v)
+        rates(v, celsius)
         m = minf
         h = hinf
 }
@@ -61,7 +58,7 @@ INITIAL {
 BREAKPOINT {
 	SOLVE states METHOD cnexp
 	gcan = gcanbar*m*m*h*h2(cai)
-	ica = gcan*ghk(v,cai,cao)
+	ica = gcan*ghk(v,cai,cao, celsius)
 
 }
 
@@ -71,7 +68,7 @@ FUNCTION h2(cai(mM)) {
 }
 
 
-FUNCTION ghk(v(mV), ci(mM), co(mM)) (mV) {
+FUNCTION ghk(v(mV), ci(mM), co(mM), celsius) (mV) {
         LOCAL nu,f
 
         f = KTF(celsius)/2
@@ -119,12 +116,12 @@ FUNCTION betmt(v(mV)) {
 UNITSON
 
 DERIVATIVE states {     : exact when v held constant; integrates over dt step
-        rates(v)
+        rates(v, celsius)
         m' = (minf - m)/taum
         h' = (hinf - h)/tauh
 }
 
-PROCEDURE rates(v (mV)) { :callable from hoc
+PROCEDURE rates(v, celsius (mV)) { :callable from hoc
         LOCAL a, b, qt
         qt=q10^((celsius-25)/10)
         a = alpm(v)
