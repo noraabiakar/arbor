@@ -15,10 +15,13 @@ NEURON {
 	RANGE pcaLbar, ical, mshift, hshift, qfact, hqfact
 }
 
-PARAMETER {
-	pcaLbar = 1.7e-6    (cm/s)	: hold at vh = -100 mv, step to -30 mv
+CONSTANT {
 	FARADAY = 96485.3 (coulomb)
 	R = 8.314 (joule/degC)
+}
+
+PARAMETER {
+	pcaLbar = 1.7e-6    (cm/s)	: hold at vh = -100 mv, step to -30 mv
 
 	mvhalf = -33	(mV)		: match to Xu 2001 Figure 1D with mslope from churchill
 	mslope = -6.7	(mV)		: Churchill 1998, fig 5
