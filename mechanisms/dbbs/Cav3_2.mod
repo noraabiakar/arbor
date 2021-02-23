@@ -5,21 +5,19 @@ TITLE Low threshold calcium current
 :   Differential equations
 :
 :   Model of Huguenard & McCormick, J Neurophysiol 68: 1373-1383, 1992.
-:   
+:
 :   Written by Alain Destexhe, Salk Institute, Sept 18, 1992
-:   
+:
 :    - Biophysical properties of the T current were from recordings of
 :    - human recombinant Cav3.2 T-channel in HEK-293 cells
 :    - see Vitko et al., J. Neurosci 25(19) :4844-4855, 2005
-:    - Q10 and shift parameters are fixed 
-:   
+:    - Q10 and shift parameters are fixed
+:
 :
 :   Suffix from CaT3_2 to Cav3_2
 
-INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
-
 NEURON {
-SUFFIX glia__dbbs_mod_collection__Cav3_2__0
+	SUFFIX Cav3_2
 	USEION ca READ cai, cao WRITE ica
 	RANGE gcabar, m_inf, tau_m, h_inf, tau_h, shift, i,ica
 }
@@ -29,19 +27,18 @@ UNITS {
 	(mV) =	(millivolt)
 	(mA) =	(milliamp)
 	(mM) =	(millimolar)
+}
 
-	FARADAY = (faraday) (coulomb)
-	R = (k-mole) (joule/degC)
+CONSTANT {
+	FARADAY = 96520 (coul)
+	R = 8.3134 (joule/degC)
 }
 
 PARAMETER {
 	v		(mV)
 	celsius	= 36	(degC)
-:	eca	= 120	(mV)
 	gcabar	= .0008	(mho/cm2)
 	shift	= 0 	(mV)
-	cai	= 2.4e-4 (mM)		: adjusted for eca=120 mV
-	cao	= 2	(mM)
 }
 
 STATE {
@@ -49,7 +46,6 @@ STATE {
 }
 
 ASSIGNED {
-	ica	(mA/cm2)
 	carev	(mV)
 	m_inf
 	tau_m	(ms)
@@ -91,7 +87,7 @@ INITIAL {
 	h = h_inf
 }
 
-PROCEDURE evaluate_fct(v(mV)) { 
+PROCEDURE evaluate_fct(v(mV)) {
 :
 
 	m_inf = 1.0 / ( 1 + exp(-(v+shift+54.8)/7.4) )
