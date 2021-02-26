@@ -201,14 +201,6 @@ ARB_PP_FOREACH(ARB_DEFINE_MAKERS, init_int_concentration, init_ext_concentration
 
 using param_pair = std::pair<std::string, double>;
 
-arb::mechanism_desc make_mechanism_desc(const std::string name, std::vector<param_pair> args) {
-    arb::mechanism_desc mech(name);
-    for (const auto& p: args) {
-        mech.set(p.first, p.second);
-    }
-    return mech;
-}
-
 arb::i_clamp make_i_clamp(double delay, double duration, double amplitude) {
     return arb::i_clamp(delay, duration, amplitude);
 }
@@ -288,27 +280,6 @@ struct call_eval {
     }
 };
 
-template <typename T>
-struct arg_vec_match {
-    bool operator()(const std::vector<std::any>& args) const {
-        for (auto& a: args) {
-            if (!match<T>(a.type())) return false;
-        }
-        return true;
-    }
-};
-
-template <typename T>
-struct arg_vec_eval {
-    std::any operator()(std::vector<std::any> args) {
-        std::vector<T> vec;
-        for (const auto& a: args) {
-            vec.push_back(std::any_cast<T>(a));
-        }
-        return vec;
-    }
-};
-
 struct evaluator {
     using any_vec = std::vector<std::any>;
     using eval_fn = std::function<std::any(any_vec)>;
@@ -343,12 +314,33 @@ struct make_call {
     }
 };
 
-template <typename T>
-struct make_arg_vec {
+struct mech_match {
+    bool operator()(const std::vector<std::any>& args) const {
+        if (args.front().type() != typeid(std::string)) return false;
+        for (auto it = args.begin()+1; it != args.end(); ++it) {
+            if(it->type() != typeid(param_pair)) return false;
+        }
+        return true;
+    }
+};
+
+struct mech_eval {
+    arb::mechanism_desc operator()(std::vector<std::any> args) {
+        auto name = std::any_cast<std::string>(args.front());
+        arb::mechanism_desc mech(name);
+        for (auto it = args.begin()+1; it != args.end(); ++it) {
+            auto p = std::any_cast<param_pair>(*it);
+            mech.set(p.first, p.second);
+        }
+        return mech;
+    }
+};
+
+struct make_mech_call {
     evaluator state;
 
-    make_arg_vec(const char* msg="arg_vec"):
-        state(arg_vec_eval<T>(), arg_vec_match<T>(), msg)
+    make_mech_call(const char* msg="arg_vec"):
+        state(mech_eval(), mech_match(), msg)
     {}
 
     operator evaluator() const {
@@ -384,9 +376,7 @@ eval_map decor_eval_map {
                            "'gap-junction-site' with 0 arguments")},
     {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>(make_ion_reversal_potential_method,
                                       "'ion-reversal-potential-method' with 2 arguments")},
-    {"params", make_arg_vec<param_pair>("'params' with at least 1 argument")},
-    {"mechanism", make_call<std::string, std::vector<param_pair>>(make_mechanism_desc,
-                                                                  "'mechanism' with at least one argument")},
+    {"mechanism", make_mech_call("'mechanism' with at least one argument")},
 };
 
 parse_hopefully<std::any> eval(const s_expr&, const eval_map&);

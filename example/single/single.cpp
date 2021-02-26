@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
 //        for (auto entry: traces.at(0)) {
 //            std::cout << entry.t << ", " << entry.v << "\n";
 //        }
-        std::string s = "(ion-reversal-potential-method \"ca\" (mechanism \"hh\" (params (\"gl\" 5) (\"el\" 5))))";
+        std::string s = "(ion-reversal-potential-method \"ca\" (mechanism \"hh\" (\"gl\" 5) (\"el\" 5)))";
         if (auto v = arborio::parse(s)) {}
         else {
             throw v.error();
