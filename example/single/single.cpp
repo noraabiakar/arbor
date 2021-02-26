@@ -109,8 +109,29 @@ int main(int argc, char** argv) {
 //        for (auto entry: traces.at(0)) {
 //            std::cout << entry.t << ", " << entry.v << "\n";
 //        }
-        std::string s = "(ion-reversal-potential-method \"ca\" (mechanism \"hh\" (\"gl\" 5) (\"el\" 5)))";
-        if (auto v = arborio::parse(s)) {}
+        std::string s = "((place \n"
+                        "  (location 0 1)\n"
+                        "  (mechanism \"exp2syn\"))\n"
+                        "(paint \n"
+                        "  (region \"dend\")\n"
+                        "  (mechanism \"pas\"))\n"
+                        "(paint \n"
+                        "  (region \"soma\")\n"
+                        "  (mechanism \"hh\")))";
+        if (auto v = arborio::parse_decor(s)) {}
+        else {
+            throw v.error();
+        }
+
+        s = "   ((region-def \"soma\" \n"
+            "      (tag 1))\n"
+            "    (region-def \"dend\" \n"
+            "      (join \n"
+            "        (join \n"
+            "          (tag 3)\n"
+            "          (tag 4))\n"
+            "        (tag 42))))";
+        if (auto v = arborio::parse_label_dict(s)) {}
         else {
             throw v.error();
         }

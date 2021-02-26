@@ -189,28 +189,6 @@ std::ostream& write_s_expr(std::ostream& o, const cable_cell& c) {
 
 // Anonymous namespace containing helper functions and types
 namespace {
-
-// Define makers for defaultables, paintables and placeables
-#define ARB_DEFINE_MAKERS(name) arb::name make_##name(double val) { return arb::name{val}; }
-ARB_PP_FOREACH(ARB_DEFINE_MAKERS, init_membrane_potential, temperature_K, axial_resistivity, membrane_capacitance, threshold_detector)
-#undef ARB_DEFINE_MAKERS
-
-#define ARB_DEFINE_MAKERS(name) arb::name make_##name(const std::string& ion, double val) { return arb::name{ion, val};}
-ARB_PP_FOREACH(ARB_DEFINE_MAKERS, init_int_concentration, init_ext_concentration, init_reversal_potential)
-#undef ARB_DEFINE_MAKERS
-
-using param_pair = std::pair<std::string, double>;
-
-arb::i_clamp make_i_clamp(double delay, double duration, double amplitude) {
-    return arb::i_clamp(delay, duration, amplitude);
-}
-arb::gap_junction_site make_gap_junction_site() {
-    return arb::gap_junction_site{};
-}
-arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std::string& ion, const arb::mechanism_desc& mech) {
-    return ion_reversal_potential_method{ion, mech};
-}
-
 // Test whether a value wrapped in std::any can be converted to a target type
 template <typename T>
 bool match(const std::type_info& info) {
@@ -231,6 +209,77 @@ double eval_cast<double>(std::any arg) {
     if (arg.type()==typeid(int)) return std::any_cast<int>(arg);
     return std::any_cast<double>(arg);
 }
+
+// std::any to defaultable, paintable and placeable
+std::optional<defaultable> any_to_defaultable(const std::any& any) {
+    if (match<init_membrane_potential>(any.type())) return std::any_cast<init_membrane_potential>(any);
+    if (match<axial_resistivity>(any.type()))       return std::any_cast<axial_resistivity>(any);
+    if (match<temperature_K>(any.type()))           return std::any_cast<temperature_K>(any);
+    if (match<init_int_concentration>(any.type()))  return std::any_cast<init_int_concentration>(any);
+    if (match<init_ext_concentration>(any.type()))  return std::any_cast<init_ext_concentration>(any);
+    if (match<init_reversal_potential>(any.type())) return std::any_cast<init_reversal_potential>(any);
+    if (match<ion_reversal_potential_method>(any.type())) return std::any_cast<ion_reversal_potential_method>(any);
+    return std::nullopt;
+}
+
+std::optional<paintable> any_to_paintable(const std::any& any) {
+    if (match<init_membrane_potential>(any.type())) return std::any_cast<init_membrane_potential>(any);
+    if (match<axial_resistivity>(any.type()))       return std::any_cast<axial_resistivity>(any);
+    if (match<temperature_K>(any.type()))           return std::any_cast<temperature_K>(any);
+    if (match<init_int_concentration>(any.type()))  return std::any_cast<init_int_concentration>(any);
+    if (match<init_ext_concentration>(any.type()))  return std::any_cast<init_ext_concentration>(any);
+    if (match<init_reversal_potential>(any.type())) return std::any_cast<init_reversal_potential>(any);
+    if (match<mechanism_desc>(any.type())) return std::any_cast<mechanism_desc>(any);
+    return std::nullopt;
+}
+
+std::optional<placeable> any_to_placeable(const std::any& any) {
+    if (match<mechanism_desc>(any.type())) return std::any_cast<mechanism_desc>(any);
+    if (match<i_clamp>(any.type()))        return std::any_cast<i_clamp>(any);
+    if (match<threshold_detector>(any.type())) return std::any_cast<threshold_detector>(any);
+    if (match<gap_junction_site>(any.type()))  return std::any_cast<gap_junction_site>(any);
+    return std::nullopt;
+}
+
+// Define makers for defaultables, paintables and placeables
+#define ARBIO_DEFINE_SINGLE_ARG(name) arb::name make_##name(double val) { return arb::name{val}; }
+#define ARBIO_DEFINE_DOUBLE_ARG(name) arb::name make_##name(const std::string& ion, double val) { return arb::name{ion, val};}
+
+ARB_PP_FOREACH(ARBIO_DEFINE_SINGLE_ARG, init_membrane_potential, temperature_K, axial_resistivity, membrane_capacitance, threshold_detector)
+ARB_PP_FOREACH(ARBIO_DEFINE_DOUBLE_ARG, init_int_concentration, init_ext_concentration, init_reversal_potential)
+
+arb::i_clamp make_i_clamp(double delay, double duration, double amplitude) {
+    return arb::i_clamp(delay, duration, amplitude);
+}
+arb::gap_junction_site make_gap_junction_site() {
+    return arb::gap_junction_site{};
+}
+arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std::string& ion, const arb::mechanism_desc& mech) {
+    return ion_reversal_potential_method{ion, mech};
+}
+#undef ARBIO_DEFINE_SINGLE_ARG
+#undef ARBIO_DEFINE_DOUBLE_ARG
+
+
+struct evaluator {
+    using any_vec = std::vector<std::any>;
+    using eval_fn = std::function<std::any(any_vec)>;
+    using args_fn = std::function<bool(const any_vec&)>;
+
+    eval_fn eval;
+    args_fn match_args;
+    const char* message;
+
+    evaluator(eval_fn f, args_fn a, const char* m):
+        eval(std::move(f)),
+        match_args(std::move(a)),
+        message(m)
+    {}
+
+    std::any operator()(any_vec args) {
+        return eval(std::move(args));
+    }
+};
 
 // Test whether a list of arguments passed as a std::vector<std::any> can be converted
 // to the types in Args.
@@ -280,26 +329,6 @@ struct call_eval {
     }
 };
 
-struct evaluator {
-    using any_vec = std::vector<std::any>;
-    using eval_fn = std::function<std::any(any_vec)>;
-    using args_fn = std::function<bool(const any_vec&)>;
-
-    eval_fn eval;
-    args_fn match_args;
-    const char* message;
-
-    evaluator(eval_fn f, args_fn a, const char* m):
-        eval(std::move(f)),
-        match_args(std::move(a)),
-        message(m)
-    {}
-
-    std::any operator()(any_vec args) {
-        return eval(std::move(args));
-    }
-};
-
 template <typename... Args>
 struct make_call {
     evaluator state;
@@ -314,6 +343,7 @@ struct make_call {
     }
 };
 
+using param_pair = std::pair<std::string, double>;
 struct mech_match {
     bool operator()(const std::vector<std::any>& args) const {
         if (args.front().type() != typeid(std::string)) return false;
@@ -323,7 +353,6 @@ struct mech_match {
         return true;
     }
 };
-
 struct mech_eval {
     arb::mechanism_desc operator()(std::vector<std::any> args) {
         auto name = std::any_cast<std::string>(args.front());
@@ -335,7 +364,6 @@ struct mech_eval {
         return mech;
     }
 };
-
 struct make_mech_call {
     evaluator state;
 
@@ -453,15 +481,129 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
     return util::unexpected(cableio_parse_error("expression is neither integer, real expression of the form (op <args>)", location(e)));
 }
 
-parse_hopefully<ion_reversal_potential_method> parse(const std::string& str) {
+parse_hopefully<decor> parse_decor(const s_expr& sexp) {
+    decor d;
+    for (const auto& e: sexp) {
+        if (e.head().is_atom()) {
+            auto func = e.head().atom().spelling;
+            if (func == "place" || func == "paint") {
+                if (length(e.tail()) != 2) {
+                    return util::unexpected(cableio_parse_error("Expected 2 arguments for " + func, location(e)));
+                }
+                auto it = e.tail().begin();
+                auto label = parse_label_expression(*it);
+                auto decoration = eval(*(it + 1), decor_eval_map);
+                if (!label) {
+                    return util::unexpected(cableio_parse_error(label.error().what(), {}));
+                }
+                if (!decoration) {
+                    return util::unexpected(decoration.error());
+                }
+                if (func == "place") {
+                    auto p = any_to_placeable(decoration.value());
+                    if (!match<locset>(label->type())) {
+                        return util::unexpected(cableio_parse_error("expected locset as arg for place", {}));
+                    }
+                    if (!p) {
+                        return util::unexpected(cableio_parse_error("expected placeable as arg for place", {}));
+                    }
+                    d.place(std::any_cast<arb::locset>(label.value()), p.value());
+                }
+                if (func == "paint") {
+                    auto p = any_to_paintable(decoration.value());
+                    if (!match<region>(label->type())) {
+                        return util::unexpected(cableio_parse_error("expected region as arg for paint", {}));
+                    }
+                    if (!p) {
+                        return util::unexpected(cableio_parse_error("expected paintable as arg for place", {}));
+                    }
+                    d.paint(std::any_cast<arb::region>(label.value()), p.value());
+                }
+            }
+            else if (func == "default") {
+                if (length(e.tail()) != 1) {
+                    return util::unexpected(cableio_parse_error("Expected 1 arguments for " + func, location(e)));
+                }
+                auto decoration = eval(*(e.tail().begin()), decor_eval_map);
+                if (!decoration) {
+                    return util::unexpected(decoration.error());
+                }
+                auto p = any_to_defaultable(decoration.value());
+                if (!p) {
+                    return util::unexpected(cableio_parse_error("expected defaultable as arg for place", {}));
+                }
+                d.set_default(std::any_cast<defaultable>(p.value()));
+            }
+            else {
+                return util::unexpected(cableio_parse_error("Expected paint, place or default atom", location(e)));
+            }
+        }
+        else {
+            return util::unexpected(cableio_parse_error("Expected paint, place or default atom", location(e)));
+        }
+    }
+    std::cout << "whoooo" << std::endl;
+    return d;
+}
+parse_hopefully<decor> parse_decor(const std::string& str) {
+    return parse_decor(parse_s_expr(str));
+}
+
+parse_hopefully<label_dict> parse_label_dict(const s_expr& sexp) {
+    label_dict d;
+    for (const auto& e: sexp) {
+        if (e.head().is_atom()) {
+            auto func = e.head().atom().spelling;
+            if (func == "region-def" || func == "locset-def") {
+                if (length(e.tail()) != 2) {
+                    return util::unexpected(cableio_parse_error("Expected 2 arguments for " + func, location(e)));
+                }
+                auto it = e.tail().begin();
+                if (!it->is_atom() || it->atom().kind != tok::string) {
+                    return util::unexpected(cableio_parse_error("Expected string as arg for region-def", {}));
+                }
+                auto label = it->atom().spelling;
+                auto desc = parse_label_expression(*(it+1));
+                if (!desc) {
+                    return util::unexpected(cableio_parse_error(desc.error().what(), {}));
+                }
+                if (func == "region-def") {
+                    if (!match<region>(desc->type())) {
+                        return util::unexpected(cableio_parse_error("expected region as arg for region-def", {}));
+                    }
+                    d.set(label, eval_cast<region>(desc.value()));
+                }
+                if (func == "locset-def") {
+                    if (!match<locset>(desc->type())) {
+                        return util::unexpected(cableio_parse_error("expected locset as arg for locset-def", {}));
+                    }
+                    d.set(label, eval_cast<locset>(desc.value()));
+                }
+            }
+            else {
+                return util::unexpected(cableio_parse_error("Expected region-def or locset-def", location(e)));
+            }
+        }
+        else {
+            return util::unexpected(cableio_parse_error("Expected region-def or locset-def", location(e)));
+        }
+    }
+    std::cout << "whoooo" << std::endl;
+    return d;
+}
+parse_hopefully<label_dict> parse_label_dict(const std::string& str) {
+    return parse_label_dict(parse_s_expr(str));
+}
+
+parse_hopefully<mechanism_desc> parse(const std::string& str) {
     auto s = parse_s_expr(str);
     auto e = eval(s, decor_eval_map);
     if (!e) {
         return util::unexpected(cableio_parse_error(std::string()+e.error().what(), {}));
     }
-    if (e->type() == typeid(ion_reversal_potential_method)) {
+    if (e->type() == typeid(mechanism_desc)) {
         std::cout << "wooo" << std::endl;
-        return std::any_cast<ion_reversal_potential_method>(*e);
+        return std::any_cast<mechanism_desc>(*e);
     }
     return util::unexpected(cableio_parse_error("wtf is this",{}));
 }
