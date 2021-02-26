@@ -199,20 +199,14 @@ ARB_PP_FOREACH(ARB_DEFINE_MAKERS, init_membrane_potential, temperature_K, axial_
 ARB_PP_FOREACH(ARB_DEFINE_MAKERS, init_int_concentration, init_ext_concentration, init_reversal_potential)
 #undef ARB_DEFINE_MAKERS
 
-arb::mechanism_desc make_mechanism_desc(const std::vector<std::any>& params) {
-    try {
-        auto name = std::any_cast<std::string>(params.front());
-        arb::mechanism_desc mech(name);
+using param_pair = std::pair<std::string, double>;
 
-        for (auto it = params.begin()+1; it != params.end(); ++it) {
-            auto p = std::any_cast<std::pair<std::string, double>>(*it);
-            mech.set(p.first, p.second);
-        }
-        return mech;
+arb::mechanism_desc make_mechanism_desc(const std::string name, std::vector<param_pair> args) {
+    arb::mechanism_desc mech(name);
+    for (const auto& p: args) {
+        mech.set(p.first, p.second);
     }
-    catch (const std::bad_any_cast& e) {
-        throw cableio_parse_error("Something went wrong when parsing mechanism_desc: "+std::string(e.what()), {});
-    }
+    return mech;
 }
 
 arb::i_clamp make_i_clamp(double delay, double duration, double amplitude) {
@@ -223,11 +217,6 @@ arb::gap_junction_site make_gap_junction_site() {
 }
 arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std::string& ion, const arb::mechanism_desc& mech) {
     return ion_reversal_potential_method{ion, mech};
-}
-
-using param_pair = std::pair<std::string, double>;
-param_pair make_param_pair(std::string param, double val) {
-    return std::make_pair(param, val);
 }
 
 // Test whether a value wrapped in std::any can be converted to a target type
@@ -299,6 +288,27 @@ struct call_eval {
     }
 };
 
+template <typename T>
+struct arg_vec_match {
+    bool operator()(const std::vector<std::any>& args) const {
+        for (auto& a: args) {
+            if (!match<T>(a.type())) return false;
+        }
+        return true;
+    }
+};
+
+template <typename T>
+struct arg_vec_eval {
+    std::any operator()(std::vector<std::any> args) {
+        std::vector<T> vec;
+        for (const auto& a: args) {
+            vec.push_back(std::any_cast<T>(a));
+        }
+        return vec;
+    }
+};
+
 struct evaluator {
     using any_vec = std::vector<std::any>;
     using eval_fn = std::function<std::any(any_vec)>;
@@ -326,6 +336,19 @@ struct make_call {
     template <typename F>
     make_call(F&& f, const char* msg="call"):
         state(call_eval<Args...>(std::forward<F>(f)), call_match<Args...>(), msg)
+    {}
+
+    operator evaluator() const {
+        return state;
+    }
+};
+
+template <typename T>
+struct make_arg_vec {
+    evaluator state;
+
+    make_arg_vec(const char* msg="arg_vec"):
+        state(arg_vec_eval<T>(), arg_vec_match<T>(), msg)
     {}
 
     operator evaluator() const {
@@ -361,10 +384,9 @@ eval_map decor_eval_map {
                            "'gap-junction-site' with 0 arguments")},
     {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>(make_ion_reversal_potential_method,
                                       "'ion-reversal-potential-method' with 2 arguments")},
-    {"param", make_call<std::string, double>(make_param_pair,
-                                             "'param' with 2 arguments")},
-    {"mechanism", make_call<std::vector<std::any>>(make_mechanism_desc,
-                                                         "'mechanism' with at least one argument")},
+    {"params", make_arg_vec<param_pair>("'params' with at least 1 argument")},
+    {"mechanism", make_call<std::string, std::vector<param_pair>>(make_mechanism_desc,
+                                                                  "'mechanism' with at least one argument")},
 };
 
 parse_hopefully<std::any> eval(const s_expr&, const eval_map&);
@@ -406,13 +428,24 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
         }
     }
     if (e.head().is_atom()) {
+        // If this is a string, it must be a parameter pair
+        if (e.head().atom().kind == tok::string) {
+            auto args = eval_args(e.tail(), map);
+            if (!args) {
+                return util::unexpected(args.error());
+            }
+            if (args->size() != 1 || (args->front().type() != typeid(int) && args->front().type() != typeid(double))) {
+                return util::unexpected(cableio_parse_error("Parameter "+e.head().atom().spelling+" can only have an integer or real value.", location(e)));
+            }
+            return std::any{param_pair{e.head().atom().spelling, eval_cast<double>(args->front())}};
+        };
         // This must be a function evaluation, where head is the function name, and
         // tail is a list of arguments.
 
         // Evaluate the arguments, and return error state if an error ocurred.
         auto args = eval_args(e.tail(), map);
         if (!args) {
-            return args.error();
+            return util::unexpected(args.error());
         }
 
         // Find all candidate functions that match the name of the function.
@@ -428,6 +461,19 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
         return util::unexpected(cableio_parse_error("No matches for "+name, location(e)));
     }
     return util::unexpected(cableio_parse_error("expression is neither integer, real expression of the form (op <args>)", location(e)));
+}
+
+parse_hopefully<ion_reversal_potential_method> parse(const std::string& str) {
+    auto s = parse_s_expr(str);
+    auto e = eval(s, decor_eval_map);
+    if (!e) {
+        return util::unexpected(cableio_parse_error(std::string()+e.error().what(), {}));
+    }
+    if (e->type() == typeid(ion_reversal_potential_method)) {
+        std::cout << "wooo" << std::endl;
+        return std::any_cast<ion_reversal_potential_method>(*e);
+    }
+    return util::unexpected(cableio_parse_error("wtf is this",{}));
 }
 
 /*struct label_pair {
