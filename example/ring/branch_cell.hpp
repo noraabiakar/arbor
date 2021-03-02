@@ -138,14 +138,11 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     arb::cable_cell cell(arb::morphology(tree), labels, decor);
     if (!gid) {
-//        arborio::write_s_expr(std::cout, cell);
-//        std::cout << std::endl << std::endl;
-
         std::string dicty = "(label-dict (region-def \"soma\"\n"
                             "   (tag 1))\n"
                             " (region-def \"dend\"\n"
                             "   (tag 3)))";
-        std::string decory = "(decor (place\n"
+        std::string decory = "(decorations (place\n"
                              "   (location 0 0.5)\n"
                              "   (mechanism \"expsyn\"))\n"
                              " (place\n"
@@ -169,6 +166,36 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
                              "        (point 6.300000 0.000000 0.000000 0.500000)\n"
                              "        (point 206.300000 0.000000 0.000000 0.200000)\n"
                              "        3)))";
+        std::string celly = "(cable-cell \n"
+                            "  (morphology \n"
+                            "    (branch 0 -1 \n"
+                            "      (segment 0 \n"
+                            "        (point -6.300000 0.000000 0.000000 6.300000)\n"
+                            "        (point 6.300000 0.000000 0.000000 6.300000)\n"
+                            "        1)\n"
+                            "      (segment 1 \n"
+                            "        (point 6.300000 0.000000 0.000000 0.500000)\n"
+                            "        (point 206.300000 0.000000 0.000000 0.200000)\n"
+                            "        3)))\n"
+                            "  (label-dict \n"
+                            "    (region-def \"soma\" \n"
+                            "      (tag 1))\n"
+                            "    (region-def \"dend\" \n"
+                            "      (join \n"
+                            "        (join \n"
+                            "          (tag 3)\n"
+                            "          (tag 4))\n"
+                            "        (tag 42))))\n"
+                            "  (decorations \n"
+                            "    (place \n"
+                            "      (location 0 1)\n"
+                            "      (mechanism \"exp2syn\"))\n"
+                            "    (paint \n"
+                            "      (region \"dend\")\n"
+                            "      (mechanism \"pas\"))\n"
+                            "    (paint \n"
+                            "      (region \"soma\")\n"
+                            "      (mechanism \"hh\"))))";
 
         if (auto v = arborio::parse_label_dict(dicty)) {
             arborio::write_s_expr(std::cout, v.value());
@@ -187,6 +214,13 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
         }
 
         if (auto v = arborio::parse_morphology(morphy)) {
+            arborio::write_s_expr(std::cout, v.value());
+            std::cout << std::endl << std::endl;
+        }
+        else {
+            throw v.error();
+        }
+        if (auto v = arborio::parse_cable_cell(celly)) {
             arborio::write_s_expr(std::cout, v.value());
             std::cout << std::endl << std::endl;
         }

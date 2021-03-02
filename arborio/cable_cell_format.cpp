@@ -230,6 +230,12 @@ morphology make_morphology(std::vector<std::variant<branch>> args) {
     return morphology(tree);
 }
 
+// Define cable-cell maker
+cable_cell make_cable(morphology morpho, label_dict dict, decor dec) {
+   return cable_cell(morpho, dict, dec);
+}
+
+// Evaluation
 struct evaluator {
     using any_vec = std::vector<std::any>;
     using eval_fn = std::function<std::any(any_vec)>;
@@ -279,7 +285,6 @@ struct call_match {
         return nargs_in==nargs_ex? match_args_impl<0, Args...>(args): false;
     }
 };
-
 // Evaluate a call to a function where the arguments are provided as a std::vector<std::any>.
 // The arguments are expanded and converted to the correct types, as specified by Args.
 template <typename... Args>
@@ -507,8 +512,8 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
     return util::unexpected(cableio_parse_error("expression is neither integer, real expression of the form (op <args>)", location(e)));
 }
 
-parse_hopefully<std::any> parse_decor_expression(const arb::s_expr& s) {
-    eval_map decor_eval_map{
+parse_hopefully<std::any> parse_expression(const arb::s_expr& s) {
+    eval_map map{
         {"membrane-potential", make_call<double>(make_init_membrane_potential, "'membrane-potential' with 1 argument")},
         {"temperature-kelvin", make_call<double>(make_temperature_K, "'temperature-kelvin' with 1 argument")},
         {"axial-resistivity", make_call<double>(make_axial_resistivity, "'axial-resistivity' with 1 argument")},
@@ -545,29 +550,25 @@ parse_hopefully<std::any> parse_decor_expression(const arb::s_expr& s) {
         {"default", make_call<init_reversal_potential>(make_default, "'default' with one argument")},
         {"default", make_call<ion_reversal_potential_method>(make_default, "'default' with one argument")},
 
-        {"decor", make_arg_vec_call<place_pair, paint_pair, defaultable>(make_decor,"'decor' with at least one argument")},
-    };
-    return eval(std::move(s), decor_eval_map);
-}
-
-parse_hopefully<std::any> parse_label_dict_expression(const arb::s_expr& s) {
-    eval_map label_dict_eval_map{
         {"locset-def", make_call<std::string, locset>(make_locset_pair, "'locset-def' with 2 arguments")},
         {"region-def", make_call<std::string, region>(make_region_pair, "'region-def' with 2 arguments")},
-        {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict, "'label-dict' with at least 1 argument")},
-    };
-    return eval(std::move(s), label_dict_eval_map);
-}
 
-parse_hopefully<std::any> parse_morphology_expression(const arb::s_expr& s) {
-    eval_map morpho_eval_map{
-        // Functions that return defaultables, placeables and paintables
         {"point",   make_call<double, double, double, double>(make_point, "'point' with 4 arguments")},
         {"segment", make_call<int, mpoint, mpoint, int>(make_segment, "'segment' with 4 arguments")},
         {"branch",  make_branch_call("'branch' with at least 1 argument")},
+
+        {"decorations", make_arg_vec_call<place_pair, paint_pair, defaultable>(make_decor,"'decor' with at least one argument")},
+        {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict, "'label-dict' with at least 1 argument")},
         {"morphology", make_arg_vec_call<branch>(make_morphology,"'morphology' with at least 1 argument")},
+
+        {"cable-cell", make_call<morphology, label_dict, decor>(make_cable, "'cable-cell' with at least 1 argument")}
     };
-    return eval(std::move(s), morpho_eval_map);
+    return eval(std::move(s), map);
 }
+
+using cable_cell_components = std::variant<morphology, label_dict, decor, cable_cell>;
+std::optional<cable_cell_components> parse(const arb::s_expr& s) {
+    return eval_cast_variant<cable_cell_components>(parse_expression(s));
+};
 
 } // namespace arborio
