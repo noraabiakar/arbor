@@ -209,14 +209,14 @@ struct ion_reversal_potential_method {
 };
 
 using paintable =
-    std::variant<mechanism_desc,
-                 init_membrane_potential,
+    std::variant<init_membrane_potential,
                  axial_resistivity,
                  temperature_K,
                  membrane_capacitance,
                  init_int_concentration,
                  init_ext_concentration,
-                 init_reversal_potential>;
+                 init_reversal_potential,
+                 mechanism_desc>;
 
 using placeable =
     std::variant<mechanism_desc,

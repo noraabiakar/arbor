@@ -17,14 +17,7 @@ arb::s_expr mksexp(const arb::morphology& morph);
 
 // S-expression evaluator
 parse_hopefully<std::any> parse_decor_expression(const arb::s_expr&);
-
-template <typename T, std::size_t I=0>
-std::optional<T> cast_to_variant(const std::any& a) {
-    if constexpr (I<std::variant_size_v<T>) {
-        using var_type = std::variant_alternative_t<I, T>;
-        return typeid(var_type) == a.type()? std::any_cast<var_type>(a): cast_to_variant<T, I+1>(a);
-    }
-    return std::nullopt;
-}
+parse_hopefully<std::any> parse_label_dict_expression(const arb::s_expr&);
+parse_hopefully<std::any> parse_morphology_expression(const arb::s_expr&);
 
 } // namespace arborio
