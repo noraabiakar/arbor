@@ -1,19 +1,11 @@
 #pragma once
 
-#include <ostream>
-
 #include <arbor/cable_cell.hpp>
-#include <arbor/morph/label_parse.hpp>
+#include <arbor/s_expr.hpp>
+
+#include <arborio/cableio_error.hpp>
 
 namespace arborio {
-
-struct cableio_parse_error: arb::arbor_exception {
-    explicit cableio_parse_error(const std::string& msg, const arb::src_location& loc);
-};
-struct cableio_unexpected_symbol: cableio_parse_error {
-    explicit cableio_unexpected_symbol(const std::string& sym, const arb::src_location& loc);
-};
-
 
 template <typename T>
 using parse_hopefully = arb::util::expected<T, cableio_parse_error>;
@@ -26,4 +18,4 @@ std::ostream& write_s_expr(std::ostream&, const arb::cable_cell&);
 
 parse_hopefully<cable_cell_component> parse_component(const std::string&);
 
-} // namespace arb
+} // namespace arborio
