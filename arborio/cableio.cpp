@@ -12,9 +12,6 @@ cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_
     arb::arbor_exception(msg+" at :"+std::to_string(loc.line)+":"+std::to_string(loc.column))
 {}
 
-inline arb::symbol operator"" _symbol(const char* chars, size_t size) {
-    return {chars};
-}
 struct nil_tag {};
 
 // Define s-expr makers for various types
