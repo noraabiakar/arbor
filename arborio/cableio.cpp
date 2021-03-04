@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include <arbor/morph/label_parse.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/util/any_visitor.hpp>

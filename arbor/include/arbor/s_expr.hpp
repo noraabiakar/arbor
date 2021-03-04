@@ -11,8 +11,6 @@
 #include <variant>
 #include <vector>
 
-#include "arbor/arbexcept.hpp"
-
 namespace arb {
 
 struct src_location {
