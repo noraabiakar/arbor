@@ -137,14 +137,10 @@ template <typename T, std::size_t I=0>
 std::optional<T> eval_cast_variant(const std::any& a) {
     if constexpr (I<std::variant_size_v<T>) {
         using var_type = std::variant_alternative_t<I, T>;
-        return typeid(var_type) == a.type()? std::any_cast<var_type>(a): eval_cast_variant<T, I+1>(a);
+        return typeid(var_type) == a.type()? eval_cast<var_type>(a): eval_cast_variant<T, I+1>(a);
     }
     return std::nullopt;
 }
-
-using cable_cell_component = std::variant<morphology, label_dict, decor, cable_cell>;
-using place_pair = std::pair<arb::locset, arb::placeable>;
-using paint_pair = std::pair<arb::region, arb::paintable>;
 
 // Define makers for defaultables, paintables, placeables
 #define ARBIO_DEFINE_SINGLE_ARG(name) arb::name make_##name(double val) { return arb::name{val}; }
@@ -166,6 +162,8 @@ arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std:
 #undef ARBIO_DEFINE_DOUBLE_ARG
 
 // Define makers for place_pair, paint_pair and decor
+using place_pair = std::pair<arb::locset, arb::placeable>;
+using paint_pair = std::pair<arb::region, arb::paintable>;
 place_pair make_place(locset where, placeable what) {
     return place_pair{where, what};
 }
@@ -626,8 +624,16 @@ parse_hopefully<std::any> parse_expression(const arb::s_expr& s) {
     return eval(std::move(s), map);
 }
 
-std::optional<cable_cell_component> parse(const arb::s_expr& s) {
-    return eval_cast_variant<cable_cell_component>(parse_expression(s));
+parse_hopefully<cable_cell_component> parse(const arb::s_expr& s) {
+    auto try_parse = parse_expression(s);
+    if (!try_parse) {
+        return util::unexpected(cableio_parse_error(try_parse.error()));
+    }
+    auto comp = eval_cast_variant<cable_cell_component>(try_parse.value());
+    if (!comp) {
+        return util::unexpected(cableio_parse_error("expected cable cell component", {}));
+    }
+    return comp.value();
 };
 
 } // namespace arborio

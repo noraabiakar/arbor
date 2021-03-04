@@ -17,6 +17,6 @@ arb::s_expr mksexp(const arb::morphology& morph);
 
 // S-expression evaluator
 parse_hopefully<std::any> parse_expression(const arb::s_expr&);
-std::optional<std::variant<arb::morphology, arb::label_dict, arb::decor, arb::cable_cell>> parse(const arb::s_expr&);
+parse_hopefully<cable_cell_component> parse(const arb::s_expr&);
 
 } // namespace arborio
