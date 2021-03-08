@@ -27,14 +27,14 @@ s_expr mksexp(const msegment& seg) {
 }
 s_expr mksexp(const mechanism_desc& d) {
     std::vector<s_expr> mech;
-    mech.push_back(d.name());
+    mech.push_back(s_expr(d.name()));
     for (const auto& p: d.values()) {
-        mech.push_back(slist(p.first, p.second));
+        mech.push_back(slist(s_expr(p.first), p.second));
     }
     return s_expr{"mechanism"_symbol, slist_range(mech)};
 }
 s_expr mksexp(const ion_reversal_potential_method& e) {
-    return slist("ion-reversal-potential-method"_symbol, e.ion, mksexp(e.method));
+    return slist("ion-reversal-potential-method"_symbol, s_expr(e.ion), mksexp(e.method));
 }
 s_expr mksexp(const cv_policy& c) {
     return s_expr();
@@ -52,13 +52,13 @@ s_expr mksexp(const membrane_capacitance& c) {
     return slist("membrane-capacitance"_symbol, c.value);
 }
 s_expr mksexp(const init_int_concentration& c) {
-    return slist("ion-internal-concentration"_symbol, c.ion, c.value);
+    return slist("ion-internal-concentration"_symbol, s_expr(c.ion), c.value);
 }
 s_expr mksexp(const init_ext_concentration& c) {
-    return slist("ion-external-concentration"_symbol, c.ion, c.value);
+    return slist("ion-external-concentration"_symbol, s_expr(c.ion), c.value);
 }
-s_expr mksexp(const init_reversal_potential& e) {
-    return slist("ion-reversal-potential"_symbol, e.ion, e.value);
+s_expr mksexp(const init_reversal_potential& c) {
+    return slist("ion-reversal-potential"_symbol, s_expr(c.ion), c.value);
 }
 s_expr mksexp(const i_clamp& c) {
     return slist("current-clamp"_symbol, c.delay, c.duration, c.amplitude);
@@ -95,10 +95,10 @@ s_expr mksexp(const label_dict& dict) {
     };
     auto defs = slist();
     for (auto& r: dict.locsets()) {
-        defs = s_expr(slist("locset-def"_symbol, r.first, round_trip(r.second)), std::move(defs));
+        defs = s_expr(slist("locset-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
     }
     for (auto& r: dict.regions()) {
-        defs = s_expr(slist("region-def"_symbol, r.first, round_trip(r.second)), std::move(defs));
+        defs = s_expr(slist("region-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
     }
     return {"label-dict"_symbol, std::move(defs)};
 }

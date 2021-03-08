@@ -213,9 +213,9 @@ struct s_expr {
         state(pair_type(std::move(l), std::move(r)))
     {}
 
-    s_expr(std::string s):
+    explicit s_expr(std::string s):
         s_expr(token{{0,0}, tok::string, std::move(s)}) {}
-    s_expr(const char* s):
+    explicit s_expr(const char* s):
         s_expr(token{{0,0}, tok::string, s}) {}
     s_expr(double x):
         s_expr(token{{0,0}, tok::real, std::to_string(x)}) {}

@@ -110,10 +110,26 @@ TEST(s_expr, list) {
 }
 
 TEST(s_expr, list_range) {
-    std::cout << slist_range(std::vector{1,2,3}) << "\n";
-    std::cout << slist_range(std::vector<int>{}) << "\n";
-    std::cout << slist_range(std::vector{12.1, 0.1}) << "\n";
-    std::cout << slist_range(slist(1, 2, "hello world")) << "\n";
+    auto to_string = [](const s_expr& obj) {
+        std::stringstream s;
+        s << obj;
+        return s.str();
+    };
+    auto s0 = slist_range(std::vector{1,2,3});
+    EXPECT_EQ("(1 2 3)", to_string(s0));
+    EXPECT_EQ(3u, length(s0));
+
+    auto s1 = slist_range(std::vector<int>{});
+    EXPECT_EQ("()", to_string(s1));
+    EXPECT_EQ(0u, length(s1));
+
+    auto s2 = slist_range(std::vector{12.1, 0.1});
+    EXPECT_EQ("(12.100000 0.100000)", to_string(s2));
+    EXPECT_EQ(2u, length(s2));
+
+    auto s3 = slist_range(slist(1, 2, "hello world"));
+    EXPECT_EQ("(1 2 \"hello world\")", to_string(s3));
+    EXPECT_EQ(3u, length(s3));
 }
 
 TEST(s_expr, iterate) {
