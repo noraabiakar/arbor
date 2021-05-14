@@ -103,6 +103,7 @@ ASSIGNED {
 CONSTANT { cao = 2	(mM) }
 
 STATE {
+  cai
 	: ca[0] is equivalent to cai
 	: ca[] are very small, so specify absolute tolerance
 	: let it be ~1.5 - 2 orders of magnitude smaller than baseline level
