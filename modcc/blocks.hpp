@@ -116,7 +116,7 @@ struct NeuronBlock {
     }
 };
 
-// information stored in a NEURON {} block in mod file
+// information stored in a STATE {} block in mod file
 struct StateBlock {
     std::vector<Id> state_variables;
     auto begin() -> decltype(state_variables.begin()) {
@@ -127,13 +127,13 @@ struct StateBlock {
     }
 };
 
-// information stored in a NEURON {} block in mod file
+// information stored in a UNITS {} block in mod file
 struct UnitsBlock {
     typedef std::pair<unit_tokens, unit_tokens> units_pair;
     std::vector<units_pair> unit_aliases;
 };
 
-// information stored in a NEURON {} block in mod file
+// information stored in a PARAMETER {} block in mod file
 struct ParameterBlock {
     std::vector<Id> parameters;
 
@@ -145,7 +145,7 @@ struct ParameterBlock {
     }
 };
 
-// information stored in a NEURON {} block in mod file
+// information stored in a ASSIGNED {} block in mod file
 struct AssignedBlock {
     std::vector<Id> parameters;
 

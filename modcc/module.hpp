@@ -91,7 +91,7 @@ public:
     // Perform semantic analysis pass.
     bool semantic();
 
-    auto find_ion(const std::string& ion_name) -> decltype(ion_deps().begin()) {
+    auto find_ion(const std::string& ion_name) const -> decltype(ion_deps().begin()) {
         auto& ions = neuron_block().ions;
         return std::find_if(
             ions.begin(), ions.end(),
@@ -101,6 +101,14 @@ public:
 
     bool has_ion(const std::string& ion_name) {
         return find_ion(ion_name) != neuron_block().ions.end();
+    };
+
+    bool has_state(const std::string& state_name) const {
+        auto& states = state_block().state_variables;
+        return std::find_if(
+            states.begin(), states.end(),
+            [&state_name](Id const& d) {return d.token.spelling==state_name;}
+        ) != state_block().state_variables.end();
     };
 
     bool is_linear() const { return linear_; }

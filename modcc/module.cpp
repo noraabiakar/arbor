@@ -719,6 +719,12 @@ void Module::add_variables_to_symbols() {
             update_ion_symbols(var, accessKind::read, ion.name);
         }
         for(auto const& var : ion.write) {
+            if (!has_state(var.spelling)) {
+                error( yellow(var.spelling) +
+                       " is a writable ion channel, but has not been declared in the" +
+                       " STATE block",
+                       var.location);
+            }
             update_ion_symbols(var, accessKind::write, ion.name);
         }
 
