@@ -74,13 +74,12 @@ PARAMETER {
 
 	gbar = 0.004 (S/cm2)   <0,1e9>
 	gunit = 16 (pS)		: unitary conductance
+ 	celsius (degC)
+	v (mV)
 }
 
 
 ASSIGNED {
- 	celsius (degC)
-	v (mV)
-
 	igate (mA/cm2)
 	g  (S/cm2)
 	nc (1/cm2)			: membrane density of channel
