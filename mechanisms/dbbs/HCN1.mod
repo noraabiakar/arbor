@@ -25,7 +25,7 @@ CONSTANT {
 
 PARAMETER {
     v 		(mV)
-    : eh  =-34.4	(mV)
+		celsius (deg)
     gbar=.0001 	(mho/cm2)
     ratetau = 1 (ms)
     rec_temp = 23 (deg) : we set it here at room temperature as in Angelo et al. they forogot tp mention the recording temperature
@@ -46,7 +46,6 @@ STATE {
 ASSIGNED {
     hinf
     tauh
-    celsius (deg)
     v_inf_half (mV)
     v_tau_half1 (mV)
     v_tau_half2 (mV)

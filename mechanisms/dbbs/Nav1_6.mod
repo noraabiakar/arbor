@@ -128,6 +128,7 @@ BREAKPOINT {
 }
 
 INITIAL {
+  SOLVE activation STEADYSTATE sparse
 	qt = q10^((celsius-22)/10)
 	rates(v)
 }
