@@ -50,6 +50,8 @@ CONSTANT {
 }
 
 PARAMETER {
+	v	(mV)
+	celsius	(degC)
 	gateCurrent = 0			: gating currents ON = 1 OFF = 0
 
 	gbar = 0.008 (S/cm2)
@@ -80,8 +82,6 @@ PARAMETER {
 }
 
 ASSIGNED {
-	v	(mV)
-	celsius	(degC)
 	igate	(mA/cm2)
 	g	(S/cm2)
 

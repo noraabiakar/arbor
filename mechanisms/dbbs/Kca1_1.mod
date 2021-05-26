@@ -39,6 +39,8 @@ CONSTANT {
 }
 
 PARAMETER {
+    v            (mV)
+    celsius      (degC)
     gbar = 0.01 (S/cm2)
 
     Qo = 0.73
@@ -65,6 +67,7 @@ PARAMETER {
 }
 
 ASSIGNED {
+    g            (S/cm2)
     : rates
     c01    (/ms)
     c12    (/ms)
@@ -93,10 +96,6 @@ ASSIGNED {
     b2     (/ms)
     b3     (/ms)
     b4     (/ms)
-
-    v            (mV)
-    g            (S/cm2)
-    celsius      (degC)
 }
 
 STATE {
@@ -125,7 +124,7 @@ INITIAL {
 }
 
 KINETIC activation {
-    rates(v, cai)
+    rates(v, celsius, cai)
     ~ C0 <-> C1      (c01,c10)
     ~ C1 <-> C2      (c12,c21)
     ~ C2 <-> C3      (c23,c32)
@@ -143,7 +142,7 @@ KINETIC activation {
 CONSERVE C0 + C1 + C2 + C3 + C4 + O0 + O1 + O2 + O3 + O4 = 1
 }
 
-PROCEDURE rates(v(mV), ca (mM)) {
+PROCEDURE rates(v(mV), celsius, ca (mM)) {
     LOCAL qt, alpha, beta
 
     qt = q10^((celsius-23)/10)

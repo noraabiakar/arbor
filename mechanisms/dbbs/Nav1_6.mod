@@ -37,6 +37,7 @@ CONSTANT {
 PARAMETER {
 	gbar = 0.016 (S/cm2)
 	celsius (degC)
+  v					(mV)
 
 	: kinetic parameters
 	Con = 0.005			(/ms)					: closed -> inactivated transitions
@@ -100,7 +101,6 @@ ASSIGNED {
 	bi5 		(/ms)
 	bin 		(/ms)
 
-	v					(mV)
 	g					(S/cm2)
 	qt
 }
