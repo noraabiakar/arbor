@@ -40,12 +40,13 @@ UNITS {
 }
 
 CONSTANT {
-  FARADAY = 96520 : Farady constant (coulomb/mol)
+  FARADAY = 9.6520
   PI = 3.14
   cao = 2	(mM)
 }
 
 PARAMETER {
+  diam      (um)
 	Nannuli = 10.9495 (1)
 	celsius (degC)
 
@@ -116,7 +117,6 @@ PARAMETER {
 }
 
 ASSIGNED {
-	diam      (um)
 	parea     (um)     : pump area per unit length
 	parea2	  (um)
 	mgi	(mM)
@@ -182,6 +182,7 @@ STATE {
 
 BREAKPOINT {
 	SOLVE state METHOD sparse
+  cai = ca
 }
 
 INITIAL {
@@ -228,7 +229,6 @@ INITIAL {
 	pump = TotalPump
 	pumpca = 0
 
-	cai = ca
 }
 
 PROCEDURE factors() {
@@ -292,7 +292,6 @@ KINETIC state {
 		~ ca + CAM1C1N <-> CAM2N1C (K2Non*dsqvol, K2Noff*dsqvol)
 
 
-  cai = ca
 	mgi = mg
   icazz = nrvci
 }

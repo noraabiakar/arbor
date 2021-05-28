@@ -33,7 +33,7 @@ UNITS {
 }
 
 CONSTANT {
-  FARADAY = 96520 : Farady constant (coulomb/mol)
+  FARADAY = 96.520
   R = 8.3134 : gas constant (J/K.mol)
   q10 = 3
 }
