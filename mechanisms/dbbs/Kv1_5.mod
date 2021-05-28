@@ -6,7 +6,7 @@ NEURON {
 	SUFFIX Kv1_5
 	USEION k READ ek,ki,ko WRITE ik
 	USEION na READ nai,nao
-	USEION no WRITE ino VALENCE 1: nonspecific cation current
+	NONSPECIFIC_CURRENT ino
 	RANGE gKur, ik, ino, Tauact, Tauinactf,Tauinacts, gnonspec, nao, nai, ko,ki
 	RANGE minf, ninf, uinf, mtau , ntau, utau
 }
