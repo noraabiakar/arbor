@@ -74,7 +74,7 @@ DERIVATIVE states	{
 
 INITIAL {
 	T = celsius+273.14
-	qt = q10 ^ (celsius-28) / 10
+	qt = q10 ^ ((celsius-28) / 10)
 	rates(v, cai, cao)
 	n = n_inf
 	l = l_inf

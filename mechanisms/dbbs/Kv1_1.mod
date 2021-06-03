@@ -31,7 +31,7 @@ Contact: akemann@brain.riken.jp
 
 ENDCOMMENT
 
-
+UNITSOFF
 NEURON {
   SUFFIX Kv1_1
 	USEION k READ ek WRITE ik
@@ -134,3 +134,4 @@ FUNCTION betanfkt(v (mV)) (1/ms) {
 FUNCTION ngateFlip() (1/ms) {
 	ngateFlip = (ninf-n)/taun
 }
+UNITSON

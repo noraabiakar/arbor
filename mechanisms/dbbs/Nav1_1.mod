@@ -248,6 +248,6 @@ PROCEDURE rates(v(mV) )
 
 FUNCTION gateFlip() (1/ms) {
 	LOCAL flip
-  flip = f01 * C1 + (f02-b01) * C2 + (f03-b02) * C3 + (f04-b03) * C4 - b04 * C5
+    flip = f01 * C1 + (f02-b01) * C2 + (f03-b02) * C3 + (f04-b03) * C4 - b04 * C5
 	gateFlip = flip + f11 * I1 + (f12-b11) * I2	+ (f13-b12) * I3 + (f14-b13) * I4 - b14 * I5
 }

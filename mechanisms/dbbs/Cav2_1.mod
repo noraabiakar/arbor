@@ -20,7 +20,7 @@ Contact: Sungho Hong (shhong@oist.jp)
 ENDCOMMENT
 
 NEURON {
-    SUFFIX Cav2_1
+SUFFIX Cav2_1
     USEION ca READ cai, cao WRITE ica
     RANGE pcabar, ica, gk, vhalfm, cvm, vshift, taum, minf
 }
@@ -59,12 +59,12 @@ PARAMETER {
 
 ASSIGNED {
     qt
+    T (kelvin)
     minf
     taum (ms)
-    gk (coulombs/cm3)
-    T (kelvin)
     E (volt)
     zeta
+    gk (coulombs/cm3)
 }
 
 STATE { m }
@@ -87,24 +87,23 @@ DERIVATIVE states {
     m' = (minf-m)/taum
 }
 
-FUNCTION ghk( v (mV), ci (mM), co (mM), z )  (coulombs/cm3) {
-    E = (1e-3) * v
-      zeta = (z*F*E)/(R*T)
+PROCEDURE rates( v (mV), cai, cao ) {
+    LOCAL shifted
+    shifted = v - vshift
 
+    minf = 1 / ( 1 + exp(-(v-vhalfm-vshift)/cvm) )
+    taum = taumfkt(shifted)/qt
+    E = (1e-3) * shifted
+    zeta = (2*F*E)/(R*T)
+    gk = ghk(shifted, cai, cao, zeta, 2)
+}
+
+FUNCTION ghk( v (mV), ci (mM), co (mM), ze, z )  (coulombs/cm3) {
     if ( fabs(1-exp(-zeta)) < 1e-6 ) {
         ghk = (1e-6) * (z*F) * (ci - co*exp(-zeta)) * (1 + zeta/2)
     } else {
         ghk = (1e-6) * (z*zeta*F) * (ci - co*exp(-zeta)) / (1-exp(-zeta))
     }
-}
-
-PROCEDURE rates( v (mV), cai, cao ) {
-
-    minf = 1 / ( 1 + exp(-(v-vhalfm-vshift)/cvm) )
-
-    taum = taumfkt(v-vshift)/qt
-
-    gk = ghk(v-vshift, cai, cao, 2)
 }
 
 
@@ -114,12 +113,12 @@ FUNCTION kelvinfkt( t (degC) )  (kelvin) {
     UNITSON
 }
 
-FUNCTION taumfkt( v (mV) ) (ms) {
+FUNCTION taumfkt( vm (mV) ) (ms) {
     UNITSOFF
-    if (v>=-40) {
-        taumfkt = 0.2702 + 1.1622 * exp(-(v+26.798)*(v+26.798)/164.19)
+    if (vm>=-40) {
+        taumfkt = 0.2702 + 1.1622 * exp(-(vm+26.798)*(vm+26.798)/164.19)
     } else {
-        taumfkt = 0.6923 * exp(v/1089.372)
+        taumfkt = 0.6923 * exp(vm/1089.372)
     }
     UNITSON
 }

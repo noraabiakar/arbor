@@ -30,8 +30,8 @@ UNITS {
 }
 
 CONSTANT {
-	FARADAY = 96520 (coul)
-	R = 8.3134 (joule/degC)
+	FARADAY = 96485.3 (coul)
+	R = 8.31345 (joule/degC)
 }
 
 PARAMETER {

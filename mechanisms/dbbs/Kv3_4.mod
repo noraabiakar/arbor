@@ -20,7 +20,6 @@ CONSTANT {
 }
 
 PARAMETER {
-	celsius (degC)
 	v (mV)
 
 	gkbar = .004	(mho/cm2)
@@ -37,6 +36,8 @@ PARAMETER {
 	hiA = .69
 	hivh = -5.802	(mV)
 	hik = 11.2	(1)
+
+	celsius (degC)
 }
 
 ASSIGNED {
@@ -44,7 +45,7 @@ ASSIGNED {
 	mtau		(ms)
 	hinf
 	htau		(ms)
-        qt
+    qt
 }
 
 STATE {
@@ -53,11 +54,10 @@ STATE {
 }
 
 INITIAL {
+	qt = q10^((celsius-37)/10)
 	rates(v)
 	m = minf
 	h = hinf
-
-	qt = q10^((celsius-37)/10)
 }
 
 BREAKPOINT {
@@ -72,19 +72,19 @@ DERIVATIVE states {
 }
 
 PROCEDURE rates( Vm (mV)) {
-	LOCAL v_
-	v_ = Vm + 11	: Account for Junction Potential
-	minf = 1/(1+exp(-(v_-mivh)/mik))
-	mtau = (1000) * mtau_func(v_) /qt
-	hinf = hiy0 + hiA/(1+exp((v_-hivh)/hik))
-	htau = 1000 * htau_func(v_) / qt
+	LOCAL v2
+	v2 = Vm + 11	: Account for Junction Potential
+	minf = 1/(1+exp(-(v2-mivh)/mik))
+	mtau = (1000) * mtau_func(v2) /qt
+	hinf = hiy0 + hiA/(1+exp((v2-hivh)/hik))
+	htau = 1000 * htau_func(v2) / qt
 }
 
-FUNCTION mtau_func (v (mV)) (ms) {
-	if (v < -35) {
-		mtau_func = (3.4225e-5+.00498*exp(-v/-28.29))*3
+FUNCTION mtau_func (Vm (mV)) (ms) {
+	if (Vm < -35) {
+		mtau_func = (3.4225e-5+.00498*exp(-Vm/-28.29))*3
 	} else {
-		mtau_func = (mty0 + 1/(exp((v+mtvh1)/mtk1)+exp((v+mtvh2)/mtk2)))
+		mtau_func = (mty0 + 1/(exp((Vm+mtvh1)/mtk1)+exp((Vm+mtvh2)/mtk2)))
 	}
 }
 

@@ -25,7 +25,7 @@ CONSTANT {
 
 PARAMETER {
     v 		(mV)
-		celsius (deg)
+	celsius (deg)
     gbar=.0001 	(mho/cm2)
     ratetau = 1 (ms)
     rec_temp = 23 (deg) : we set it here at room temperature as in Angelo et al. they forogot tp mention the recording temperature
@@ -53,14 +53,13 @@ ASSIGNED {
 }
 
 INITIAL {
-    rate(v)
-    h=hinf
     : ADD Q10 correction!!!!! FATTO!!!
     qt = q10^((celsius-37)/10)
     v_inf_half = (v_inf_half_noljp - ljp)
     v_tau_half1 = (v_tau_half1_noljp - ljp)
     v_tau_half2 = (v_tau_half2_noljp - ljp)
-
+    rate(v)
+    h=hinf
 }
 
 BREAKPOINT {
