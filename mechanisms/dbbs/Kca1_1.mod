@@ -18,11 +18,10 @@ Contact: Sungho Hong (shhong@oist.jp)
 ENDCOMMENT
 
 NEURON {
-  SUFFIX Kca1_1
-  USEION k READ ek WRITE ik
-  USEION ca READ cai
-  RANGE g, gbar, ik
-
+    SUFFIX Kca1_1
+    USEION k READ ek WRITE ik
+    USEION ca READ cai
+    RANGE g, gbar, ik
 }
 
 UNITS {
@@ -33,9 +32,9 @@ UNITS {
 }
 
 CONSTANT {
-  FARADAY = 96.4853
-  R = 8.31345 : gas constant (J/K.mol)
-  q10 = 3
+    FARADAY = 96.4853
+    R = 8.31345 : gas constant (J/K.mol)
+    q10 = 3
 }
 
 PARAMETER {
@@ -51,9 +50,9 @@ PARAMETER {
 
     L0 = 1806
     Kc = 11.0e-3 (mM)
-    Ko = 1.1e-3 (mM)
+    Ko = 1.1e-3  (mM)
 
-    pf0 = 2.39e-3  (/ms)
+    pf0 = 2.39e-3 (/ms)
     pf1 = 7.0e-3  (/ms)
     pf2 = 40e-3   (/ms)
     pf3 = 295e-3  (/ms)
@@ -63,7 +62,7 @@ PARAMETER {
     pb1 = 1152e-3 (/ms)
     pb2 = 659e-3  (/ms)
     pb3 = 486e-3  (/ms)
-    pb4 = 92e-3  (/ms)
+    pb4 = 92e-3   (/ms)
 }
 
 ASSIGNED {

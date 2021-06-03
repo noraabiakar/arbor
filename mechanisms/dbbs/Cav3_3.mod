@@ -13,25 +13,25 @@ COMMENT
 ENDCOMMENT
 
 
- NEURON	{
-  SUFFIX Cav3_3
-  USEION ca READ cai, cao WRITE ica
-  RANGE gCav3_3bar, pcabar, ica, tau_l, tau_n, n_inf, l_inf
+NEURON {
+    SUFFIX Cav3_3
+    USEION ca READ cai, cao WRITE ica
+    RANGE gCav3_3bar, pcabar, ica, tau_l, tau_n, n_inf, l_inf
 }
 
-UNITS	{
-	(S) = (siemens)
-	(mV) = (millivolt)
-	(mA) = (milliamp)
+UNITS   {
+    (S) = (siemens)
+    (mV) = (millivolt)
+    (mA) = (milliamp)
 }
 
 CONSTANT {
-  F = 96520 : Farady constant (coulomb/mol)
-  R = 8.3134 : gas constant (J/K.mol)
-  PI = 3.14
+    F = 96520 : Farady constant (coulomb/mol)
+    R = 8.3134 : gas constant (J/K.mol)
+    PI = 3.14
 }
 
-PARAMETER	{
+PARAMETER   {
     celsius = 32
     gCav3_3bar = 0.00001 (S/cm2)
     vhalfn = -41.5  :mv
@@ -43,55 +43,55 @@ PARAMETER	{
     z= 2
 }
 
-ASSIGNED	{
-	v	(mV)
-	gCav3_3	(S/cm2)
-	n_inf
-	tau_n
-	l_inf
-	tau_l
-	qt
-	T  : absolute temperature (K)
-	ghk
-	w
+ASSIGNED    {
+    v   (mV)
+    gCav3_3 (S/cm2)
+    n_inf
+    tau_n
+    l_inf
+    tau_l
+    qt
+    T  : absolute temperature (K)
+    ghk
+    w
 }
 
-STATE	{
-	n
-	l
+STATE {
+    n
+    l
 }
 
-BREAKPOINT	{
+BREAKPOINT  {
     SOLVE states METHOD cnexp
     ica = gCav3_3bar*pcabar*n*n*l*ghk
 }
 
-DERIVATIVE states	{
-	rates(v, cai, cao)
-	n' = (n_inf-n)/tau_n
-	l' = (l_inf-l)/tau_l
-    }
-
-INITIAL {
-	T = celsius+273.14
-	qt = q10 ^ ((celsius-28) / 10)
-	rates(v, cai, cao)
-	n = n_inf
-	l = l_inf
+DERIVATIVE states {
+    rates(v, cai, cao)
+    n' = (n_inf-n)/tau_n
+    l' = (l_inf-l)/tau_l
 }
 
-PROCEDURE rates(v, cai, cao){
-	n_inf = 1/(1+exp(-(v-vhalfn)/kn))
-	l_inf = 1/(1+exp(-(v-vhalfl)/kl))
+INITIAL {
+    T = celsius+273.14
+    qt = q10 ^ ((celsius-28) / 10)
+    rates(v, cai, cao)
+    n = n_inf
+    l = l_inf
+}
 
-        if (v > -60) {
-            tau_n = (7.2+0.02*exp(-v/14.7))/qt
-	    tau_l = (79.5+2.0*exp(-v/9.3))/qt
-        }else{
-            tau_n = (0.875*exp((v+120)/41))/qt
-	    tau_l = 260/qt
-        }
+PROCEDURE rates(v, cai, cao) {
+    n_inf = 1/(1+exp(-(v-vhalfn)/kn))
+    l_inf = 1/(1+exp(-(v-vhalfl)/kl))
 
-      w = v*0.001*z*F/(R*T)
-      ghk = -0.001*z*F*(cao-cai*exp(w))*w/(exp(w)-1)
+    if (v > -60) {
+        tau_n = (7.2+0.02*exp(-v/14.7))/qt
+        tau_l = (79.5+2.0*exp(-v/9.3))/qt
+    } else {
+        tau_n = (0.875*exp((v+120)/41))/qt
+        tau_l = 260/qt
+    }
+
+    w = v*0.001*z*F/(R*T)
+    ghk = -0.001*z*F*(cao-cai*exp(w))*w/(exp(w)-1)
 }

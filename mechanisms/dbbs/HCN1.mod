@@ -7,26 +7,26 @@ We call it HCN1 as PC express only HCN1 Santoro et al. 2000
 ENDCOMMENT
 
 NEURON {
-	SUFFIX HCN1
-	USEION h READ eh WRITE ih VALENCE 1
-	RANGE gbar, hinf,tauh,ratetau,ih
-	RANGE hinf,tauh,eh
+    SUFFIX HCN1
+    USEION h READ eh WRITE ih VALENCE 1
+    RANGE gbar, hinf,tauh,ratetau,ih
+    RANGE hinf,tauh,eh
 }
 
 UNITS {
-	(mA) = (milliamp)
-	(mV) = (millivolt)
+    (mA) = (milliamp)
+    (mV) = (millivolt)
 }
 
 
 CONSTANT {
-	q10=3
+    q10=3
 }
 
 PARAMETER {
-    v 		(mV)
-	celsius (deg)
-    gbar=.0001 	(mho/cm2)
+    v       (mV)
+    celsius (deg)
+    gbar=.0001  (mho/cm2)
     ratetau = 1 (ms)
     rec_temp = 23 (deg) : we set it here at room temperature as in Angelo et al. they forogot tp mention the recording temperature
     ljp = 9.3 (mV) : liquid_junction_potential
@@ -37,7 +37,7 @@ PARAMETER {
     v_tau_half2_noljp = -68 (mV)
     v_tau_k1 = -22 (mv)
     v_tau_k2 = 7.14 (mv)
- }
+}
 
 STATE {
     h
