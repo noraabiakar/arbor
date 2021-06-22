@@ -18,7 +18,7 @@ struct mprovider;
 class locset;
 class locset_tag {};
 
-class locset {
+class __attribute__ ((visibility ("default"))) locset {
 public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>

@@ -16,7 +16,7 @@ namespace arb {
 struct mprovider;
 struct region_tag {};
 
-class region {
+class __attribute__ ((visibility ("default"))) region {
 public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>

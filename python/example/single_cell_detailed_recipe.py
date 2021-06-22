@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import arbor
-import pandas
-import seaborn
+#import pandas
+#import seaborn
 import sys
 from arbor import mechanism as mech
 
@@ -174,7 +174,7 @@ for d, m in sim.samples(handle):
     data.append(d)
     meta.append(m)
 
-df = pandas.DataFrame()
-for i in range(len(data)):
-    df = df.append(pandas.DataFrame({'t/ms': data[i][:, 0], 'U/mV': data[i][:, 1], 'Location': str(meta[i]), 'Variable':'voltage'}))
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_recipe_result.svg')
+#df = pandas.DataFrame()
+#for i in range(len(data)):
+#    df = df.append(pandas.DataFrame({'t/ms': data[i][:, 0], 'U/mV': data[i][:, 1], 'Location': str(meta[i]), 'Variable':'voltage'}))
+#seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_recipe_result.svg')

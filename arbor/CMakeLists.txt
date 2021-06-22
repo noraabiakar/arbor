@@ -124,6 +124,7 @@ endif()
 # Library target:
 
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
+#set_target_properties(arbor PROPERTIES CXX_VISIBILITY_PRESET default) #doesn't do anything
 add_dependencies(arbor build_all_mods)
 
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
