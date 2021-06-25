@@ -68,6 +68,7 @@ struct cable_probe_point_info {
 // Voltage estimate [mV] at `location`, interpolated.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
+//struct __attribute__ ((visibility ("default"))) cable_probe_membrane_voltage {
 struct cable_probe_membrane_voltage {
     locset locations;
 };
@@ -230,8 +231,8 @@ using cable_cell_location_map = static_typed_map<location_assignment,
     mechanism_desc, i_clamp, gap_junction_site, threshold_detector>;
 
 // High-level abstract representation of a cell.
-class __attribute__ ((visibility ("default"))) cable_cell {
-//class cable_cell {
+//class __attribute__ ((visibility ("default"))) cable_cell {
+class cable_cell {
 public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
